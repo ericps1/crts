@@ -1,0 +1,60 @@
+CRTS2
+
+Controller
+	Read master scenario
+		Read number of nodes in particular scenario
+			Read particular node settings
+			Create thread for comm
+				Open TCP link
+				Send scenario settings
+				Listen for messages from node
+				Send messages to node if required
+				Signal main thread if scenario is ended by node
+		Wait for signal to end scenario
+		Decide to end scenario(after some period of time)
+
+
+CR Threads:
+	CRTS_CR: communicates with controller and pushes data through CR interface as needed
+	CE: receives metrics and adjusts CR
+	ofdmrx: reads samples from USRP and pushes through frame sync
+			When a frame is received, rxcallback is invoked, and payload is passed to TUN interface
+	ofdmtx: reads samples from TAP interface and transmits frame using ofdmtx
+	
+Controller messages:
+	Scenario info
+	Terminate scenario
+
+
+Metrics:
+	PHY:
+		RSSI
+		EVM
+		PER
+		Efficiency
+		Throughput
+		Latency
+	MAC:
+	NET:
+		Throughput
+		Capacity
+		Latency
+		Dropped connections
+
+Controllable parameters:
+	PHY:
+		Frequency
+		Power
+		Modulation
+		FEC
+		ARQ
+		Feedback
+	MAC:
+    NET:
+		Path(D2D, multiple hops)
+		ARQ?
+
+Other thoughts:
+	Traffic can be generated on a probabilitistic or constant basis
+	How to establish / maintain / re - establish connection
+	How to incorporate physical layer protocols

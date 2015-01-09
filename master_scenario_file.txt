@@ -1,0 +1,7 @@
+filename = "Master Configuation File for Scenarios";
+
+params =
+{
+	NumberofScenarios = 1;
+	scenario_1 = "Scenario_1.txt";
+};
