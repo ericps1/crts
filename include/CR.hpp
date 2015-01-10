@@ -46,7 +46,8 @@ void * CR_tx_worker(void * _arg);
 void * CR_rx_worker(void * _arg);
 void * CR_ce_worker(void * _arg);
 
-void CE_execute_1(struct metric_s * CE_metrics);
+void CE_execute_1(void * _arg);
+
 int rxCallback(unsigned char * _header,
 		int _header_valid,
 		unsigned char * _payload,
@@ -76,7 +77,10 @@ public:
     void reset_tx();
     // added transmitter methods
     void set_tx_modulation(int mod_scheme);
-    void set_tx_fec0(int fec_scheme);
+    void increase_tx_mod_order();
+	void decrease_tx_mod_order();
+	void set_tx_crc(int crc_scheme);
+	void set_tx_fec0(int fec_scheme);
     void set_tx_fec1(int fec_scheme);
     void set_tx_subcarriers(unsigned int subcarriers);
     void set_tx_subcarrier_alloc(char *subcarrier_alloc);
@@ -99,7 +103,8 @@ public:
     void set_rx_cp_len(unsigned int cp_len);
     void set_rx_taper_len(unsigned int taper_len);
 
-
+	// print metrics method
+	void print_metrics(CognitiveRadio * CR);
 
     // specify tx worker method as friend function so that it may
     // gain acess to private members of the class
@@ -142,7 +147,7 @@ public:
     uhd::tx_metadata_t          metadata_tx;
 	
     // pointer to CE execute function
-    void (*CE_execute)(struct metric_s * CE_metrics);
+    void (*CE_execute)(void * _arg);
 
     // struct containing metrics used by cognitive engine
     struct metric_s CE_metrics;

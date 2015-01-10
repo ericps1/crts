@@ -7,15 +7,15 @@ all: TUN CR CR_test CRTS_UE
 TUN: src/TUN.cpp
 	g++ $(FLAGS) -c -o lib/TUN.o src/TUN.cpp
 
-CR: src/CR.cpp
+CR: include/CR.hpp src/CR.cpp
 	# Execute program that reads CE's from master CE file and
 	# modifies CR.cpp to map string names to these functions
 	g++ $(FLAGS) -c -o lib/CR.o src/CR.cpp
 
-CR_test: test/CR_test.cpp
+CR_test: include/CR.hpp src/TUN.cpp src/CR.cpp test/CR_test.cpp
 	g++ $(FLAGS) -o CR_test test/CR_test.cpp $(LIBS)
 
-CRTS_UE : src/CR.cpp
+CRTS_UE : src/TUN.cpp src/CR.cpp src/CRTS_UE.cpp
 	g++ $(FLAGS) -o CRTS_UE src/CRTS_UE.cpp $(LIBS)
 
 CRTS_AP : src/CRTS_AP.cpp

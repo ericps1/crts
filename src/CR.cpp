@@ -12,7 +12,7 @@
 // Constructor
 CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
 
-    // set internal properties
+	// set internal properties
     M = 64;
     cp_len = 16;
     taper_len = 4; 
@@ -23,7 +23,7 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     fgprops.check       = LIQUID_CRC_32;
     fgprops.fec0        = LIQUID_FEC_NONE;
     fgprops.fec1        = LIQUID_FEC_HAMMING128;
-    fgprops.mod_scheme      = LIQUID_MODEM_QPSK;
+    fgprops.mod_scheme      = LIQUID_MODEM_QAM256;
     fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
 
     // allocate memory for frame generator output (single OFDM symbol)
@@ -32,7 +32,8 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
 
     // create frame synchronizer
     fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void *)this);
-    // TODO: create buffer
+
+	// TODO: create buffer
 
     // create usrp objects
     uhd::device_addr_t dev_addr;
@@ -43,12 +44,12 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     set_tx_freq(462.0e6f);
     set_tx_rate(500e3);
     set_tx_gain_soft(-12.0f);
-    set_tx_gain_uhd(40.0f);
+    set_tx_gain_uhd(0.0f);
 
     // initialize default rx values
     set_rx_freq(462.0e6f);
     set_rx_rate(500e3);
-    set_rx_gain_uhd(20.0f);
+    set_rx_gain_uhd(0.0f);
 
     // reset transceiver
     reset_tx();
@@ -68,21 +69,24 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     pthread_cond_init(&tx_cond, NULL); // transmitter condition
     pthread_create(&tx_process, NULL, CR_tx_worker, (void*)this);
 	
+	// Point to CE execute function	
+    CE_execute = &CE_execute_1;
+
+    // Start CE thread
+    pthread_mutex_init(&CE_mutex, NULL);
+	pthread_cond_init(&CE_execute_sig, NULL);
+	pthread_create(&CE_process, NULL, CR_ce_worker, (void*)this);
+	
     // Create TUN interface
-    char tun_name[IFNAMSIZ];
-    strcpy(tun_name, "tun1");
-    tun_fd = tun_alloc(tun_name, IFF_TUN);  /* tun interface */
+    //char tun_name[IFNAMSIZ];
+    //strcpy(tun_name, "tun1");
+    //tun_fd = tun_alloc(tun_name, IFF_TUN);  /* tun interface */
 
     // Create TAP interface
     //char tap_name[IFNAMSIZ];
     //strcpy(tap_name, "tap44");
     //tapfd = tun_alloc(tap_name, IFF_TAP);  /* tap interface */
 
-    // Point to CE execute function	
-    CE_execute = *CE_execute_1;
-
-    // Start CE thread
-    pthread_create(&CE_process, NULL, CR_ce_worker, (void*)this);
 }
 
 // Destructor
@@ -194,8 +198,42 @@ void CognitiveRadio::set_tx_modulation(int mod_scheme)
 {
     pthread_mutex_lock(&tx_mutex);
     fgprops.mod_scheme = mod_scheme;
+    ofdmflexframegen_setprops(fg, &fgprops);
     pthread_mutex_unlock(&tx_mutex);
+}
 
+// decrease modulation order
+void CognitiveRadio::decrease_tx_mod_order()
+{
+	// Check to see if modulation order is already minimized
+	if (fgprops.mod_scheme != 1 ||fgprops.mod_scheme != 9 ||fgprops.mod_scheme != 17 ||
+		fgprops.mod_scheme != 25 ||fgprops.mod_scheme != 32){
+			pthread_mutex_lock(&tx_mutex);
+   		 	fgprops.mod_scheme--;
+    		ofdmflexframegen_setprops(fg, &fgprops);
+			pthread_mutex_unlock(&tx_mutex);
+	}
+}
+
+// increase modulation order
+void CognitiveRadio::increase_tx_mod_order()
+{
+	// check to see if modulation order is already maximized
+	if (fgprops.mod_scheme != 8 ||fgprops.mod_scheme != 16 ||fgprops.mod_scheme != 24 ||
+		fgprops.mod_scheme != 31 ||fgprops.mod_scheme != 38){		
+			pthread_mutex_lock(&tx_mutex);
+   			fgprops.mod_scheme++;
+    		ofdmflexframegen_setprops(fg, &fgprops);
+    		pthread_mutex_unlock(&tx_mutex);
+	}
+}
+
+// set CRC scheme
+void CognitiveRadio::set_tx_crc(int crc_scheme){
+	pthread_mutex_lock(&tx_mutex);
+    fgprops.check = crc_scheme;
+	ofdmflexframegen_setprops(fg, &fgprops);
+    pthread_mutex_unlock(&tx_mutex);
 }
 
 // set FEC0
@@ -203,8 +241,8 @@ void CognitiveRadio::set_tx_fec0(int fec_scheme)
 {
     pthread_mutex_lock(&tx_mutex);
     fgprops.fec0 = fec_scheme;
+    ofdmflexframegen_setprops(fg, &fgprops);
     pthread_mutex_unlock(&tx_mutex);
-
 }
 
 // set FEC1
@@ -212,8 +250,8 @@ void CognitiveRadio::set_tx_fec1(int fec_scheme)
 {
     pthread_mutex_lock(&tx_mutex);
     fgprops.fec1 = fec_scheme;
+    ofdmflexframegen_setprops(fg, &fgprops);
     pthread_mutex_unlock(&tx_mutex);
-
 }
 
 // set number of subcarriers
@@ -404,7 +442,8 @@ void CognitiveRadio::stop_rx()
 // receiver worker thread
 void * CR_rx_worker(void * _arg)
 {
-    // type cast input argument as ofdmtxrx object
+    printf("RX thread has begun\n");
+	// type cast input argument as ofdmtxrx object
     CognitiveRadio * CR = (CognitiveRadio*) _arg;
 
     // set up receive buffer
@@ -495,11 +534,12 @@ int rxCallback(unsigned char * _header,
 	framesyncstats_s _stats,
 	void * _userdata)
 {
-    printf("Packet received!\n");
-    printf("Payload:");
-    for(unsigned int i=0; i<_payload_len; i++) printf("%i\n", _payload[i]);
-
-    // typecast user argument as CR object
+    printf("\nPacket received!\n");
+    //printf("Payload:");
+    //for(unsigned int i=0; i<_payload_len; i++) printf("%i ", _payload[i]);
+	//printf("\n");
+    
+	// typecast user argument as CR object
     CognitiveRadio * CR = (CognitiveRadio*)_userdata;
 		
     // if using PHY layer ARQ
@@ -509,18 +549,26 @@ int rxCallback(unsigned char * _header,
 
     // Store metrics and signal CE thread if using PHY layer metrics
     if (CR->PHY_metrics){
-	CR->CE_metrics.payload_valid = _payload_valid;
-	CR->CE_metrics.stats = _stats;
+		CR->CE_metrics.header_valid = _header_valid;
+		CR->CE_metrics.payload_valid = _payload_valid;
+		CR->CE_metrics.stats = _stats;
 
-	// Signal CE thread
-	pthread_cond_signal(&CR->CE_execute_sig);
+		// Signal CE thread
+		printf("Signaling CE thread to execute CE\n");
+		pthread_mutex_lock(&CR->CE_mutex);
+		pthread_cond_signal(&CR->CE_execute_sig);
+		pthread_mutex_unlock(&CR->CE_mutex);
 
-	// Pass metrics to controller if required
-	// Log metrics locally if required
+		// Print metrics if required
+		//printf("Printing metrics\n");
+		CR->print_metrics(CR);
+
+		// Pass metrics to controller if required
+		// Log metrics locally if required
     }
     // Pass payload to tap interface
-    int nwrite = cwrite(CR->tun_fd, (char*)_payload, (int)_payload_len);
-    if(nwrite != (int)_payload_len) printf("Number of bytes written to TUN interface not equal to payload length\n"); 
+    //int nwrite = cwrite(CR->tun_fd, (char*)_payload, (int)_payload_len);
+    //if(nwrite != (int)_payload_len) printf("Number of bytes written to TUN interface not equal to payload length\n"); 
 
     // Transmit acknowledgement if using PHY ARQ
     /*unsigned char *ACK;
@@ -540,7 +588,8 @@ int rxCallback(unsigned char * _header,
 // transmitter worker thread
 void * CR_tx_worker(void * _arg)
 {
-    // type cast input argument as CR object
+    printf("TX thread has begun\n");
+	// type cast input argument as CR object
     CognitiveRadio * CR = (CognitiveRadio*)_arg;
 
     // set up transmit buffer
@@ -590,10 +639,7 @@ void * CR_tx_worker(void * _arg)
 	    pthread_mutex_lock(&(CR->tx_mutex));
 	    CR->transmit_packet(header,
 		payload,
-		payload_len);/*,
-		LIQUID_FEC_NONE,
-		LIQUID_FEC_HAMMING128,
-		LIQUID_MODEM_QPSK);*/
+		payload_len);
 		pthread_mutex_unlock(&(CR->tx_mutex));
 
         } // while tx_running
@@ -606,19 +652,17 @@ void * CR_tx_worker(void * _arg)
 
 // main loop of CE
 void * CR_ce_worker(void *_arg){
-    CognitiveRadio *CR = (CognitiveRadio *) _arg; 
+    printf("CE thread has begun\n");
+	CognitiveRadio *CR = (CognitiveRadio *) _arg; 
     // Infinite loop
     while (true){
         // Wait for signal from receiver
-	pthread_cond_wait(&CR->CE_execute_sig, &CR->CE_mutex);
+		printf("Waiting for CE execute signal\n");
+		pthread_mutex_lock(&CR->CE_mutex);
+		pthread_cond_wait(&CR->CE_execute_sig, &CR->CE_mutex);
 
-	// Lock mutex until finished processing
-	pthread_mutex_lock(&CR->CE_mutex);
-
-	// execute CE
-	CR->CE_execute(&CR->CE_metrics);
-
-	// unlock mutex
+		// execute CE
+		CR->CE_execute((void*)CR);
     	pthread_mutex_unlock(&CR->CE_mutex);
     }
     printf("ce_worker exiting thread\n");
@@ -627,12 +671,50 @@ void * CR_ce_worker(void *_arg){
 }
 
 // specific implementation of cognitive engine (will be moved to external file in the future)
-void CE_execute_1(struct metric_s * CE_metrics){
+void CE_execute_1(void * _arg){
 	printf("Executing CE\n");
-	// Make decisions based on metrics
-	// Call CR methods to modify behavior
-	// Any CE algorithms requiring receive information other than the feedback
-	// from the ofdmtxrx object will need to stop_rx() first
+	CognitiveRadio * CR = (CognitiveRadio *)_arg;
+	
+	// Modify modulation based on EVM
+	if (CR->CE_metrics.stats.evm > -5.0f){
+		printf("EVM greater than allowed value\n");
+		printf("Current modulation: %i\n", CR->fgprops.mod_scheme);
+		CR->decrease_tx_mod_order();
+		printf("Updated modulation: %i\n", CR->fgprops.mod_scheme);
+	}
+	if (CR->CE_metrics.stats.evm < -10.0f){
+		printf("EVM is low. Modulation order is being increased\n");
+		printf("Current modulation: %i\n", CR->fgprops.mod_scheme);
+		CR->increase_tx_mod_order();
+		printf("Updated modulation: %i\n", CR->fgprops.mod_scheme);
+	}
 }
+
+void CognitiveRadio::print_metrics(CognitiveRadio * CR){
+	printf("Received packet metrics:\n");
+	printf("Header Valid: %i\n", CR->CE_metrics.header_valid);
+	printf("Payload Valid: %i\n", CR->CE_metrics.header_valid);
+	printf("EVM: %f\n", CR->CE_metrics.stats.evm);
+	printf("RSSI: %f\n", CR->CE_metrics.stats.rssi);
+	printf("Frequency Offset: %f\n", CR->CE_metrics.stats.cfo);
+	printf("Received packet parameters:\n");
+	printf("Modulation scheme: %u\n", CR->CE_metrics.stats.mod_scheme);
+	printf("Modulation BPS: %u\n", CR->CE_metrics.stats.mod_bps);
+	printf("Check: %u\n", CR->CE_metrics.stats.check);
+	printf("Inner FEC: %u\n", CR->CE_metrics.stats.fec0);
+	printf("Outter FEC: %u\n", CR->CE_metrics.stats.fec1);
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
