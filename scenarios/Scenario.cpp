@@ -19,7 +19,6 @@ node2:{
 	type = UE;
 	CORNET_IP = 192.168.1.3;
 	CRTS_IP = 10.0.0.3;
-	AP = 10.0.0.1;
 	CE = CE_UE;
 	layers = PHY;
 	traffic = constant;

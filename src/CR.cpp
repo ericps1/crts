@@ -39,9 +39,9 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     uhd::device_addr_t dev_addr;
     usrp_tx = uhd::usrp::multi_usrp::make(dev_addr);
     usrp_rx = uhd::usrp::multi_usrp::make(dev_addr);
-
+	printf("Created UHD objects\n");
     // initialize default tx values
-    set_tx_freq(462.0e6f);
+    /*set_tx_freq(462.0e6f);
     set_tx_rate(500e3);
     set_tx_gain_soft(-12.0f);
     set_tx_gain_uhd(0.0f);
@@ -50,11 +50,12 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     set_rx_freq(462.0e6f);
     set_rx_rate(500e3);
     set_rx_gain_uhd(0.0f);
-
+	*/
     // reset transceiver
     reset_tx();
     reset_rx();
 
+	printf("Creating threads\n");
     // create and start rx thread
     rx_running = false;             // receiver is not running initially
     rx_thread_running = true;           // receiver thread IS running initially
@@ -255,31 +256,47 @@ void CognitiveRadio::set_tx_fec1(int fec_scheme)
 }
 
 // set number of subcarriers
-void CognitiveRadio::set_tx_subcarriers(unsigned int subcarriers)
+void CognitiveRadio::set_tx_subcarriers(unsigned int _M)
 {
-    // ofdmflexframegen destroy
-    // ofdmflexframegen create
+    // destroy frame gen, set cp length, recreate frame gen
+	pthread_mutex_lock(&tx_mutex);
+	ofdmflexframegen_destroy(fg);
+	M = _M;
+	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 // set subcarrier allocation
-void CognitiveRadio::set_tx_subcarrier_alloc(char *subcarrier_alloc)
+void CognitiveRadio::set_tx_subcarrier_alloc(char *_p)
 {
-    // ofdmflexframegen destroy
-    // ofdmflexframegen create
+    // destroy frame gen, set cp length, recreate frame gen
+	pthread_mutex_lock(&tx_mutex);
+	ofdmflexframegen_destroy(fg);
+	memcpy(p, _p, M);
+	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 // set cp_len
-void CognitiveRadio::set_tx_cp_len(unsigned int cp_len)
+void CognitiveRadio::set_tx_cp_len(unsigned int _cp_len)
 {
-    // ofdmflexframegen destroy
-    // ofdmflexframegen create
+    // destroy frame gen, set cp length, recreate frame gen
+	pthread_mutex_lock(&tx_mutex);
+	ofdmflexframegen_destroy(fg);
+	cp_len = _cp_len;
+	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 // set taper_len
-void CognitiveRadio::set_tx_taper_len(unsigned int taper_len)
+void CognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
 {
-    // ofdmflexframegen destroy
-    // ofdmflexframegen create
+	// destroy frame gen, set cp length, recreate frame gen
+	pthread_mutex_lock(&tx_mutex);
+	ofdmflexframegen_destroy(fg);
+	taper_len = _taper_len;
+	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 // update payload data on a particular channel
@@ -386,33 +403,52 @@ void CognitiveRadio::reset_rx()
 }
 
 // set number of subcarriers
-void CognitiveRadio::set_rx_subcarriers(unsigned int subcarriers)
+void CognitiveRadio::set_rx_subcarriers(unsigned int _M)
 {
-    // ofdmflexframegen destroy
-    // ofdmflexframegen create
+    // stop rx, destroy frame sync, set subcarriers, recreate frame sync
+	stop_rx();
+	usleep(1.0);
+	ofdmflexframesync_destroy(fs);
+	M = _M;
+	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
+	start_rx();
 }
 
 // set subcarrier allocation
-void CognitiveRadio::set_rx_subcarrier_alloc(char *subcarrier_alloc)
+void CognitiveRadio::set_rx_subcarrier_alloc(char *_p)
 {
-    // ofdmflexframegen destroy
-    // ofdmflexframegen create
+    // destroy frame gen, set cp length, recreate frame gen
+	stop_rx();
+	usleep(1.0);
+	ofdmflexframesync_destroy(fs);
+	memcpy(p, _p, M);
+	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
+	start_rx();
 }
 
 // set cp_len
-void CognitiveRadio::set_rx_cp_len(unsigned int cp_len)
+void CognitiveRadio::set_rx_cp_len(unsigned int _cp_len)
 {
-    // ofdmflexframegen destroy
-    // ofdmflexframegen create
+	// destroy frame gen, set cp length, recreate frame gen
+	stop_rx();
+	usleep(1.0);
+	ofdmflexframesync_destroy(fs);
+	cp_len = _cp_len;
+	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
+	start_rx();
 }
 
 // set taper_len
-void CognitiveRadio::set_rx_taper_len(unsigned int taper_len)
+void CognitiveRadio::set_rx_taper_len(unsigned int _taper_len)
 {
-    // ofdmflexframegen destroy
-    // ofdmflexframegen create
+    // destroy frame gen, set cp length, recreate frame gen
+	stop_rx();
+	usleep(1.0);
+	ofdmflexframesync_destroy(fs);
+	taper_len = _taper_len;
+	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
+	start_rx();
 }
-
 
 // start receiver
 void CognitiveRadio::start_rx()

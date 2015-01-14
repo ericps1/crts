@@ -42,12 +42,15 @@ struct metric_s{
 	// APP
 };
 
+// thread functions
 void * CR_tx_worker(void * _arg);
 void * CR_rx_worker(void * _arg);
 void * CR_ce_worker(void * _arg);
 
+// function that defines cognitive engine
 void CE_execute_1(void * _arg);
 
+// function that receives frame from PHY layer
 int rxCallback(unsigned char * _header,
 		int _header_valid,
 		unsigned char * _payload,
@@ -55,8 +58,6 @@ int rxCallback(unsigned char * _header,
 		int _payload_valid,
 		framesyncstats_s _stats,
 		void * _userdata);
-
-
 
 class CognitiveRadio {
 public:
@@ -127,12 +128,9 @@ public:
 
     void transmit_packet(unsigned char * _header,
 			unsigned char *  _payload,
-			unsigned int     _payload_len);/*,
-			int		 _mod,
-			int		 _fec0,
-			int		 _fec1);*/
-
-    // receiver objects
+			unsigned int     _payload_len);
+			
+	// receiver objects
     ofdmflexframesync fs;           // frame synchronizer object
     pthread_t rx_process;           // receive thread
     pthread_mutex_t rx_mutex;       // receive mutex
@@ -145,7 +143,9 @@ public:
     uhd::usrp::multi_usrp::sptr usrp_tx;
     uhd::usrp::multi_usrp::sptr usrp_rx;
     uhd::tx_metadata_t          metadata_tx;
-	
+	float max_gain_tx;
+	float max_gain_rx;
+
     // pointer to CE execute function
     void (*CE_execute)(void * _arg);
 
