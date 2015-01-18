@@ -20,14 +20,15 @@ enum int_type{
 };
 
 struct node_parameters{
-
+	// general
     int type;
-    std::string CORNET_IP;
-    std::string CRTS_IP;
-    std::string CE;
+    char CORNET_IP[16];
+    char CRTS_IP[16];
+    char CE[30];
     int layers;
     int traffic;
-
+	
+	// RF
     float freq_tx;
     float freq_rx;
     float tx_rate;
@@ -39,7 +40,7 @@ struct node_parameters{
     float max_gain_rx;
 
     // interferer only
-    int signal;
+    int int_type;
     float duty_cycle;
 };
 

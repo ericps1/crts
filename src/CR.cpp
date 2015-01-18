@@ -1,4 +1,3 @@
-#include<stdlib.h>
 #include<stdio.h>
 #include<net/if.h>
 #include<linux/if_tun.h>
@@ -40,20 +39,21 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     usrp_tx = uhd::usrp::multi_usrp::make(dev_addr);
     usrp_rx = uhd::usrp::multi_usrp::make(dev_addr);
 	printf("Created UHD objects\n");
-    // initialize default tx values
-    /*set_tx_freq(462.0e6f);
+    
+	// initialize default tx values
+    /*set_tx_freq(460.0e6f);
     set_tx_rate(500e3);
     set_tx_gain_soft(-12.0f);
     set_tx_gain_uhd(0.0f);
 
     // initialize default rx values
-    set_rx_freq(462.0e6f);
+    set_rx_freq(460.0e6f);
     set_rx_rate(500e3);
     set_rx_gain_uhd(0.0f);
 	*/
     // reset transceiver
-    reset_tx();
-    reset_rx();
+    //reset_tx();
+    //reset_rx();
 
 	printf("Creating threads\n");
     // create and start rx thread
@@ -62,7 +62,7 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     pthread_mutex_init(&rx_mutex, NULL);    // receiver mutex
     pthread_cond_init(&rx_cond,   NULL);    // receiver condition
     pthread_create(&rx_process,   NULL, CR_rx_worker, (void*)this);
-
+	
     // create and start tx thread
     tx_running = false; // transmitter is not running initially
     tx_thread_running = true; // transmitter thread IS running initially
@@ -78,10 +78,11 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
 	pthread_cond_init(&CE_execute_sig, NULL);
 	pthread_create(&CE_process, NULL, CR_ce_worker, (void*)this);
 	
+
     // Create TUN interface
-    //char tun_name[IFNAMSIZ];
-    //strcpy(tun_name, "tun1");
-    //tun_fd = tun_alloc(tun_name, IFF_TUN);  /* tun interface */
+    char tun_name[IFNAMSIZ];
+    strcpy(tun_name, "tun1");
+    tun_fd = tun_alloc(tun_name, IFF_TUN);  /* tun interface */
 
     // Create TAP interface
     //char tap_name[IFNAMSIZ];
@@ -182,7 +183,7 @@ void CognitiveRadio::set_tx_rate(float _tx_rate)
 void CognitiveRadio::set_tx_gain_soft(float _tx_gain_soft)
 {
     pthread_mutex_lock(&tx_mutex);
-    tx_gain = powf(10.0f, _tx_gain_soft / 20.0f);
+	tx_gain = powf(10.0f, _tx_gain_soft / 20.0f);
     pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -387,7 +388,8 @@ void CognitiveRadio::set_rx_rate(float _rx_rate)
 // set receiver hardware (UHD) gain
 void CognitiveRadio::set_rx_gain_uhd(float _rx_gain_uhd)
 {
-    usrp_rx->set_rx_gain(_rx_gain_uhd);
+    printf("Entered set rx gain function\n");
+	usrp_rx->set_rx_gain(_rx_gain_uhd);
 }
 
 // set receiver antenna
@@ -488,7 +490,7 @@ void * CR_rx_worker(void * _arg)
 
     // receiver metadata object
     uhd::rx_metadata_t md;
-
+	
     while (CR->rx_thread_running) {
     // wait for signal to start; lock mutex
     pthread_mutex_lock(&(CR->rx_mutex));
@@ -550,7 +552,7 @@ void * CR_rx_worker(void * _arg)
         // push resulting samples through synchronizer
         ofdmflexframesync_execute(CR->fs, &usrp_sample, 1);
         }
-
+		
     } // while rx_running
     printf("rx_worker finished running\n");
 
@@ -571,9 +573,6 @@ int rxCallback(unsigned char * _header,
 	void * _userdata)
 {
     printf("\nPacket received!\n");
-    //printf("Payload:");
-    //for(unsigned int i=0; i<_payload_len; i++) printf("%i ", _payload[i]);
-	//printf("\n");
     
 	// typecast user argument as CR object
     CognitiveRadio * CR = (CognitiveRadio*)_userdata;
@@ -596,7 +595,6 @@ int rxCallback(unsigned char * _header,
 		pthread_mutex_unlock(&CR->CE_mutex);
 
 		// Print metrics if required
-		//printf("Printing metrics\n");
 		CR->print_metrics(CR);
 
 		// Pass metrics to controller if required
@@ -637,47 +635,48 @@ void * CR_tx_worker(void * _arg)
     int nread;
 
     while (CR->tx_thread_running) {
-	// wait for signal to start; lock mutex
-	//pthread_mutex_lock(&(CR->tx_mutex));
-	// this function unlocks the mutex and waits for the condition;
-	// once the condition is set, the mutex is again locked
-	printf("tx_worker waiting for condition...\n");
-	//int status =
-	pthread_cond_wait(&(CR->tx_cond), &(CR->tx_mutex));
-	printf("tx_worker received condition\n");
-	// unlock the mutex
-	//printf("tx_worker unlocking mutex\n");
-	//pthread_mutex_unlock(&(CR->tx_mutex));
-	// condition given; check state: run or exit
-	printf("tx_worker running...\n");
-	if (!CR->tx_running) {
-	    printf("tx_worker finished\n");
-	break;
-	}
-	// run transmitter
-	while (CR->tx_running) {
-	    // grab data from TAP interface
-	    nread = read(CR->tun_fd, buffer, sizeof(buffer));
-	    if (nread < 0) {
-		perror("Reading from interface");
-		//close(tun_fd);
-		exit(1);
-	    }
+		// wait for signal to start; lock mutex
+		//pthread_mutex_lock(&(CR->tx_mutex));
+		// this function unlocks the mutex and waits for the condition;
+		// once the condition is set, the mutex is again locked
+		printf("tx_worker waiting for condition...\n");
+		//int status =
+		pthread_cond_wait(&(CR->tx_cond), &(CR->tx_mutex));
+		printf("tx_worker received condition\n");
+		// unlock the mutex
+		//printf("tx_worker unlocking mutex\n");
+		//pthread_mutex_unlock(&(CR->tx_mutex));
+		// condition given; check state: run or exit
+		printf("tx_worker running...\n");
+		if (!CR->tx_running) {
+	    	printf("tx_worker finished\n");
+		break;
+		}
+		// run transmitter
+		while (CR->tx_running) {
+	    	// grab data from TAP interface
+	    	nread = read(CR->tun_fd, buffer, sizeof(buffer));
+	    	if (nread < 0) {
+				perror("Reading from interface");
+				close(CR->tun_fd);
+				exit(1);
+	    	}
+			
 
-	    // set header (needs to be modified)
-	    header[1] = 1;
+	    	// set header (needs to be modified)
+	    	header[1] = 1;
 
-	    // resize to packet length if necessary
-	    payload = buffer;
-	    payload_len = nread;
+	    	// resize to packet length if necessary
+	    	payload = buffer;
+	    	payload_len = nread;
 	 
-	    // transmit packet
-	    pthread_mutex_lock(&(CR->tx_mutex));
-	    CR->transmit_packet(header,
-		payload,
-		payload_len);
-		pthread_mutex_unlock(&(CR->tx_mutex));
-
+	    	// transmit packet
+	    	pthread_mutex_lock(&(CR->tx_mutex));
+	    	CR->transmit_packet(header,
+				payload,
+				payload_len);
+			pthread_mutex_unlock(&(CR->tx_mutex));
+			
         } // while tx_running
         printf("tx_worker finished running\n");
     } // while true

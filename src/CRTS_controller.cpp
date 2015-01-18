@@ -14,6 +14,7 @@
 #include<string.h>
 #include<time.h>
 #include"node_parameters.hpp"
+#include"read_configs.hpp"
 
 #define MAXPENDING 5
 
@@ -28,10 +29,11 @@ int main(){
 		exit(EXIT_FAILURE);
 	}
 	// Allow reuse of a port. See http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t
-	/*if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, (void*)&reusePortOption, sizeof(reusePortOption)) < 0){
-		printf(" setsockopt() failed\n");
-		exit(EXIT_FAILURE);
-	}*/
+	int yes = 1;
+	if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1){
+		printf("setsockopt() failed\n");
+		exit(1);
+	}
 	// Construct local (server) address structure
 	struct sockaddr_in serv_addr;
 	memset(&serv_addr, 0, sizeof(serv_addr)); // Zero out structure
@@ -41,41 +43,34 @@ int main(){
 	// Bind to the local address to a port
 	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
 		printf("ERROR: bind() error\n");
-		exit(EXIT_FAILURE);
+		exit(1);
 	}	
 
-	// node settings
-	struct node_parameters np1 = {};
-		np1.freq_tx = 400e6;
-		np1.freq_rx = 420e6;
-		np1.tx_rate = 1e6;
-		np1.rx_rate = 1e6;
-		np1.gain_tx_soft = 1.0f;
-		np1.gain_tx = 20.0;
-		np1.gain_rx = 20.0;
-	struct node_parameters np2 = {};
-		np2.freq_tx = 420e6;
-		np2.freq_rx = 400e6;
-		np2.tx_rate = 1e6;
-		np2.rx_rate = 1e6;
-		np2.gain_tx_soft = 1.0f;
-		np2.gain_tx = 20.0;
-		np2.gain_rx = 20.0;
+	// objects needs for TCP links to cognitive radio nodes
+	int client[48];
+	struct sockaddr_in clientAddr[48];
+	socklen_t client_addr_size[48];
+	struct node_parameters np[48];
 
 	// loop through scenarios
-	/*for (int i = 0; i < num_scenarios; i++){
-		// read the number of nodes in scenario
-		read_num_nodes(scenario_list[i]);
+	//for (int i = 0; i < num_scenarios; i++){
+		// read the number of nodes in scenario	
+		std::string scenario_list = "scenario.cfg";
+		printf("Reading number of nodes in scenario\n");
+		int num_nodes = read_num_nodes((char *)scenario_list.c_str());
+		printf("Number of nodes: %i\n\n", num_nodes);
 
 		// loop through nodes in scenario
 		for (int j = 0; j < num_nodes; j++){
 
 			// read in node settings
-			node_settings[j] = read_node(j, scenario_list[i]);
-
+			printf("Reading node %i config\n", j);
+			memset(&np[j], 0, sizeof(struct node_parameters));;
+			np[j] = read_node_parameters(j+1, (char *)scenario_list.c_str());
+			print_node_parameters(&np[j]);
+			
 			// launch appropriate executable on node
-			char *cmd;
-			switch node_settings.type{
+			/*switch node_settings.type{
 			case AP: 
 				strcpy(cmd, "./CRTS_AP");
 				break;
@@ -85,53 +80,42 @@ int main(){
 			case interferer:
 				strcpy(cmd, "./CRTS_interferer");
 				break;
-			}
-			launch_remote_exe(node_settings[j].CORNET_IP, cmd);
-	*/
-			// listen for node to connect to server
+			}*/
 			
-			// send info to first connected node
+			// send command to launch executable
+			char command[100] = "sshpass -p zv8p8vfa ssh ericps1@"; 
+			strcat(command, np[j].CORNET_IP);
+			strcat(command, " './crts/CRTS_UE >&- 2>&- <&- &'");
+			//system(command);
+			
+			// listen for node to connect to server
 			if (listen(sockfd, MAXPENDING) < 0)
 			{
 				fprintf(stderr, "ERROR: Failed to Set Sleeping (listening) Mode\n");
 				exit(EXIT_FAILURE);
 			}	
-			// Accept a connection from client
-			struct sockaddr_in clientAddr1; // Client address
-			socklen_t client_addr_size; // Client address size
-			int client1 = -1;
-			client1 = accept(sockfd, (struct sockaddr *)&clientAddr1, &client_addr_size);
-			if (client1 < 0)
+			// accept connection
+			client[j] = accept(sockfd, (struct sockaddr *)&clientAddr[j], &client_addr_size[j]);
+			if (client[j] < 0)
 			{
 				fprintf(stderr, "ERROR: Sever Failed to Connect to Client\n");
 				exit(EXIT_FAILURE);
 			}
-			printf("Sending scenario parameters to first node\n");
+			// send node parameters
+			printf("\nSending scenario parameters to node %i\n", j);
 			char msg_type = 's';
-			send(client1, (void*)&msg_type, 1, 0);
-			send(client1, (void*)&np1, sizeof(struct node_parameters), 0);
-			
-			// send info to second connected node
-			if (listen(sockfd, MAXPENDING) < 0)
-			{
-				fprintf(stderr, "ERROR: Failed to Set Sleeping (listening) Mode\n");
-				exit(EXIT_FAILURE);
-			}
-			// Accept a connection from client
-			struct sockaddr_in clientAddr2; // Client address
-			//socklen_t client_addr_size; // Client address size
-			int client2 = -1;
-			client2 = accept(sockfd, (struct sockaddr *)&clientAddr2, &client_addr_size);
-			if (client2 < 0)
-			{
-				fprintf(stderr, "ERROR: Sever Failed to Connect to Client\n");
-				exit(EXIT_FAILURE);
-			}
-			printf("Sending scenario parameters to second node\n");
-			send(client2, (void*)&msg_type, 1, 0);
-			send(client2, (void*)&np2, sizeof(struct node_parameters), 0);
-			
+			send(client[j], (void*)&msg_type, sizeof(char), 0);
+			send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);
+		
+
+
+		}
+
+		//for(int i=0; i<num_nodes; i++){
+		//	close(client[i]);
 		//}
+		
+		while(true){;}
 
 		// Generate/push transmit data if needed
 		// Receive feedback if needed
@@ -139,3 +123,22 @@ int main(){
 		// Terminate scenario on all nodes
 	//}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

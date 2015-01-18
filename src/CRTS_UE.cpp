@@ -11,11 +11,12 @@
 #include<time.h>
 #include"CR.hpp"
 #include"node_parameters.hpp"
+#include"read_configs.hpp"
 
 void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, struct node_parameters *np){
 	printf("Listening for message from server\n");
 	// Listen to socket for message from controller
-	char command_buffer[1+sizeof(struct node_parameters)];
+	char command_buffer[500+sizeof(struct node_parameters)];
 	int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(struct node_parameters), 0);
 	printf("receive flag %i\n", rflag);
 	if (rflag == 0) return;
@@ -30,7 +31,8 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 	case 's': // settings for upcoming scenario
 		printf("Received settings for scenario\n");
 		// copy node_parameters
-		memcpy(np ,&command_buffer[1], 80);
+		memcpy(np ,&command_buffer[1], sizeof(node_parameters));
+		print_node_parameters(np);
 
 		// set cognitive radio parameters
 		CR->set_tx_freq(np->freq_tx);
@@ -42,14 +44,18 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 		CR->set_rx_gain_uhd(np->gain_rx);
 		CR->max_gain_tx = np->max_gain_tx;
 		CR->max_gain_rx = np->max_gain_rx;
+		CR->PHY_metrics = true;
 		break;
 	case 't': // terminate program
 		exit(1);
 	}
+	
 }
 
 
 int main(){
+	sleep(2.0);
+	
 	// Create TCP client to controller
 	//unsigned int controller_port = 4444;
 	char * controller_ipaddr = (char*) "192.168.1.23";
@@ -73,22 +79,49 @@ int main(){
 		exit(EXIT_FAILURE);
 	}
 	printf("Connected to server\n");
+	
+
 	// Create CR object
 	CognitiveRadio CR;
 	printf("Cognitve Radio created\n");
 	// Create node parameters struct
 	struct node_parameters np;
-
-	//char command_buffer[81];
-	//int rflag = recv(TCP_controller, &command_buffer[0], 81, 0);
-	//printf("receive flag %i\n", rflag);
+		/*np.type = 0;
+		strcpy(np.CORNET_IP, "192.168.1.25");
+		strcpy(np.CRTS_IP, "10.0.0.2");
+		strcpy(np.CE, "CE_UE");
+		np.layers = 0;
+		np.traffic = 0;
+		np.freq_tx = 460e6;
+		np.freq_rx = 440e6;
+		np.tx_rate = 1e6;
+		np.rx_rate = 1e6;
+		np.gain_tx_soft = 1.0;
+		np.gain_tx = 20.0;
+		np.gain_rx = 20.0;
+		np.max_gain_tx = 30.0;
+		np.max_gain_rx = 30.0;
+		np.int_type = 0;
+		np.duty_cycle = 1.0;
 	
+		// set cognitive radio parameters
+		CR.set_tx_freq(np.freq_tx);
+		CR.set_rx_freq(460e6);
+		CR.set_tx_rate(np.tx_rate);
+		CR.set_rx_rate(np.rx_rate);
+		CR.set_tx_gain_soft(np.gain_tx_soft);
+		CR.set_tx_gain_uhd(np.gain_tx);
+		CR.set_rx_gain_uhd(20.0);
+		CR.max_gain_tx = np.max_gain_tx;
+		CR.max_gain_rx = np.max_gain_rx;
+		CR.PHY_metrics = true;
+		*/
 	// Read initial scenario info from controller (block program until data is received)
 	Receive_command_from_controller(&TCP_controller, &CR, &np);
-	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
+	//printf("Setting socket to non-blocking\n");
+	//fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
 	// Start CR
-	sleep(2.0);
 	CR.start_rx();
 	//CR.start_tx();
 
@@ -100,6 +133,7 @@ int main(){
 
 	// Loop
 	while (true){
+		printf("Transmitting packet\n");
 		// Listen for any updates from the controller (non-blocking)
 		//Receive_command_from_controller(&TCP_controller, &CR, &np);
 
