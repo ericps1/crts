@@ -1,9 +1,7 @@
 FLAGS = -I include -Wall -fPIC
 LIBS = lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
-.PHONY: all
-
-all: TUN TUN_test CR CR_test CRTS_UE read_configs CRTS_controller
+all: TUN TUN_test CR CR_test CRTS_UE read_configs CRTS_controller post_process_logs
 
 TUN: src/TUN.cpp
 	g++ $(FLAGS) -c -o lib/TUN.o src/TUN.cpp
@@ -33,3 +31,6 @@ read_configs: src/read_configs.cpp
 
 CRTS_controller: include/node_parameters.hpp src/CRTS_controller.cpp src/read_configs.cpp
 	g++ $(FLAGS) -o CRTS_controller src/CRTS_controller.cpp lib/read_configs.o -lconfig
+
+post_process_logs: src/post_process_logs.cpp
+	g++ $(FLAGS) -o post_process_logs src/post_process_logs.cpp $(LIBS)

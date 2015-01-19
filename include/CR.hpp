@@ -20,13 +20,13 @@ enum headers{
 // metric struct
 struct metric_s{
 	// Flag for metric type
-	enum layer{
+	/*enum layer{
 		PHY,
 		MAC,
 		NET,
 		TRP,
 		APP
-	};
+	};*/
 
 	// PHY
 	int header_valid;
@@ -104,8 +104,12 @@ public:
     void set_rx_cp_len(unsigned int cp_len);
     void set_rx_taper_len(unsigned int taper_len);
 
-	// print metrics method
+	// print/log metrics methods and variables
 	void print_metrics(CognitiveRadio * CR);
+	int print_metrics_flag;
+	void log_metrics(CognitiveRadio * CR);
+	int log_metrics_flag;
+	char log_file[30];
 
     // specify tx worker method as friend function so that it may
     // gain acess to private members of the class

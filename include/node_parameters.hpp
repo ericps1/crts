@@ -27,7 +27,10 @@ struct node_parameters{
     char CE[30];
     int layers;
     int traffic;
-	
+	int print_metrics;
+	int log_metrics;
+	char log_file[30];
+
 	// RF
     float freq_tx;
     float freq_rx;

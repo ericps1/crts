@@ -44,6 +44,9 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 		CR->set_rx_gain_uhd(np->gain_rx);
 		CR->max_gain_tx = np->max_gain_tx;
 		CR->max_gain_rx = np->max_gain_rx;
+		CR->print_metrics_flag = np->print_metrics;
+		CR->log_metrics_flag = np->log_metrics;
+		strcpy(CR->log_file, np->log_file);
 		CR->PHY_metrics = true;
 		break;
 	case 't': // terminate program

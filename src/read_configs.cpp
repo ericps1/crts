@@ -93,7 +93,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 		exit(1);
 	}
 	
-	//int tmpI;
+	int tmpI;
 	double tmpD;
 	const char *tmpS;
 	
@@ -135,6 +135,16 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 		if(strcmp(tmpS, "stream")) np.traffic = stream;
 		else if(strcmp(tmpS, "burst")) np.traffic = burst;
 	}
+	
+	if (config_setting_lookup_int(node_config, "print_metrics", &tmpI))
+		np.print_metrics = tmpI;
+	
+	if (config_setting_lookup_int(node_config, "log_metrics", &tmpI))
+		np.log_metrics = tmpI;
+	
+	if (config_setting_lookup_string(node_config, "log_file", &tmpS))
+		strcpy(np.log_file, tmpS);
+
 	if (config_setting_lookup_float(node_config, "freq_tx", &tmpD))
 		np.freq_tx = tmpD;
 

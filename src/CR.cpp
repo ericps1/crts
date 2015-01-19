@@ -1,4 +1,6 @@
 #include<stdio.h>
+//#include<iostream>
+//#include<fstream>
 #include<net/if.h>
 #include<linux/if_tun.h>
 #include<math.h>
@@ -41,7 +43,7 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
 	printf("Created UHD objects\n");
     
 	// initialize default tx values
-    /*set_tx_freq(460.0e6f);
+    set_tx_freq(460.0e6f);
     set_tx_rate(500e3);
     set_tx_gain_soft(-12.0f);
     set_tx_gain_uhd(0.0f);
@@ -50,10 +52,10 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     set_rx_freq(460.0e6f);
     set_rx_rate(500e3);
     set_rx_gain_uhd(0.0f);
-	*/
+	
     // reset transceiver
-    //reset_tx();
-    //reset_rx();
+    reset_tx();
+    reset_rx();
 
 	printf("Creating threads\n");
     // create and start rx thread
@@ -595,10 +597,13 @@ int rxCallback(unsigned char * _header,
 		pthread_mutex_unlock(&CR->CE_mutex);
 
 		// Print metrics if required
-		CR->print_metrics(CR);
+		if(CR->print_metrics_flag)
+			CR->print_metrics(CR);
 
 		// Pass metrics to controller if required
 		// Log metrics locally if required
+		if(CR->log_metrics_flag)
+			CR->log_metrics(CR);
     }
     // Pass payload to tap interface
     //int nwrite = cwrite(CR->tun_fd, (char*)_payload, (int)_payload_len);
@@ -740,6 +745,34 @@ void CognitiveRadio::print_metrics(CognitiveRadio * CR){
 	printf("Outter FEC: %u\n", CR->CE_metrics.stats.fec1);
 }
 
+void CognitiveRadio::log_metrics(CognitiveRadio * CR){
+	// create string of actual file location
+	char file_name[100];
+	strcpy(file_name, "/users/ericps1/crts/logs/");
+	strcat(file_name, CR->log_file);
+	
+	// open file, append metrics, and close
+	FILE * file;
+	file = fopen(file_name, "ab");
+	
+	printf("\n\nEVM: %f\n\n", CR->CE_metrics.stats.evm);
+
+	fwrite(&CR->CE_metrics, sizeof(struct metric_s), 1, file); 
+
+	/*fwrite(&CR->CE_metrics.stats.evm, sizeof(float), 1, file); 
+	fwrite(&CR->CE_metrics.header_valid
+	fwrite(&CR->CE_metrics.payload_valid
+	fwrite(&CR->CE_metrics.stats.evm; 
+	fwrite(&CR->CE_metrics.stats.rssi);
+	fwrite(&CR->CE_metrics.stats.cfo;
+	fwrite(&CR->CE_metrics.stats.mod_scheme;
+	fwrite(&CR->CE_metrics.stats.mod_bps;
+	fwrite(&CR->CE_metrics.stats.check;
+	fwrite(&CR->CE_metrics.stats.fec0;
+	fwrite(&CR->CE_metrics.stats.fec1;*/
+	
+	fclose(file);
+}
 
 
 
