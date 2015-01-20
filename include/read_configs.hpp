@@ -1,7 +1,7 @@
 #ifndef _H_READ_CONFIG_
 #define _H_READ_CONFIG_
 
-int readScMasterFile(char scenario_list[30][60], int verbose);
+int read_scenario_master_file(char scenario_list[30][60]);
 
 int read_num_nodes(char *scenario_file);
 

@@ -40,8 +40,7 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     uhd::device_addr_t dev_addr;
     usrp_tx = uhd::usrp::multi_usrp::make(dev_addr);
     usrp_rx = uhd::usrp::multi_usrp::make(dev_addr);
-	printf("Created UHD objects\n");
-    
+	
 	// initialize default tx values
     set_tx_freq(460.0e6f);
     set_tx_rate(500e3);
@@ -57,8 +56,7 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     reset_tx();
     reset_rx();
 
-	printf("Creating threads\n");
-    // create and start rx thread
+	// create and start rx thread
     rx_running = false;             // receiver is not running initially
     rx_thread_running = true;           // receiver thread IS running initially
     pthread_mutex_init(&rx_mutex, NULL);    // receiver mutex
@@ -82,9 +80,9 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
 	
 
     // Create TUN interface
-    char tun_name[IFNAMSIZ];
-    strcpy(tun_name, "tun1");
-    tun_fd = tun_alloc(tun_name, IFF_TUN);  /* tun interface */
+    //char tun_name[IFNAMSIZ];
+    //strcpy(tun_name, "tun1");
+    //tun_fd = tun_alloc(tun_name, IFF_TUN);  /* tun interface */
 
     // Create TAP interface
     //char tap_name[IFNAMSIZ];
@@ -390,8 +388,7 @@ void CognitiveRadio::set_rx_rate(float _rx_rate)
 // set receiver hardware (UHD) gain
 void CognitiveRadio::set_rx_gain_uhd(float _rx_gain_uhd)
 {
-    printf("Entered set rx gain function\n");
-	usrp_rx->set_rx_gain(_rx_gain_uhd);
+    usrp_rx->set_rx_gain(_rx_gain_uhd);
 }
 
 // set receiver antenna
@@ -457,7 +454,6 @@ void CognitiveRadio::set_rx_taper_len(unsigned int _taper_len)
 // start receiver
 void CognitiveRadio::start_rx()
 {
-    printf("usrp rx start\n");
     // set rx running flag
     rx_running = true;
 
@@ -471,7 +467,6 @@ void CognitiveRadio::start_rx()
 // stop receiver
 void CognitiveRadio::stop_rx()
 {
-    printf("usrp rx stop\n");
     // set rx running flag
     rx_running = false;
 
@@ -482,8 +477,7 @@ void CognitiveRadio::stop_rx()
 // receiver worker thread
 void * CR_rx_worker(void * _arg)
 {
-    printf("RX thread has begun\n");
-	// type cast input argument as ofdmtxrx object
+    // type cast input argument as ofdmtxrx object
     CognitiveRadio * CR = (CognitiveRadio*) _arg;
 
     // set up receive buffer
@@ -499,17 +493,12 @@ void * CR_rx_worker(void * _arg)
 
     // this function unlocks the mutex and waits for the condition;
     // once the condition is set, the mutex is again locked
-    printf("rx_worker waiting for condition...\n");
-    //int status =
     pthread_cond_wait(&(CR->rx_cond), &(CR->rx_mutex));
-    printf("rx_worker received condition\n");
-
-    // unlock the mutex
-    printf("rx_worker unlocking mutex\n");
+    
+	// unlock the mutex
     pthread_mutex_unlock(&(CR->rx_mutex));
 
     // condition given; check state: run or exit
-    printf("rx_worker running...\n");
     if (!CR->rx_running) {
         printf("rx_worker finished\n");
         break;
@@ -574,9 +563,7 @@ int rxCallback(unsigned char * _header,
 	framesyncstats_s _stats,
 	void * _userdata)
 {
-    printf("\nPacket received!\n");
-    
-	// typecast user argument as CR object
+    // typecast user argument as CR object
     CognitiveRadio * CR = (CognitiveRadio*)_userdata;
 		
     // if using PHY layer ARQ
@@ -591,7 +578,7 @@ int rxCallback(unsigned char * _header,
 		CR->CE_metrics.stats = _stats;
 
 		// Signal CE thread
-		printf("Signaling CE thread to execute CE\n");
+		//printf("Signaling CE thread to execute CE\n");
 		pthread_mutex_lock(&CR->CE_mutex);
 		pthread_cond_signal(&CR->CE_execute_sig);
 		pthread_mutex_unlock(&CR->CE_mutex);
@@ -627,8 +614,7 @@ int rxCallback(unsigned char * _header,
 // transmitter worker thread
 void * CR_tx_worker(void * _arg)
 {
-    printf("TX thread has begun\n");
-	// type cast input argument as CR object
+    // type cast input argument as CR object
     CognitiveRadio * CR = (CognitiveRadio*)_arg;
 
     // set up transmit buffer
@@ -644,15 +630,11 @@ void * CR_tx_worker(void * _arg)
 		//pthread_mutex_lock(&(CR->tx_mutex));
 		// this function unlocks the mutex and waits for the condition;
 		// once the condition is set, the mutex is again locked
-		printf("tx_worker waiting for condition...\n");
-		//int status =
 		pthread_cond_wait(&(CR->tx_cond), &(CR->tx_mutex));
-		printf("tx_worker received condition\n");
 		// unlock the mutex
 		//printf("tx_worker unlocking mutex\n");
 		//pthread_mutex_unlock(&(CR->tx_mutex));
 		// condition given; check state: run or exit
-		printf("tx_worker running...\n");
 		if (!CR->tx_running) {
 	    	printf("tx_worker finished\n");
 		break;
@@ -692,12 +674,12 @@ void * CR_tx_worker(void * _arg)
 
 // main loop of CE
 void * CR_ce_worker(void *_arg){
-    printf("CE thread has begun\n");
+    //printf("CE thread has begun\n");
 	CognitiveRadio *CR = (CognitiveRadio *) _arg; 
     // Infinite loop
     while (true){
         // Wait for signal from receiver
-		printf("Waiting for CE execute signal\n");
+		//printf("Waiting for CE execute signal\n");
 		pthread_mutex_lock(&CR->CE_mutex);
 		pthread_cond_wait(&CR->CE_execute_sig, &CR->CE_mutex);
 
@@ -712,7 +694,7 @@ void * CR_ce_worker(void *_arg){
 
 // specific implementation of cognitive engine (will be moved to external file in the future)
 void CE_execute_1(void * _arg){
-	printf("Executing CE\n");
+	//printf("Executing CE\n");
 	CognitiveRadio * CR = (CognitiveRadio *)_arg;
 	
 	// Modify modulation based on EVM
@@ -731,18 +713,19 @@ void CE_execute_1(void * _arg){
 }
 
 void CognitiveRadio::print_metrics(CognitiveRadio * CR){
-	printf("Received packet metrics:\n");
-	printf("Header Valid: %i\n", CR->CE_metrics.header_valid);
-	printf("Payload Valid: %i\n", CR->CE_metrics.header_valid);
-	printf("EVM: %f\n", CR->CE_metrics.stats.evm);
-	printf("RSSI: %f\n", CR->CE_metrics.stats.rssi);
-	printf("Frequency Offset: %f\n", CR->CE_metrics.stats.cfo);
-	printf("Received packet parameters:\n");
-	printf("Modulation scheme: %u\n", CR->CE_metrics.stats.mod_scheme);
-	printf("Modulation BPS: %u\n", CR->CE_metrics.stats.mod_bps);
-	printf("Check: %u\n", CR->CE_metrics.stats.check);
-	printf("Inner FEC: %u\n", CR->CE_metrics.stats.fec0);
-	printf("Outter FEC: %u\n", CR->CE_metrics.stats.fec1);
+	printf("\n---------------------------------------------------------\n");
+	printf("Received packet metrics:      Received Packet Parameters:\n");
+	printf("---------------------------------------------------------\n");
+	printf("Header Valid:     %-6i      Modulation Scheme:   %u\n", 
+		CR->CE_metrics.header_valid, CR->CE_metrics.stats.mod_scheme);
+	printf("Payload Valid:    %-6i      Modulation bits/sym: %u\n", 
+		CR->CE_metrics.header_valid, CR->CE_metrics.stats.mod_bps);
+	printf("EVM:              %-8.2f    Check:               %u\n", 
+		CR->CE_metrics.stats.evm, CR->CE_metrics.stats.check);
+	printf("RSSI:             %-8.2f    Inner FEC:           %u\n", 
+		CR->CE_metrics.stats.rssi, CR->CE_metrics.stats.fec0);
+	printf("Frequency Offset: %-8.2f    Outter FEC:          %u\n", 
+		CR->CE_metrics.stats.cfo, CR->CE_metrics.stats.fec1);
 }
 
 void CognitiveRadio::log_metrics(CognitiveRadio * CR){
@@ -753,24 +736,8 @@ void CognitiveRadio::log_metrics(CognitiveRadio * CR){
 	
 	// open file, append metrics, and close
 	FILE * file;
-	file = fopen(file_name, "ab");
-	
-	printf("\n\nEVM: %f\n\n", CR->CE_metrics.stats.evm);
-
+	file = fopen(file_name, "ab");	
 	fwrite(&CR->CE_metrics, sizeof(struct metric_s), 1, file); 
-
-	/*fwrite(&CR->CE_metrics.stats.evm, sizeof(float), 1, file); 
-	fwrite(&CR->CE_metrics.header_valid
-	fwrite(&CR->CE_metrics.payload_valid
-	fwrite(&CR->CE_metrics.stats.evm; 
-	fwrite(&CR->CE_metrics.stats.rssi);
-	fwrite(&CR->CE_metrics.stats.cfo;
-	fwrite(&CR->CE_metrics.stats.mod_scheme;
-	fwrite(&CR->CE_metrics.stats.mod_bps;
-	fwrite(&CR->CE_metrics.stats.check;
-	fwrite(&CR->CE_metrics.stats.fec0;
-	fwrite(&CR->CE_metrics.stats.fec1;*/
-	
 	fclose(file);
 }
 

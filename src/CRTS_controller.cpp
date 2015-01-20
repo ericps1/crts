@@ -52,21 +52,26 @@ int main(){
 	socklen_t client_addr_size[48];
 	struct node_parameters np[48];
 
+	// read master scenario config file
+	char scenario_list[30][60];
+	int num_scenarios = read_scenario_master_file(scenario_list);
+	printf("Number of scenarios: %i\n\n", num_scenarios);
+
 	// loop through scenarios
-	//for (int i = 0; i < num_scenarios; i++){
+	for (int i = 0; i < num_scenarios; i++){
+		printf("Scenario %i:\n", i+1);
+		printf("Config file: %s\n", &scenario_list[i][0]);
 		// read the number of nodes in scenario	
-		std::string scenario_list = "scenario.cfg";
-		printf("Reading number of nodes in scenario\n");
-		int num_nodes = read_num_nodes((char *)scenario_list.c_str());
-		printf("Number of nodes: %i\n\n", num_nodes);
+		int num_nodes = read_num_nodes(&scenario_list[i][0]);
+		printf("Number of nodes: %i\n", num_nodes);
 
 		// loop through nodes in scenario
 		for (int j = 0; j < num_nodes; j++){
 
 			// read in node settings
-			printf("Reading node %i config\n", j);
-			memset(&np[j], 0, sizeof(struct node_parameters));;
-			np[j] = read_node_parameters(j+1, (char *)scenario_list.c_str());
+			memset(&np[j], 0, sizeof(struct node_parameters));
+			printf("Reading node %i's parameters...\n", j+1);
+			np[j] = read_node_parameters(j+1, &scenario_list[i][0]);
 			print_node_parameters(&np[j]);
 			
 			// launch appropriate executable on node
@@ -102,26 +107,27 @@ int main(){
 				exit(EXIT_FAILURE);
 			}
 			// send node parameters
-			printf("\nSending scenario parameters to node %i\n", j);
+			printf("\nNode %i has connected. Sending its parameters...\n", j+1);
 			char msg_type = 's';
 			send(client[j], (void*)&msg_type, sizeof(char), 0);
 			send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);
-		
-
-
 		}
 
-		//for(int i=0; i<num_nodes; i++){
-		//	close(client[i]);
-		//}
-		
+		printf("Waiting to for scenario termination message from a node\n");
 		while(true){;}
+	
+		// tell nodes to terminate the scenario
 
+		for(int i=0; i<num_nodes; i++){
+			close(client[i]);
+		}
+		
+		
 		// Generate/push transmit data if needed
 		// Receive feedback if needed
 		// Determine when scenario is over either from feedback or from a message from a CR node
 		// Terminate scenario on all nodes
-	//}
+	}
 }
 
 

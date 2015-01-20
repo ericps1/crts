@@ -9,16 +9,15 @@
 #include<pthread.h>
 #include<string>
 #include<time.h>
+#include<uhd/utils/msg.hpp>
 #include"CR.hpp"
 #include"node_parameters.hpp"
 #include"read_configs.hpp"
 
 void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, struct node_parameters *np){
-	printf("Listening for message from server\n");
 	// Listen to socket for message from controller
 	char command_buffer[500+sizeof(struct node_parameters)];
 	int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(struct node_parameters), 0);
-	printf("receive flag %i\n", rflag);
 	if (rflag == 0) return;
 	if (rflag == -1){
 		close(*TCP_controller);
@@ -35,15 +34,15 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 		print_node_parameters(np);
 
 		// set cognitive radio parameters
-		CR->set_tx_freq(np->freq_tx);
-		CR->set_rx_freq(np->freq_rx);
+		CR->set_tx_freq(np->tx_freq);
+		CR->set_rx_freq(np->rx_freq);
 		CR->set_tx_rate(np->tx_rate);
 		CR->set_rx_rate(np->rx_rate);
-		CR->set_tx_gain_soft(np->gain_tx_soft);
-		CR->set_tx_gain_uhd(np->gain_tx);
-		CR->set_rx_gain_uhd(np->gain_rx);
-		CR->max_gain_tx = np->max_gain_tx;
-		CR->max_gain_rx = np->max_gain_rx;
+		CR->set_tx_gain_soft(np->tx_gain_soft);
+		CR->set_tx_gain_uhd(np->tx_gain);
+		CR->set_rx_gain_uhd(np->rx_gain);
+		CR->max_gain_tx = np->tx_max_gain;
+		CR->max_gain_rx = np->rx_max_gain;
 		CR->print_metrics_flag = np->print_metrics;
 		CR->log_metrics_flag = np->log_metrics;
 		strcpy(CR->log_file, np->log_file);
@@ -55,9 +54,10 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 	
 }
 
+void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
 
 int main(){
-	sleep(2.0);
+	sleep(1.0);
 	
 	// Create TCP client to controller
 	//unsigned int controller_port = 4444;
@@ -83,10 +83,13 @@ int main(){
 	}
 	printf("Connected to server\n");
 	
-
+	// Quiet UHD output and fix buffer issue
+	uhd::msg::register_handler(&uhd_quiet);
+	
 	// Create CR object
 	CognitiveRadio CR;
 	printf("Cognitve Radio created\n");
+
 	// Create node parameters struct
 	struct node_parameters np;
 		/*np.type = 0;
@@ -136,7 +139,6 @@ int main(){
 
 	// Loop
 	while (true){
-		printf("Transmitting packet\n");
 		// Listen for any updates from the controller (non-blocking)
 		//Receive_command_from_controller(&TCP_controller, &CR, &np);
 
@@ -161,7 +163,7 @@ int main(){
 		}*/
 
 		// Wait (used for test purposes only)
-		sleep(2.0f);
+		sleep(1.0f);
 
 		// Generate data according to traffic parameter
 		// for now there's no difference

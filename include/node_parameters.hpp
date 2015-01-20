@@ -32,19 +32,20 @@ struct node_parameters{
 	char log_file[30];
 
 	// RF
-    float freq_tx;
-    float freq_rx;
+    float tx_freq;
+    float rx_freq;
     float tx_rate;
     float rx_rate;
-    float gain_tx_soft;
-    float gain_tx;
-    float gain_rx;
-    float max_gain_tx;
-    float max_gain_rx;
+    float tx_gain_soft;
+    float tx_gain;
+    float rx_gain;
+    float tx_max_gain;
+    float rx_max_gain;
 
     // interferer only
     int int_type;
-    float duty_cycle;
+    float period;
+	float duty_cycle;
 };
 
 #endif
