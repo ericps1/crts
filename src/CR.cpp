@@ -68,10 +68,11 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     pthread_cond_init(&tx_cond, NULL); // transmitter condition
     pthread_create(&tx_process, NULL, CR_tx_worker, (void*)this);
 	*/
+	
 	// Point to CE execute function	
-    CE_execute = &CE_execute_1;
+    //CE_execute = &CE_execute_1;
 
-    // Start CE thread
+	// Start CE thread
     pthread_mutex_init(&CE_mutex, NULL);
 	pthread_cond_init(&CE_execute_sig, NULL);
 	pthread_create(&CE_process, NULL, CR_ce_worker, (void*)this);
@@ -131,6 +132,18 @@ CognitiveRadio::~CognitiveRadio(){
     // Terminate CE thread
     pthread_cancel(CE_process);
 
+}
+
+void CognitiveRadio::set_ce(char *ce){
+
+	if(!strcmp(ce, "CE_Example_1")){
+		CE = new CE_Example_1();
+		printf("Set CE to CE_Example_1\n");
+	}
+	if(!strcmp(ce, "CE_Example_2")){
+		CE = new CE_Example_2();
+		printf("Set CE to CE_Example_2\n");
+	}
 }
 
 void CognitiveRadio::set_ip(char *ip){
@@ -689,12 +702,11 @@ void * CR_ce_worker(void *_arg){
     // Infinite loop
     while (true){
         // Wait for signal from receiver
-		//printf("Waiting for CE execute signal\n");
 		pthread_mutex_lock(&CR->CE_mutex);
 		pthread_cond_wait(&CR->CE_execute_sig, &CR->CE_mutex);
-
 		// execute CE
-		CR->CE_execute((void*)CR);
+		printf("Executing CE\n");
+		CR->CE->execute((void*)CR);
     	pthread_mutex_unlock(&CR->CE_mutex);
     }
     printf("ce_worker exiting thread\n");

@@ -48,7 +48,7 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 		CR->max_gain_tx = np->tx_max_gain;
 		CR->max_gain_rx = np->rx_max_gain;
 		CR->PHY_metrics = true;
-		
+		CR->set_ce(np->CE);		
 		// open log file to delete any current contents
 		if (CR->log_metrics_flag){
 			FILE * file;

@@ -1,13 +1,14 @@
 #ifndef _CR_HPP_
 #define _CR_HPP_
 
-#include<stdio.h>
-#include<math.h>
-#include<complex>
-#include<liquid/liquid.h>
-#include<liquid/ofdmtxrx.h>
-#include<pthread.h>
+#include <stdio.h>
+#include <math.h>
+#include <complex>
+#include <liquid/liquid.h>
+#include <liquid/ofdmtxrx.h>
+#include <pthread.h>
 #include <uhd/usrp/multi_usrp.hpp>
+#include "CE.hpp"
 
 /*enum headers{
 	ACK,	// Acknowledgement
@@ -151,7 +152,12 @@ public:
 	float max_gain_rx;
 
     // pointer to CE execute function
-    void (*CE_execute)(void * _arg);
+    //void (*CE_execute)(void * _arg);
+
+	// pointer to CE object
+	Cognitive_Engine * CE;
+	// method to set CE to custom defined subclass
+	void set_ce(char * ce);
 
     // struct containing metrics used by cognitive engine
     struct metric_s CE_metrics;
