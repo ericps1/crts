@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <string>
 #include <time.h>
+#include <complex>
 #include <uhd/utils/msg.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
 #include "interferer.hpp"
@@ -51,12 +52,20 @@ void Receive_command_from_controller(int *TCP_controller, Interferer * inter, st
 
 void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
 
-int main(){
-	sleep(2.0);
+int main(int argc, char ** argv){
 	
+	float run_time;
+
+	int d;
+	while((d = getopt(argc, argv, "t:")) != EOF){
+		switch(d){
+		case 't': run_time = atof(optarg); break;
+		}
+	}
+
 	// Create TCP client to controller
 	//unsigned int controller_port = 4444;
-	char * controller_ipaddr = (char*) "192.168.1.23";
+	char * controller_ipaddr = (char*) "192.168.1.28";
 	int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
 	if (TCP_controller < 0)
 	{
@@ -106,14 +115,15 @@ int main(){
 	std::vector<std::complex<float> > usrp_buffer_off(buffer_len);
 
 	for(int i=0; i<buffer_len; i++){
-		usrp_buffer_on[i].real(1.0);
-		usrp_buffer_on[i].imag(1.0);
+		usrp_buffer_on[i].real(1000*sin(3.1415*i/10));
+		usrp_buffer_on[i].imag(1000*cos(3.1415*i/10));
 	}
 	for(int i=0; i<buffer_len; i++){
 		usrp_buffer_off[i].real(0.0);
 		usrp_buffer_off[i].imag(0.0);
 	}	
 
+	int iterations = (int)(run_time/inter.period);
 	int iterations_on = (int)(inter.period*inter.duty_cycle*inter.tx_rate/buffer_len);
 	int iterations_off = (int)(inter.period*(1.0-inter.duty_cycle)*inter.tx_rate/buffer_len);
 	/*printf("Transmit rate: %f\n", inter.tx_rate);
@@ -125,7 +135,7 @@ int main(){
 	*/
 
 	// Loop
-	while (true){
+	for(int i=0; i<iterations; i++){
 		//Receive_command_from_controller(&TCP_controller, &inter, &np);
 		
 		printf("Interferer On\n");

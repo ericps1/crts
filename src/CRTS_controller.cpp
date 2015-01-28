@@ -18,7 +18,17 @@
 
 #define MAXPENDING 5
 
-int main(){
+int main(int argc, char ** argv){
+	
+	int manual_execution = 0;
+
+	int d;
+	while((d = getopt(argc, argv, "m")) != EOF){
+		switch (d){
+		case 'm': manual_execution = 1;
+		}
+	}
+	
 	// create TCP server
 	//int reusePortOption = 1;
 	//int client_count = 0; // Client counter
@@ -51,6 +61,11 @@ int main(){
 	struct sockaddr_in clientAddr[48];
 	socklen_t client_addr_size[48];
 	struct node_parameters np[48];
+	/*int client2;
+	struct sockaddr_in clientAddr2;
+	socklen_t client_addr_size2;
+	struct node_parameters np2;
+	*/
 
 	// read master scenario config file
 	char scenario_list[30][60];
@@ -62,11 +77,12 @@ int main(){
 		printf("Scenario %i:\n", i+1);
 		printf("Config file: %s\n", &scenario_list[i][0]);
 		// read the number of nodes in scenario	
-		int num_nodes = read_num_nodes(&scenario_list[i][0]);
-		printf("Number of nodes: %i\n", num_nodes);
+		struct scenario_parameters sp = read_scenario_parameters(&scenario_list[i][0]);
+		printf("Number of nodes: %i\n", sp.num_nodes);
+		printf("Run time: %f\n", sp.run_time);
 
 		// loop through nodes in scenario
-		for (int j = 0; j < num_nodes; j++){
+		for (int j = 0; j < sp.num_nodes; j++){
 
 			// read in node settings
 			memset(&np[j], 0, sizeof(struct node_parameters));
@@ -74,25 +90,34 @@ int main(){
 			np[j] = read_node_parameters(j+1, &scenario_list[i][0]);
 			print_node_parameters(&np[j]);
 			
-			// launch appropriate executable on node
-			/*switch node_settings.type{
-			case AP: 
-				strcpy(cmd, "./CRTS_AP");
-				break;
-			case UE:
-				strcpy(cmd, "./CRTS_UE");
-				break;
-			case interferer:
-				strcpy(cmd, "./CRTS_interferer");
-				break;
-			}*/
+			// send command to launch executable if not doing so manually
+			if (!manual_execution){
+				char command[100] = "sshpass -p zv8p8vfa ssh ericps1@"; 
+				strcat(command, np[j].CORNET_IP);
 			
-			// send command to launch executable
-			char command[100] = "sshpass -p zv8p8vfa ssh ericps1@"; 
-			strcat(command, np[j].CORNET_IP);
-			strcat(command, " './crts/CRTS_UE >&- 2>&- <&- &'");
-			//system(command);
-			
+				// add appropriate executable
+				switch (np[j].type){
+				case BS: 
+					strcat(command, " '~/crts/CRTS_AP");
+					break;
+				case UE:
+					strcat(command, " '~/crts/CRTS_UE");
+					break;
+				case interferer:
+					strcat(command, " '~/crts/CRTS_interferer");
+					break;
+				}
+		
+				// append run time and command to continue program after shell is closed
+				strcat(command, " -t ");
+				char run_time_str[10];
+				sprintf(run_time_str, "%f", sp.run_time);
+				strcat(command, run_time_str);
+				strcat(command, " >&- 2>&- <&- &'");
+				system(command);
+				printf("Command executed: %s\n", command);
+			}
+
 			// listen for node to connect to server
 			if (listen(sockfd, MAXPENDING) < 0)
 			{
@@ -111,6 +136,33 @@ int main(){
 			char msg_type = 's';
 			send(client[j], (void*)&msg_type, sizeof(char), 0);
 			send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);
+			
+			/*
+			// read in node settings
+			memset(&np2, 0, sizeof(struct node_parameters));
+			printf("Reading node %i's parameters...\n", 2);
+			np2 = read_node_parameters(2, &scenario_list[i][0]);
+			print_node_parameters(&np2);
+			
+			// listen for node to connect to server
+			if (listen(sockfd, MAXPENDING) < 0)
+			{
+				fprintf(stderr, "ERROR: Failed to Set Sleeping (listening) Mode\n");
+				exit(EXIT_FAILURE);
+			}	
+			// accept connection
+			client2 = accept(sockfd, (struct sockaddr *)&clientAddr2, &client_addr_size2);
+			if (client2 < 0)
+			{
+				fprintf(stderr, "ERROR: Sever Failed to Connect to Client\n");
+				exit(EXIT_FAILURE);
+			}
+			// send node parameters
+			printf("\nNode %i has connected. Sending its parameters...\n", 2);
+			//char msg_type = 's';
+			send(client2, (void*)&msg_type, sizeof(char), 0);
+			send(client2, (void*)&np2, sizeof(struct node_parameters), 0);
+			*/
 		}
 
 		printf("Waiting to for scenario termination message from a node\n");
@@ -118,7 +170,7 @@ int main(){
 	
 		// tell nodes to terminate the scenario
 
-		for(int i=0; i<num_nodes; i++){
+		for(int i=0; i<sp.num_nodes; i++){
 			close(client[i]);
 		}
 		

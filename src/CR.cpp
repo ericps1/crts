@@ -22,8 +22,8 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     // create frame generator
     ofdmflexframegenprops_init_default(&fgprops);
     fgprops.check       = LIQUID_CRC_32;
-    fgprops.fec0        = LIQUID_FEC_NONE;
-    fgprops.fec1        = LIQUID_FEC_HAMMING128;
+    fgprops.fec0        = LIQUID_FEC_HAMMING128;
+    fgprops.fec1        = LIQUID_FEC_NONE;
     fgprops.mod_scheme      = LIQUID_MODEM_QAM256;
     fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
 
@@ -34,9 +34,7 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     // create frame synchronizer
     fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void *)this);
 
-	// TODO: create buffer
-
-    // create usrp objects
+	// create usrp objects
     uhd::device_addr_t dev_addr;
     usrp_tx = uhd::usrp::multi_usrp::make(dev_addr);
     usrp_rx = uhd::usrp::multi_usrp::make(dev_addr);
@@ -64,12 +62,12 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     pthread_create(&rx_process,   NULL, CR_rx_worker, (void*)this);
 	
     // create and start tx thread
-    tx_running = false; // transmitter is not running initially
+    /*tx_running = false; // transmitter is not running initially
     tx_thread_running = true; // transmitter thread IS running initially
     pthread_mutex_init(&tx_mutex, NULL); // transmitter mutex
     pthread_cond_init(&tx_cond, NULL); // transmitter condition
     pthread_create(&tx_process, NULL, CR_tx_worker, (void*)this);
-	
+	*/
 	// Point to CE execute function	
     CE_execute = &CE_execute_1;
 
@@ -80,14 +78,14 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
 	
 
     // Create TUN interface
-    //char tun_name[IFNAMSIZ];
-    //strcpy(tun_name, "tun1");
-    //tun_fd = tun_alloc(tun_name, IFF_TUN);  /* tun interface */
-
+    /*char tun_name[IFNAMSIZ];
+    strcpy(tun_name, "tun1");
+    tun_fd = tun_alloc(tun_name, IFF_TUN);
+	*/
     // Create TAP interface
     //char tap_name[IFNAMSIZ];
     //strcpy(tap_name, "tap44");
-    //tapfd = tun_alloc(tap_name, IFF_TAP);  /* tap interface */
+    //tapfd = tun_alloc(tap_name, IFF_TAP);
 
 }
 
@@ -135,6 +133,14 @@ CognitiveRadio::~CognitiveRadio(){
 
 }
 
+void CognitiveRadio::set_ip(char *ip){
+	char command[40];
+	sprintf(command, "ip addr add %s/24 dev tun0", ip);
+	system(command);
+	//system("route add default gw 10.0.0.1 tun0");
+	system("ip link set dev tun0 up");
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Transmit methods
 ////////////////////////////////////////////////////////////////////////
@@ -166,54 +172,54 @@ void CognitiveRadio::reset_tx()
 // set transmitter frequency
 void CognitiveRadio::set_tx_freq(float _tx_freq)
 {
-    pthread_mutex_lock(&tx_mutex);
+    //pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_freq(_tx_freq);
-    pthread_mutex_unlock(&tx_mutex);
+    //pthread_mutex_unlock(&tx_mutex);
 }
 
 // set transmitter sample rate
 void CognitiveRadio::set_tx_rate(float _tx_rate)
 {
-    pthread_mutex_lock(&tx_mutex);
+    //pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_rate(_tx_rate);
-    pthread_mutex_unlock(&tx_mutex);
+    //pthread_mutex_unlock(&tx_mutex);
 }
 
 // set transmitter software gain
 void CognitiveRadio::set_tx_gain_soft(float _tx_gain_soft)
 {
-    pthread_mutex_lock(&tx_mutex);
+    //pthread_mutex_lock(&tx_mutex);
 	tx_gain = powf(10.0f, _tx_gain_soft / 20.0f);
-    pthread_mutex_unlock(&tx_mutex);
+    //pthread_mutex_unlock(&tx_mutex);
 }
 
 // set transmitter hardware (UHD) gain
 void CognitiveRadio::set_tx_gain_uhd(float _tx_gain_uhd)
 {
-    pthread_mutex_lock(&tx_mutex);
+    //pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_gain(_tx_gain_uhd);
-    pthread_mutex_unlock(&tx_mutex);
+    //pthread_mutex_unlock(&tx_mutex);
 }
 
 // set modulation scheme
 void CognitiveRadio::set_tx_modulation(int mod_scheme)
 {
-    pthread_mutex_lock(&tx_mutex);
+    //pthread_mutex_lock(&tx_mutex);
     fgprops.mod_scheme = mod_scheme;
     ofdmflexframegen_setprops(fg, &fgprops);
-    pthread_mutex_unlock(&tx_mutex);
+    //pthread_mutex_unlock(&tx_mutex);
 }
 
 // decrease modulation order
 void CognitiveRadio::decrease_tx_mod_order()
 {
 	// Check to see if modulation order is already minimized
-	if (fgprops.mod_scheme != 1 ||fgprops.mod_scheme != 9 ||fgprops.mod_scheme != 17 ||
-		fgprops.mod_scheme != 25 ||fgprops.mod_scheme != 32){
-			pthread_mutex_lock(&tx_mutex);
+	if (fgprops.mod_scheme != 1 && fgprops.mod_scheme != 9 && fgprops.mod_scheme != 17 &&
+		fgprops.mod_scheme != 25 && fgprops.mod_scheme != 32){
+			//pthread_mutex_lock(&tx_mutex);
    		 	fgprops.mod_scheme--;
     		ofdmflexframegen_setprops(fg, &fgprops);
-			pthread_mutex_unlock(&tx_mutex);
+			//pthread_mutex_unlock(&tx_mutex);
 	}
 }
 
@@ -221,83 +227,83 @@ void CognitiveRadio::decrease_tx_mod_order()
 void CognitiveRadio::increase_tx_mod_order()
 {
 	// check to see if modulation order is already maximized
-	if (fgprops.mod_scheme != 8 ||fgprops.mod_scheme != 16 ||fgprops.mod_scheme != 24 ||
-		fgprops.mod_scheme != 31 ||fgprops.mod_scheme != 38){		
-			pthread_mutex_lock(&tx_mutex);
+	if (fgprops.mod_scheme != 8 && fgprops.mod_scheme != 16 && fgprops.mod_scheme != 24 &&
+		fgprops.mod_scheme != 31 && fgprops.mod_scheme != 38){		
+			//pthread_mutex_lock(&tx_mutex);
    			fgprops.mod_scheme++;
     		ofdmflexframegen_setprops(fg, &fgprops);
-    		pthread_mutex_unlock(&tx_mutex);
+    		//pthread_mutex_unlock(&tx_mutex);
 	}
 }
 
 // set CRC scheme
 void CognitiveRadio::set_tx_crc(int crc_scheme){
-	pthread_mutex_lock(&tx_mutex);
+	//pthread_mutex_lock(&tx_mutex);
     fgprops.check = crc_scheme;
 	ofdmflexframegen_setprops(fg, &fgprops);
-    pthread_mutex_unlock(&tx_mutex);
+    //pthread_mutex_unlock(&tx_mutex);
 }
 
 // set FEC0
 void CognitiveRadio::set_tx_fec0(int fec_scheme)
 {
-    pthread_mutex_lock(&tx_mutex);
+    //pthread_mutex_lock(&tx_mutex);
     fgprops.fec0 = fec_scheme;
     ofdmflexframegen_setprops(fg, &fgprops);
-    pthread_mutex_unlock(&tx_mutex);
+    //pthread_mutex_unlock(&tx_mutex);
 }
 
 // set FEC1
 void CognitiveRadio::set_tx_fec1(int fec_scheme)
 {
-    pthread_mutex_lock(&tx_mutex);
+    //pthread_mutex_lock(&tx_mutex);
     fgprops.fec1 = fec_scheme;
     ofdmflexframegen_setprops(fg, &fgprops);
-    pthread_mutex_unlock(&tx_mutex);
+    //pthread_mutex_unlock(&tx_mutex);
 }
 
 // set number of subcarriers
 void CognitiveRadio::set_tx_subcarriers(unsigned int _M)
 {
     // destroy frame gen, set cp length, recreate frame gen
-	pthread_mutex_lock(&tx_mutex);
+	//pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
 	M = _M;
 	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
-	pthread_mutex_unlock(&tx_mutex);
+	//pthread_mutex_unlock(&tx_mutex);
 }
 
 // set subcarrier allocation
 void CognitiveRadio::set_tx_subcarrier_alloc(char *_p)
 {
     // destroy frame gen, set cp length, recreate frame gen
-	pthread_mutex_lock(&tx_mutex);
+	//pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
 	memcpy(p, _p, M);
 	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
-	pthread_mutex_unlock(&tx_mutex);
+	//pthread_mutex_unlock(&tx_mutex);
 }
 
 // set cp_len
 void CognitiveRadio::set_tx_cp_len(unsigned int _cp_len)
 {
     // destroy frame gen, set cp length, recreate frame gen
-	pthread_mutex_lock(&tx_mutex);
+	//pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
 	cp_len = _cp_len;
 	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
-	pthread_mutex_unlock(&tx_mutex);
+	//pthread_mutex_unlock(&tx_mutex);
 }
 
 // set taper_len
 void CognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
 {
 	// destroy frame gen, set cp length, recreate frame gen
-	pthread_mutex_lock(&tx_mutex);
+	//pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
 	taper_len = _taper_len;
 	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
-	pthread_mutex_unlock(&tx_mutex);
+	//pthread_mutex_unlock(&tx_mutex);
 }
 
 // update payload data on a particular channel
@@ -497,8 +503,7 @@ void * CR_rx_worker(void * _arg)
     
 	// unlock the mutex
     pthread_mutex_unlock(&(CR->rx_mutex));
-
-    // condition given; check state: run or exit
+	// condition given; check state: run or exit
     if (!CR->rx_running) {
         printf("rx_worker finished\n");
         break;
@@ -563,7 +568,11 @@ int rxCallback(unsigned char * _header,
 	framesyncstats_s _stats,
 	void * _userdata)
 {
-    // typecast user argument as CR object
+    // print payload
+	//for (unsigned int i=0; i<_payload_len; i++)
+	//	printf("%c\n", _payload[i]);
+	
+	// typecast user argument as CR object
     CognitiveRadio * CR = (CognitiveRadio*)_userdata;
 		
     // if using PHY layer ARQ
@@ -592,9 +601,10 @@ int rxCallback(unsigned char * _header,
 		if(CR->log_metrics_flag)
 			CR->log_metrics(CR);
     }
-    // Pass payload to tap interface
+    // Pass payload to tun interface
     //int nwrite = cwrite(CR->tun_fd, (char*)_payload, (int)_payload_len);
-    //if(nwrite != (int)_payload_len) printf("Number of bytes written to TUN interface not equal to payload length\n"); 
+    //if(nwrite != (int)_payload_len) 
+	//	printf("Number of bytes written to TUN interface not equal to payload length\n"); 
 
     // Transmit acknowledgement if using PHY ARQ
     /*unsigned char *ACK;
@@ -692,26 +702,6 @@ void * CR_ce_worker(void *_arg){
 
 }
 
-// specific implementation of cognitive engine (will be moved to external file in the future)
-void CE_execute_1(void * _arg){
-	//printf("Executing CE\n");
-	CognitiveRadio * CR = (CognitiveRadio *)_arg;
-	
-	// Modify modulation based on EVM
-	if (CR->CE_metrics.stats.evm > -5.0f){
-		printf("EVM greater than allowed value\n");
-		printf("Current modulation: %i\n", CR->fgprops.mod_scheme);
-		CR->decrease_tx_mod_order();
-		printf("Updated modulation: %i\n", CR->fgprops.mod_scheme);
-	}
-	if (CR->CE_metrics.stats.evm < -10.0f){
-		printf("EVM is low. Modulation order is being increased\n");
-		printf("Current modulation: %i\n", CR->fgprops.mod_scheme);
-		CR->increase_tx_mod_order();
-		printf("Updated modulation: %i\n", CR->fgprops.mod_scheme);
-	}
-}
-
 void CognitiveRadio::print_metrics(CognitiveRadio * CR){
 	printf("\n---------------------------------------------------------\n");
 	printf("Received packet metrics:      Received Packet Parameters:\n");
@@ -719,7 +709,7 @@ void CognitiveRadio::print_metrics(CognitiveRadio * CR){
 	printf("Header Valid:     %-6i      Modulation Scheme:   %u\n", 
 		CR->CE_metrics.header_valid, CR->CE_metrics.stats.mod_scheme);
 	printf("Payload Valid:    %-6i      Modulation bits/sym: %u\n", 
-		CR->CE_metrics.header_valid, CR->CE_metrics.stats.mod_bps);
+		CR->CE_metrics.payload_valid, CR->CE_metrics.stats.mod_bps);
 	printf("EVM:              %-8.2f    Check:               %u\n", 
 		CR->CE_metrics.stats.evm, CR->CE_metrics.stats.check);
 	printf("RSSI:             %-8.2f    Inner FEC:           %u\n", 
@@ -741,7 +731,17 @@ void CognitiveRadio::log_metrics(CognitiveRadio * CR){
 	fclose(file);
 }
 
-
+// specific implementation of cognitive engine (will be moved to external file in the future)
+void CE_execute_1(void * _arg){
+	//printf("Executing CE\n");
+	CognitiveRadio * CR = (CognitiveRadio *)_arg;
+	
+	// Modify modulation based on EVM
+	if (!CR->CE_metrics.payload_valid){
+		//printf("Payload was invalid (%i) decreasing modulation order\n", CR->CE_metrics.payload_valid);
+		CR->decrease_tx_mod_order();
+	}
+}
 
 
 

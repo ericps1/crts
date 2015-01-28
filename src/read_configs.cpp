@@ -1,9 +1,10 @@
-#include<string.h>
-#include<libconfig.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<sstream>
-#include"node_parameters.hpp"
+#include <string.h>
+#include <libconfig.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sstream>
+#include "read_configs.hpp"
+#include "node_parameters.hpp"
 
 int read_scenario_master_file(char scenario_list[30][60])
 {
@@ -23,7 +24,7 @@ int read_scenario_master_file(char scenario_list[30][60])
 	
 	// Read the parameter group
 	if (config_lookup_int(&cfg, "NumberofScenarios", &tmpI))
-		num_scenarios = tmpI;
+		num_scenarios = (int)tmpI;
 		
 	for (int i=0; i< num_scenarios; i++){
 		sprintf(current_scenario, "scenario_%d", i+1);
@@ -34,7 +35,7 @@ int read_scenario_master_file(char scenario_list[30][60])
 	return num_scenarios;
 } // End readScMasterFile()
 
-int read_num_nodes(char *scenario_file)
+struct scenario_parameters read_scenario_parameters(char *scenario_file)
 {
 	// configuration variable
 	config_t cfg;
@@ -52,12 +53,17 @@ int read_num_nodes(char *scenario_file)
 		exit(1);
 	}
 
-	// Read number of nodes
-	int num_nodes;
-	config_lookup_int(&cfg, "num_nodes", &num_nodes);
+	// Read scenario parameters
+	struct scenario_parameters sp;
+	int tmpI;
+	double tmpD;
+	config_lookup_int(&cfg, "num_nodes", &tmpI);
+	sp.num_nodes = tmpI;
+	config_lookup_float(&cfg, "run_time", &tmpD);
+	sp.run_time = (float) tmpD;
 	config_destroy(&cfg);
 
-	return num_nodes;
+	return sp;
 } // End readScConfigFile()
 
 struct node_parameters read_node_parameters(int node, char *scenario_file){
@@ -122,10 +128,10 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	}
 	
 	if (config_setting_lookup_int(node_config, "print_metrics", &tmpI))
-		np.print_metrics = tmpI;
+		np.print_metrics = (int)tmpI;
 	
 	if (config_setting_lookup_int(node_config, "log_metrics", &tmpI))
-		np.log_metrics = tmpI;
+		np.log_metrics = (int)tmpI;
 	
 	if (config_setting_lookup_string(node_config, "log_file", &tmpS))
 		strcpy(np.log_file, tmpS);
@@ -152,7 +158,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 		np.rx_gain = tmpD;
 
 	if (config_setting_lookup_int(node_config, "int_type", &tmpI))
-		np.int_type = tmpI;
+		np.int_type = (int)tmpI;
 	
 	if (config_setting_lookup_float(node_config, "period", &tmpD))
 		np.period = tmpD;
@@ -173,33 +179,33 @@ void print_node_parameters(struct node_parameters * np){
 	if(np->type == UE) strcpy(node_type, "UE");
 	else if(np->type == BS) strcpy(node_type, "BS");
 	else if(np->type == interferer) strcpy(node_type, "Interferer");
-	printf("	Node type:                 %s\n", node_type);
-	printf("	CORNET IP:                 %s\n", np->CORNET_IP);
-	if(np->type != interferer)
-	printf("	CRTS IP:                   %s\n", np->CRTS_IP);
-	if(np->type != interferer)
-	printf("	Cognitive Engine:          %s\n", np->CE);
+	printf("	Node type:                 %-s\n", node_type);
+	printf("	CORNET IP:                 %-s\n", np->CORNET_IP);
+	if(np->type != interferer){
+	printf("	CRTS IP:                   %-s\n", np->CRTS_IP);
+	printf("	Cognitive Engine:          %-s\n", np->CE); }
 	if(np->type == UE)
-	printf("	Traffic type:              %i\n", np->traffic);
+	printf("	Traffic type:              %-i\n", np->traffic);
+	printf("	Log file:                  %-s\n", np->log_file);
 	printf("RF:\n");
-	printf("	Transmit frequency:        %.2e\n", np->tx_freq);
+	printf("	Transmit frequency:        %-.2e\n", np->tx_freq);
 	if(np->type != interferer)
-	printf("	Receive frequency:         %.2e\n", np->rx_freq);
-	printf("	Transmit rate:             %.2e\n", np->tx_rate);
+	printf("	Receive frequency:         %-.2e\n", np->rx_freq);
+	printf("	Transmit rate:             %-.2e\n", np->tx_rate);
 	if(np->type != interferer)
-	printf("	Receive rate:              %.2e\n", np->rx_rate);
+	printf("	Receive rate:              %-.2e\n", np->rx_rate);
 	if(np->type != interferer)
-	printf("	Transmit soft gain:        %.2e\n", np->tx_gain_soft);
-	printf("	Transmit gain:             %.2e\n", np->tx_gain);
+	printf("	Transmit soft gain:        %-.2e\n", np->tx_gain_soft);
+	printf("	Transmit gain:             %-.2e\n", np->tx_gain);
 	if(np->type != interferer)
-	printf("	Receive gain:              %.2e\n", np->rx_gain);
+	printf("	Receive gain:              %-.2e\n", np->rx_gain);
 	if(np->type == interferer){
 	char int_type[5];
 	if(np->int_type == CW) strcpy(int_type, "CW");
 	else if(np->int_type == RRC) strcpy(int_type, "RRC");
-	printf("	Interference type:         %s\n", int_type);
-	printf("	Interference period:	   %.2f\n", np->period);
-	printf("	Interference duty cycle:   %.2f\n", np->duty_cycle);
+	printf("	Interference type:         %-s\n", int_type);
+	printf("	Interference period:	   %-.2f\n", np->period);
+	printf("	Interference duty cycle:   %-.2f\n", np->duty_cycle);
 	}
 	printf("------------------------------------------------\n");
 }

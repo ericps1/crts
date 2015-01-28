@@ -1,13 +1,16 @@
-FLAGS = -I include -Wall -fPIC
+FLAGS = -I include -Wall -fPIC -g
 LIBS = lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
-all: TUN TUN_test CR CR_test CRTS_UE interferer CRTS_interferer read_configs CRTS_controller post_process_logs
+all: TUN TUN_test read_configs CR CR_test CRTS_UE interferer CRTS_interferer CRTS_controller post_process_logs
 
 TUN: src/TUN.cpp
 	g++ $(FLAGS) -c -o lib/TUN.o src/TUN.cpp
 
 TUN_test: test/TUN.cpp
 	g++ $(FLAGS) -o TUN test/TUN.cpp lib/TUN.o -lpthread
+
+read_configs: src/read_configs.cpp
+	g++ $(FLAGS) -c -o lib/read_configs.o src/read_configs.cpp
 
 CR: include/CR.hpp src/CR.cpp
 	# Execute program that reads CE's from master CE file and
@@ -28,9 +31,6 @@ interferer: src/interferer.cpp
 
 CRTS_interferer: src/CRTS_interferer.cpp
 	g++ $(FLAGS) -o CRTS_interferer src/CRTS_interferer.cpp lib/interferer.o lib/read_configs.o -luhd -lc -lconfig
-
-read_configs: src/read_configs.cpp
-	g++ $(FLAGS) -c -o lib/read_configs.o src/read_configs.cpp
 
 CRTS_controller: include/node_parameters.hpp src/CRTS_controller.cpp src/read_configs.cpp
 	g++ $(FLAGS) -o CRTS_controller src/CRTS_controller.cpp lib/read_configs.o -lconfig

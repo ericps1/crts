@@ -9,13 +9,13 @@
 #include<pthread.h>
 #include <uhd/usrp/multi_usrp.hpp>
 
-enum headers{
+/*enum headers{
 	ACK,	// Acknowledgement
 	NACK,	// Negative-acknowledgement
 	PRACH,  // Physical random access request
 	PCH,    // Paging channel
-	DCH	// Data 
-};
+	DCH		// Data 
+};*/
 
 // metric struct
 struct metric_s{
@@ -170,6 +170,8 @@ public:
 
     // TUN file descriptor
     int tun_fd;
+
+	void set_ip(char *ip);
 
     // TX thread, mutex, signal, and thread states
     pthread_t tx_process;

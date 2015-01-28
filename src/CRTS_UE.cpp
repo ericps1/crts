@@ -34,6 +34,10 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 		print_node_parameters(np);
 
 		// set cognitive radio parameters
+		//CR->set_ip(np->CRTS_IP);
+		CR->print_metrics_flag = np->print_metrics;
+		CR->log_metrics_flag = np->log_metrics;
+		strcpy(CR->log_file, np->log_file);
 		CR->set_tx_freq(np->tx_freq);
 		CR->set_rx_freq(np->rx_freq);
 		CR->set_tx_rate(np->tx_rate);
@@ -43,10 +47,17 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 		CR->set_rx_gain_uhd(np->rx_gain);
 		CR->max_gain_tx = np->tx_max_gain;
 		CR->max_gain_rx = np->rx_max_gain;
-		CR->print_metrics_flag = np->print_metrics;
-		CR->log_metrics_flag = np->log_metrics;
-		strcpy(CR->log_file, np->log_file);
 		CR->PHY_metrics = true;
+		
+		// open log file to delete any current contents
+		if (CR->log_metrics_flag){
+			FILE * file;
+			char log_file_name[50];
+			strcpy(log_file_name, "/users/ericps1/crts/logs/");
+			strcat(log_file_name, CR->log_file);
+			file = fopen(log_file_name, "w");
+			fclose(file);
+		}
 		break;
 	case 't': // terminate program
 		exit(1);
@@ -56,12 +67,24 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 
 void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
 
-int main(){
-	sleep(1.0);
+int main(int argc, char ** argv){
 	
+	float run_time = 20.0f;
+	float us_sleep = 5e5;
+	int iterations;
+
+	int d;
+	while((d = getopt(argc, argv, "t:")) != EOF){
+		switch(d){
+		case 't': run_time = atof(optarg); break;
+		}
+	}
+
+	iterations = (int) (run_time/(us_sleep*1e-6));
+	printf("Iterations %i\n", iterations);
 	// Create TCP client to controller
 	//unsigned int controller_port = 4444;
-	char * controller_ipaddr = (char*) "192.168.1.23";
+	char * controller_ipaddr = (char*) "192.168.1.28";
 	int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
 	if (TCP_controller < 0)
 	{
@@ -88,8 +111,7 @@ int main(){
 	
 	// Create CR object
 	CognitiveRadio CR;
-	printf("Cognitve Radio created\n");
-
+	
 	// Create node parameters struct
 	struct node_parameters np;
 		/*np.type = 0;
@@ -123,12 +145,13 @@ int main(){
 		CR.PHY_metrics = true;
 		*/
 	// Read initial scenario info from controller (block program until data is received)
+	//sleep(1.0);	
 	Receive_command_from_controller(&TCP_controller, &CR, &np);
-	//printf("Setting socket to non-blocking\n");
+	CR.start_rx();
+    //printf("Setting socket to non-blocking\n");
 	//fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
 	// Start CR
-	CR.start_rx();
 	//CR.start_tx();
 
 	// Create dumby frame to be transmitted
@@ -138,7 +161,7 @@ int main(){
 	for(unsigned int i=0; i<payload_len; i++) payload[i] = i;
 
 	// Loop
-	while (true){
+	for(int i=0; i<iterations; i++){
 		// Listen for any updates from the controller (non-blocking)
 		//Receive_command_from_controller(&TCP_controller, &CR, &np);
 
@@ -163,7 +186,7 @@ int main(){
 		}*/
 
 		// Wait (used for test purposes only)
-		sleep(1.0f);
+		usleep(us_sleep);
 
 		// Generate data according to traffic parameter
 		// for now there's no difference
