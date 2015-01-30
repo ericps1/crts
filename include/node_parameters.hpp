@@ -22,8 +22,8 @@ enum int_type{
 struct node_parameters{
 	// general
     int type;
-    char CORNET_IP[16];
-    char CRTS_IP[16];
+    char CORNET_IP[20];
+    char CRTS_IP[20];
     char CE[30];
     int layers;
     int traffic;

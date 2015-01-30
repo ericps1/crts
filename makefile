@@ -1,9 +1,11 @@
 FLAGS = -I include -Wall -fPIC -g
 LIBS = lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
+#EDIT START FLAG
 CEs = src/CE.cpp cognitive_engines/CE_Example_1.cpp cognitive_engines/CE_Example_2.cpp
+#EDIT END FLAG
 
-all: TUN TUN_test read_configs CR CRTS_UE interferer CRTS_interferer CRTS_controller post_process_logs
+all: TUN TUN_test read_configs config_CEs CR CRTS_UE interferer CRTS_interferer CRTS_controller post_process_logs
 #CRTS_test
 
 TUN: src/TUN.cpp
@@ -15,9 +17,10 @@ TUN_test: test/TUN.cpp
 read_configs: src/read_configs.cpp
 	g++ $(FLAGS) -c -o lib/read_configs.o src/read_configs.cpp
 
+config_CEs: src/config_CEs.cpp
+	g++ $(FLAGS) -o config_CEs src/config_CEs.cpp lib/read_configs.o -lconfig
+
 CR: include/CR.hpp src/CR.cpp
-	# Execute program that reads CE's from master CE file and
-	# modifies CR.cpp to map string names to these functions
 	g++ $(FLAGS) -c -o lib/CR.o src/CR.cpp
 
 #CR_test: include/CR.hpp src/TUN.cpp src/CR.cpp test/CR_test.cpp

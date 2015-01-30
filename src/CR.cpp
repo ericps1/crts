@@ -135,15 +135,12 @@ CognitiveRadio::~CognitiveRadio(){
 }
 
 void CognitiveRadio::set_ce(char *ce){
-
-	if(!strcmp(ce, "CE_Example_1")){
+//EDIT START FLAG
+	if(!strcmp(ce, "CE_Example_1"))
 		CE = new CE_Example_1();
-		printf("Set CE to CE_Example_1\n");
-	}
-	if(!strcmp(ce, "CE_Example_2")){
+	if(!strcmp(ce, "CE_Example_2"))
 		CE = new CE_Example_2();
-		printf("Set CE to CE_Example_2\n");
-	}
+//EDIT END FLAG
 }
 
 void CognitiveRadio::set_ip(char *ip){

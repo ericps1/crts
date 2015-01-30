@@ -1,4 +1,6 @@
+#include <string>
 #include <string.h>
+#include <vector>
 #include <libconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +37,7 @@ int read_scenario_master_file(char scenario_list[30][60])
 	return num_scenarios;
 } // End readScMasterFile()
 
-struct scenario_parameters read_scenario_parameters(char *scenario_file)
+struct scenario_parameters read_scenario_parameters(char * scenario_file)
 {
 	// configuration variable
 	config_t cfg;
@@ -47,7 +49,7 @@ struct scenario_parameters read_scenario_parameters(char *scenario_file)
 	strcat(scenario, scenario_file);
 
 	// Read the file. If there is an error, report it and exit.
-	if (!config_read_file(&cfg, scenario)){//"scenarios/scenario.cfg")){
+	if (!config_read_file(&cfg, scenario)){
 		printf("Error reading number of nodes\n");
 		config_destroy(&cfg);
 		exit(1);
@@ -57,6 +59,7 @@ struct scenario_parameters read_scenario_parameters(char *scenario_file)
 	struct scenario_parameters sp;
 	int tmpI;
 	double tmpD;
+
 	config_lookup_int(&cfg, "num_nodes", &tmpI);
 	sp.num_nodes = tmpI;
 	config_lookup_float(&cfg, "run_time", &tmpD);
@@ -105,7 +108,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 
 	// read CORNET IP address for the node
 	if (config_setting_lookup_string(node_config, "CORNET_IP", &tmpS))
-		strcpy(np.CORNET_IP ,tmpS);
+		strcpy(np.CORNET_IP, tmpS);
 
 	// read type of node
 	if (config_setting_lookup_string(node_config, "type", &tmpS)){

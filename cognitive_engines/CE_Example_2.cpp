@@ -11,8 +11,10 @@ struct CE_Example_2_members{
 // constructor
 CE_Example_2::CE_Example_2(){
 	printf("Entered CE example 2's constructor\n");
-	struct CE_Example_2_members cm = {};
-	custom_members = (void *)&cm;
+	struct CE_Example_2_members cm; 
+	cm.example_ce_metric = 129.0;
+	custom_members = malloc(sizeof(struct CE_Example_2_members));
+	memcpy(custom_members, (void *)&cm, sizeof(struct CE_Example_2_members));
 }
 
 // destructor

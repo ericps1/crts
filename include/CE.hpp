@@ -11,7 +11,8 @@ public:
 };
 
 ///////////////////////////////////////////
-// Cognitive Engine sub classes
+// Custom Cognitive Engine sub classes
+//EDIT START FLAG
 class CE_Example_1 : public Cognitive_Engine {
 public:
 	CE_Example_1();
@@ -26,6 +27,6 @@ public:
 	virtual void execute(void * _args);
 	void * custom_members;
 };
-
-
+//EDIT END FLAG
 #endif
+
