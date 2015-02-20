@@ -18,7 +18,7 @@
 
 #define MAXPENDING 5
 
-void usage() {
+void usage_CRTS_controller() {
     printf("CRTS_controller -- Initiate cognitive radio testing.\n");
     printf(" -u,-h : Usage/Help\n");
     printf(" -m    : Manual Mode - Start each node manually rather than have CRTS_controller do it automatically.\n");
@@ -32,8 +32,8 @@ int main(int argc, char ** argv){
 	while((d = getopt(argc, argv, "uhm")) != EOF){
 		switch (d){
             case 'u': 
-            case 'h': usage();              return 0;
-            case 'm': manual_execution = 1; break;
+            case 'h': usage_CRTS_controller();  return 0;
+            case 'm': manual_execution = 1;     break;
 		}
 	}
 	

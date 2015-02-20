@@ -67,16 +67,28 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 
 void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
 
+void usage_CRTS_UE() {
+    printf("CRTS_UE -- Start a cognitive radio UE node. Only needs to be run explicitly when using CRTS_controller with -m option.\n");
+    printf(" -u,-h : Usage/Help\n");
+    printf(" -a    : IP Address of node running CRTS_controller.\n");
+}
+
 int main(int argc, char ** argv){
 	
 	float run_time = 20.0f;
 	float us_sleep = 5e5;
 	int iterations;
 
+    // Default IP address of controller
+	char * controller_ipaddr = (char*) "192.168.1.56";
+
 	int d;
-	while((d = getopt(argc, argv, "t:")) != EOF){
+	while((d = getopt(argc, argv, "uhta:")) != EOF){
 		switch(d){
-		case 't': run_time = atof(optarg); break;
+		case 'u': 
+		case 'h': usage_CRTS_UE();              return 0;
+		case 't': run_time = atof(optarg);      break;
+		case 'a': controller_ipaddr = optarg;   break;
 		}
 	}
 
@@ -84,7 +96,6 @@ int main(int argc, char ** argv){
 	printf("Iterations %i\n", iterations);
 	// Create TCP client to controller
 	//unsigned int controller_port = 4444;
-	char * controller_ipaddr = (char*) "192.168.1.56";
 	int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
 	if (TCP_controller < 0)
 	{
