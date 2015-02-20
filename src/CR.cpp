@@ -728,7 +728,7 @@ void CognitiveRadio::print_metrics(CognitiveRadio * CR){
 void CognitiveRadio::log_metrics(CognitiveRadio * CR){
 	// create string of actual file location
 	char file_name[100];
-	strcpy(file_name, "/users/ericps1/crts/logs/");
+	strcpy(file_name, "./logs/");
 	strcat(file_name, CR->log_file);
 	
 	// open file, append metrics, and close

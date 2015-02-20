@@ -53,7 +53,7 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 		if (CR->log_metrics_flag){
 			FILE * file;
 			char log_file_name[50];
-			strcpy(log_file_name, "/users/ericps1/crts/logs/");
+			strcpy(log_file_name, "./logs/");
 			strcat(log_file_name, CR->log_file);
 			file = fopen(log_file_name, "w");
 			fclose(file);
@@ -84,7 +84,7 @@ int main(int argc, char ** argv){
 	printf("Iterations %i\n", iterations);
 	// Create TCP client to controller
 	//unsigned int controller_port = 4444;
-	char * controller_ipaddr = (char*) "192.168.1.28";
+	char * controller_ipaddr = (char*) "192.168.1.56";
 	int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
 	if (TCP_controller < 0)
 	{
