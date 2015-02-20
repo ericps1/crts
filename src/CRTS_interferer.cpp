@@ -56,16 +56,19 @@ int main(int argc, char ** argv){
 	
 	float run_time;
 
+    // Default IP Address of Node running CRTS_controller
+	char * controller_ipaddr = (char*) "192.168.1.28";
+
 	int d;
-	while((d = getopt(argc, argv, "t:")) != EOF){
+	while((d = getopt(argc, argv, "t:a:")) != EOF){
 		switch(d){
-		case 't': run_time = atof(optarg); break;
+            case 't': run_time = atof(optarg);      break;
+            case 'a': controller_ipaddr = optarg;   break;
 		}
 	}
 
 	// Create TCP client to controller
 	//unsigned int controller_port = 4444;
-	char * controller_ipaddr = (char*) "192.168.1.28";
 	int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
 	if (TCP_controller < 0)
 	{
