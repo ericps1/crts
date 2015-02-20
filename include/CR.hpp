@@ -33,6 +33,7 @@ struct metric_s{
 	int header_valid;
 	int payload_valid;
 	framesyncstats_s stats; // stats used by ofdmtxrx object (RSSI, EVM)
+	uhd::time_spec_t time_spec;
 
 	// MAC
 
@@ -147,7 +148,9 @@ public:
     // RF objects and properties
     uhd::usrp::multi_usrp::sptr usrp_tx;
     uhd::usrp::multi_usrp::sptr usrp_rx;
-    uhd::tx_metadata_t          metadata_tx;
+    uhd::tx_metadata_t metadata_tx;
+	uhd::rx_metadata_t metadata_rx;
+
 	float max_gain_tx;
 	float max_gain_rx;
 

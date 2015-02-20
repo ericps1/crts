@@ -10,7 +10,7 @@ struct CE_Example_1_members{
 
 // constructor
 CE_Example_1::CE_Example_1(){
-	printf("Entered CE example 1's constructor\n");
+	//printf("Entered CE example 1's constructor\n");
 	struct CE_Example_1_members cm;
 	cm.example_ce_metric = 15.0;
 	custom_members = malloc(sizeof(struct CE_Example_1_members));
@@ -19,14 +19,14 @@ CE_Example_1::CE_Example_1(){
 
 // destructor
 CE_Example_1::~CE_Example_1(){
-	printf("Entered CE example 1's constructor\n");
+	//printf("Entered CE example 1's constructor\n");
 }
 
 // execute function
 void CE_Example_1::execute(void * _args){
 	struct CE_Example_1_members * cm = (struct CE_Example_1_members*) custom_members;
-	printf("Entered CE example 1's execute function\n");
-	printf("The example metric is now %f\n", cm->example_ce_metric);
+	//printf("Entered CE example 1's execute function\n");
+	//printf("The example metric is now %f\n", cm->example_ce_metric);
 	cm->example_ce_metric += 1.0;
 }
 

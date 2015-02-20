@@ -103,8 +103,8 @@ int main(int argc, char ** argv){
 	//fcntl(TCP_controller, F_SETFL, 0_NONBLOCK);
 
 	// timing variables
-	std::clock_t total_period = inter.period*CLOCKS_PER_SEC;
-	std::clock_t transmit_period = (int)(inter.duty_cycle*(float)total_period);
+	//std::clock_t total_period = inter.period*CLOCKS_PER_SEC;
+	//std::clock_t transmit_period = (int)(inter.duty_cycle*(float)total_period);
 	
 	//printf("Total period %li\n", total_period);
 	//printf("Transmit period %li\n\n", transmit_period);

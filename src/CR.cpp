@@ -500,9 +500,6 @@ void * CR_rx_worker(void * _arg)
     const size_t max_samps_per_packet = CR->usrp_rx->get_device()->get_max_recv_samps_per_packet();
     std::vector<std::complex<float> > buffer(max_samps_per_packet);
 
-    // receiver metadata object
-    uhd::rx_metadata_t md;
-	
     while (CR->rx_thread_running) {
     // wait for signal to start; lock mutex
     pthread_mutex_lock(&(CR->rx_mutex));
@@ -525,7 +522,7 @@ void * CR_rx_worker(void * _arg)
         // grab data from device
         //printf("rx_worker waiting for samples...\n");
         size_t num_rx_samps = CR->usrp_rx->get_device()->recv(
-        &buffer.front(), buffer.size(), md,
+        &buffer.front(), buffer.size(), CR->metadata_rx,
         uhd::io_type_t::COMPLEX_FLOAT32,
         uhd::device::RECV_MODE_ONE_PACKET
         );
@@ -595,6 +592,7 @@ int rxCallback(unsigned char * _header,
 		CR->CE_metrics.header_valid = _header_valid;
 		CR->CE_metrics.payload_valid = _payload_valid;
 		CR->CE_metrics.stats = _stats;
+		CR->CE_metrics.time_spec = CR->metadata_rx.time_spec;
 
 		// Signal CE thread
 		//printf("Signaling CE thread to execute CE\n");
@@ -702,7 +700,7 @@ void * CR_ce_worker(void *_arg){
 		pthread_mutex_lock(&CR->CE_mutex);
 		pthread_cond_wait(&CR->CE_execute_sig, &CR->CE_mutex);
 		// execute CE
-		printf("Executing CE\n");
+		//printf("Executing CE\n");
 		CR->CE->execute((void*)CR);
     	pthread_mutex_unlock(&CR->CE_mutex);
     }
