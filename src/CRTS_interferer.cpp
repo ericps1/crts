@@ -52,6 +52,14 @@ void Receive_command_from_controller(int *TCP_controller, Interferer * inter, st
 
 void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
 
+void help_CRTS_interferer() {
+    printf("CRTS_interferer -- Start a cognitive radio interferer node. Only needs to be run explicitly when using CRTS_controller with -m option.\n");
+    printf(" -h : Help.\n");
+    printf(" -t : Run Time - Length of time this node will run. In seconds.\n");
+    printf("      Default: 20.0 s\n");
+    printf(" -a : IP Address of node running CRTS_controller.\n");
+}
+
 int main(int argc, char ** argv){
 	
 	float run_time;
@@ -60,8 +68,9 @@ int main(int argc, char ** argv){
 	char * controller_ipaddr = (char*) "192.168.1.28";
 
 	int d;
-	while((d = getopt(argc, argv, "t:a:")) != EOF){
+	while((d = getopt(argc, argv, "ht:a:")) != EOF){
 		switch(d){
+            case 'h': help_CRTS_interferer();       return 0;
             case 't': run_time = atof(optarg);      break;
             case 'a': controller_ipaddr = optarg;   break;
 		}

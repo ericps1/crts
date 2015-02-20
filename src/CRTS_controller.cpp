@@ -20,13 +20,13 @@
 
 void help_CRTS_controller() {
     printf("CRTS_controller -- Initiate cognitive radio testing.\n");
-    printf(" -h : Help\n");
+    printf(" -h : Help.\n");
     printf(" -m : Manual Mode - Start each node manually rather than have CRTS_controller do it automatically.\n");
     printf(" -u : Username - For logging into other nodes via ssh.\n");
     printf(" -l : CRTS Location - Directory containing CRTS Executables. Must be same for all remote nodes.\n");
-    printf("                      Default: ~/crts\n");
+    printf("      Default: ~/crts\n");
     printf(" -a : IP Address - IP address of this computer as seen by remote nodes.\n");
-    printf("                      Default: 192.168.1.56\n");
+    printf("      Default: 192.168.1.56\n");
 }
 
 int main(int argc, char ** argv){
@@ -38,6 +38,7 @@ int main(int argc, char ** argv){
     // Default location of CRTS Directory
     char * crts_dir = (char *) "~/crts/";
     // Default IP address of server as seen by other nodes
+    // TODO: Autodetect IP address as seen by other nodes
     char * serv_ip_addr = (char *) "192.168.1.56";
 
 	int d;
@@ -61,6 +62,7 @@ int main(int argc, char ** argv){
 		exit(EXIT_FAILURE);
 	}
 	// Allow reuse of a port. See http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t
+    // FIXME: May not be necessary in this version of CRTS
 	int yes = 1;
 	if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1){
 		printf("setsockopt() failed\n");
