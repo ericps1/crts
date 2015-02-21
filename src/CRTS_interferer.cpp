@@ -136,10 +136,8 @@ int main(int argc, char ** argv){
 	std::vector<std::complex<float> > usrp_buffer_off(buffer_len);
 
 	for(int i=0; i<buffer_len; i++){
-		usrp_buffer_on[i].real(1000*sin(3.1415*i/10));
-		usrp_buffer_on[i].imag(1000*cos(3.1415*i/10));
-		//usrp_buffer_on[i].real(1.0);
-		//usrp_buffer_on[i].imag(0.0);
+		usrp_buffer_on[i].real(1.0);
+		usrp_buffer_on[i].imag(0.0);
 	}
 	for(int i=0; i<buffer_len; i++){
 		usrp_buffer_off[i].real(0.0);
