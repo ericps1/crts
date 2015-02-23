@@ -50,7 +50,7 @@ struct scenario_parameters read_scenario_parameters(char * scenario_file)
 
 	// Read the file. If there is an error, report it and exit.
 	if (!config_read_file(&cfg, scenario)){
-		printf("Error reading number of nodes\n");
+		printf("Error reading %s\n", scenario);
 		config_destroy(&cfg);
 		exit(1);
 	}
