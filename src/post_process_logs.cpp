@@ -1,6 +1,13 @@
 #include <stdio.h>
 #include "CR.hpp"
 
+void help_post_process_logs() {
+        printf("post_process_logs -- Create Octave .m file to visualize logs.\n");
+        printf(" -h : Help.\n");
+        printf(" -l : Name of log file to process.\n");
+        printf(" -o : Name of output file.\n");
+}
+
 int main(int argc, char ** argv){
 	
 	char log_file[50]; 
@@ -9,10 +16,11 @@ int main(int argc, char ** argv){
 	strcpy(output_file, "logs/");
 	
 	int d;
-	while((d = getopt(argc, argv, "l:o:")) != EOF){
+	while((d = getopt(argc, argv, "hl:o:")) != EOF){
 		switch(d){
-		case 'l': strcat(log_file, optarg); break;
-		case 'o': strcat(output_file, optarg); break;
+		case 'h': help_post_process_logs();     return 0;
+		case 'l': strcat(log_file, optarg);     break;
+		case 'o': strcat(output_file, optarg);  break;
 		}
 	}
 	printf("Log file name: %s\n", log_file);
