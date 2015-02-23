@@ -4,9 +4,9 @@
 int main(int argc, char ** argv){
 	
 	char log_file[50]; 
-	strcpy(log_file, "/users/ericps1/crts/logs/");
+	strcpy(log_file, "logs/");
 	char output_file[50];
-	strcpy(output_file, "/users/ericps1/crts/logs/");
+	strcpy(output_file, "logs/");
 	
 	int d;
 	while((d = getopt(argc, argv, "l:o:")) != EOF){
