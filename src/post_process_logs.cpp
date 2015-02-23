@@ -4,8 +4,8 @@
 void help_post_process_logs() {
         printf("post_process_logs -- Create Octave .m file to visualize logs.\n");
         printf(" -h : Help.\n");
-        printf(" -l : Name of log file to process.\n");
-        printf(" -o : Name of output file.\n");
+        printf(" -l : Name of log file to process (required).\n");
+        printf(" -o : Name of output file (required).\n");
 }
 
 int main(int argc, char ** argv){
@@ -15,14 +15,33 @@ int main(int argc, char ** argv){
 	char output_file[50];
 	strcpy(output_file, "logs/");
 	
+    // Option flags
+    int l_opt = 0;
+    int o_opt = 0;
+
 	int d;
 	while((d = getopt(argc, argv, "hl:o:")) != EOF){
 		switch(d){
-		case 'h': help_post_process_logs();     return 0;
-		case 'l': strcat(log_file, optarg);     break;
-		case 'o': strcat(output_file, optarg);  break;
+		case 'h': help_post_process_logs();                 return 0;
+		case 'l': strcat(log_file, optarg); l_opt = 1;      break;
+		case 'o': strcat(output_file, optarg); o_opt = 1;   break;
 		}
 	}
+
+    // Check that log file and output file names were given
+    if (!l_opt)
+    {
+        printf("Please give -l option.\n\n");
+        help_post_process_logs();
+        return 1;
+    }
+    if (!o_opt)
+    {
+        printf("Please give -o option.\n\n");
+        help_post_process_logs();
+        return 1;
+    }
+
 	printf("Log file name: %s\n", log_file);
 	printf("Output file name: %s\n", output_file);
 
