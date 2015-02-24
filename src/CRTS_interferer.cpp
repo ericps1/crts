@@ -12,6 +12,7 @@
 #include <complex>
 #include <uhd/utils/msg.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
+#include <errno.h>
 #include "interferer.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
@@ -20,11 +21,15 @@ void Receive_command_from_controller(int *TCP_controller, Interferer * inter, st
 	// Listen to socket for message from controller
 	char command_buffer[500+sizeof(struct node_parameters)];
 	int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(struct node_parameters), 0);
-	if (rflag == 0) return;
-	if (rflag == -1){
-		close(*TCP_controller);
-		printf("Socket failure\n");
-		exit(1);
+	int err = errno;
+	if (rflag <= 0){
+		if((err == EAGAIN) || (err == EWOULDBLOCK))
+			return;
+		else{
+			close(*TCP_controller);
+			printf("Socket failure\n");
+			exit(1);
+		}
 	}
 
 	// Parse command
@@ -45,6 +50,7 @@ void Receive_command_from_controller(int *TCP_controller, Interferer * inter, st
 		inter->duty_cycle = np->duty_cycle;
 		break;
 	case 't': // terminate program
+		printf("Received termination command from controller\n");
 		exit(1);
 	}
 	
@@ -112,16 +118,9 @@ int main(int argc, char ** argv){
 
 	// Read initial scenario info from controller
 	Receive_command_from_controller(&TCP_controller, &inter, &np);
-	//fcntl(TCP_controller, F_SETFL, 0_NONBLOCK);
+	fcntl(TCP_controller, F_SETFL, O_NONBLOCK);
 
-	// timing variables
-	//std::clock_t total_period = inter.period*CLOCKS_PER_SEC;
-	//std::clock_t transmit_period = (int)(inter.duty_cycle*(float)total_period);
-	
-	//printf("Total period %li\n", total_period);
-	//printf("Transmit period %li\n\n", transmit_period);
-
-    // Create Transmit Streamer Object
+	// Create Transmit Streamer Object
     uhd::stream_args_t strm_args("fc32", "sc16");
     // Can use stream_args_t to set arguments
     uhd::tx_streamer::sptr  tx_strmr = inter.usrp_tx->get_device()->get_tx_stream(strm_args);
@@ -131,7 +130,6 @@ int main(int argc, char ** argv){
 
 	// buffer for transmit signal
 	int buffer_len = max_samps;
-	//int buffer_len = 2e3;
 	std::vector<std::complex<float> > usrp_buffer_on(buffer_len);
 	std::vector<std::complex<float> > usrp_buffer_off(buffer_len);
 
@@ -147,17 +145,10 @@ int main(int argc, char ** argv){
 	int iterations = (int)(run_time/inter.period);
 	int iterations_on = (int)(inter.period*inter.duty_cycle*inter.tx_rate/buffer_len);
 	int iterations_off = (int)(inter.period*(1.0-inter.duty_cycle)*inter.tx_rate/buffer_len);
-	/*printf("Transmit rate: %f\n", inter.tx_rate);
-	printf("Transmit period: %f\n", inter.period);
-	printf("Transmit duty cycle: %f\n", inter.duty_cycle);
-	printf("Buffer length: %i\n", buffer_len);
-	printf("Iterations on: %i\n", iterations_on);
-	printf("Iterations off: %i\n\n", iterations_off);		
-	*/
-
+	
 	// Loop
 	for(int i=0; i<iterations; i++){
-		//Receive_command_from_controller(&TCP_controller, &inter, &np);
+		Receive_command_from_controller(&TCP_controller, &inter, &np);
 		
 		printf("Interferer On\n");
 		//while(timer < transmit_period){

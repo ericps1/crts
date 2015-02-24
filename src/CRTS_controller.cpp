@@ -18,6 +18,35 @@
 
 #define MAXPENDING 5
 
+int Receive_msg_from_nodes(int *client, int num_nodes){
+	// Listen to sockets for messages from any node
+	char msg;//[500+sizeof(struct node_parameters)];
+	
+	for(int i=0; i<num_nodes; i++){
+		int rflag = recv(client[i], &msg, 1, 0);
+		if (rflag == 0) break;
+		if (rflag == -1){
+			close(client[i]);
+			printf("Node %i has disconnected. Terminating the current scenario..\n\n", i);
+		}
+
+		// Parse command
+		switch (msg){
+		case 't': // terminate program
+			printf("Node %i has sent a termination message. Terminating the current scenario...\n\n", i);
+			// tell all nodes to terminate program
+			for(int j=0; j<num_nodes; j++){
+				write(client[j], &msg, 1);
+			}
+			return 1;
+		default:
+			printf("Invalid message type received from node %i\n", i);
+		}
+	}
+
+	return 0;
+}
+
 void help_CRTS_controller() {
     printf("CRTS_controller -- Initiate cognitive radio testing.\n");
     printf(" -h : Help.\n");
@@ -172,44 +201,14 @@ int main(int argc, char ** argv){
 			send(client[j], (void*)&msg_type, sizeof(char), 0);
 			send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);
 			
-			/*
-			// read in node settings
-			memset(&np2, 0, sizeof(struct node_parameters));
-			printf("Reading node %i's parameters...\n", 2);
-			np2 = read_node_parameters(2, &scenario_list[i][0]);
-			print_node_parameters(&np2);
-			
-			// listen for node to connect to server
-			if (listen(sockfd, MAXPENDING) < 0)
-			{
-				fprintf(stderr, "ERROR: Failed to Set Sleeping (listening) Mode\n");
-				exit(EXIT_FAILURE);
-			}	
-			// accept connection
-			client2 = accept(sockfd, (struct sockaddr *)&clientAddr2, &client_addr_size2);
-			if (client2 < 0)
-			{
-				fprintf(stderr, "ERROR: Sever Failed to Connect to Client\n");
-				exit(EXIT_FAILURE);
-			}
-			// send node parameters
-			printf("\nNode %i has connected. Sending its parameters...\n", 2);
-			//char msg_type = 's';
-			send(client2, (void*)&msg_type, sizeof(char), 0);
-			send(client2, (void*)&np2, sizeof(struct node_parameters), 0);
-			*/
 		}
 
 		printf("Waiting to for scenario termination message from a node\n");
-		while(true){;}
-	
-		// tell nodes to terminate the scenario
-
-		for(int i=0; i<sp.num_nodes; i++){
-			close(client[i]);
+		int terminate = 0;
+		while(!terminate){
+			terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
 		}
-		
-		
+	
 		// Generate/push transmit data if needed
 		// Receive feedback if needed
 		// Determine when scenario is over either from feedback or from a message from a CR node
