@@ -18,22 +18,37 @@
 
 #define MAXPENDING 5
 
-void usage_CRTS_controller() {
+void help_CRTS_controller() {
     printf("CRTS_controller -- Initiate cognitive radio testing.\n");
-    printf(" -u,-h : Usage/Help\n");
-    printf(" -m    : Manual Mode - Start each node manually rather than have CRTS_controller do it automatically.\n");
+    printf(" -h : Help.\n");
+    printf(" -m : Manual Mode - Start each node manually rather than have CRTS_controller do it automatically.\n");
+    printf(" -u : Username - For logging into other nodes via ssh.\n");
+    printf(" -l : CRTS Location - Directory containing CRTS Executables. Must be same for all remote nodes.\n");
+    printf("      Default: ~/crts\n");
+    printf(" -a : IP Address - IP address of this computer as seen by remote nodes.\n");
+    printf("      Default: 192.168.1.56\n");
 }
 
 int main(int argc, char ** argv){
 	
 	int manual_execution = 0;
 
+    // Default username for ssh
+    char * ssh_uname = (char *) "ericps1";
+    // Default location of CRTS Directory
+    char * crts_dir = (char *) "~/crts/";
+    // Default IP address of server as seen by other nodes
+    // TODO: Autodetect IP address as seen by other nodes
+    char * serv_ip_addr = (char *) "192.168.1.56";
+
 	int d;
-	while((d = getopt(argc, argv, "uhm")) != EOF){
+	while((d = getopt(argc, argv, "hmu:l:a:")) != EOF){
 		switch (d){
-            case 'u': 
-            case 'h': usage_CRTS_controller();  return 0;
+            case 'h': help_CRTS_controller();   return 0;
             case 'm': manual_execution = 1;     break;
+            case 'u': ssh_uname = optarg;       break;
+            case 'l': crts_dir = optarg;        break;
+            case 'a': serv_ip_addr = optarg;    break;
 		}
 	}
 	
@@ -47,6 +62,7 @@ int main(int argc, char ** argv){
 		exit(EXIT_FAILURE);
 	}
 	// Allow reuse of a port. See http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t
+    // FIXME: May not be necessary in this version of CRTS
 	int yes = 1;
 	if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1){
 		printf("setsockopt() failed\n");
@@ -100,28 +116,39 @@ int main(int argc, char ** argv){
 			
 			// send command to launch executable if not doing so manually
 			if (!manual_execution){
-				char command[100] = "sshpass -p zv8p8vfa ssh ericps1@"; 
+				char command[100] = "ssh "; 
+                // Add username to ssh command
+				strcat(command, ssh_uname);
+				strcat(command, "@");
 				strcat(command, np[j].CORNET_IP);
+				strcat(command, " 'sleep 1 && ");
+				strcat(command, crts_dir);
 			
 				// add appropriate executable
 				switch (np[j].type){
 				case BS: 
-					strcat(command, " '~/crts/CRTS_AP");
+					strcat(command, "/CRTS_AP");
 					break;
 				case UE:
-					strcat(command, " '~/crts/CRTS_UE");
+					strcat(command, "/CRTS_UE");
 					break;
 				case interferer:
-					strcat(command, " '~/crts/CRTS_interferer");
+					strcat(command, "/CRTS_interferer");
 					break;
 				}
 		
-				// append run time and command to continue program after shell is closed
+				// append run time 
 				strcat(command, " -t ");
 				char run_time_str[10];
 				sprintf(run_time_str, "%f", sp.run_time);
 				strcat(command, run_time_str);
-				strcat(command, " >&- 2>&- <&- &'");
+
+				// append IP Address of controller
+				strcat(command, " -a ");
+				strcat(command, serv_ip_addr);
+
+                // set command to continue program after shell is closed
+				strcat(command, " 2>&1 &'& ");
 				system(command);
 				printf("Command executed: %s\n", command);
 			}

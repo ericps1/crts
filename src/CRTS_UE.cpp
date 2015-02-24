@@ -67,10 +67,12 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 
 void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
 
-void usage_CRTS_UE() {
+void help_CRTS_UE() {
     printf("CRTS_UE -- Start a cognitive radio UE node. Only needs to be run explicitly when using CRTS_controller with -m option.\n");
-    printf(" -u,-h : Usage/Help\n");
-    printf(" -a    : IP Address of node running CRTS_controller.\n");
+    printf(" -h : Help.\n");
+    printf(" -t : Run Time - Length of time this node will run. In seconds.\n");
+    printf("      Default: 20.0 s\n");
+    printf(" -a : IP Address of node running CRTS_controller.\n");
 }
 
 int main(int argc, char ** argv){
@@ -83,10 +85,9 @@ int main(int argc, char ** argv){
 	char * controller_ipaddr = (char*) "192.168.1.56";
 
 	int d;
-	while((d = getopt(argc, argv, "uhta:")) != EOF){
+	while((d = getopt(argc, argv, "ht:a:")) != EOF){
 		switch(d){
-		case 'u': 
-		case 'h': usage_CRTS_UE();              return 0;
+		case 'h': help_CRTS_UE();               return 0;
 		case 't': run_time = atof(optarg);      break;
 		case 'a': controller_ipaddr = optarg;   break;
 		}
