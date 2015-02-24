@@ -121,14 +121,23 @@ int main(int argc, char ** argv){
 	//printf("Total period %li\n", total_period);
 	//printf("Transmit period %li\n\n", transmit_period);
 
+    // Create Transmit Streamer Object
+    uhd::stream_args_t strm_args("fc32", "sc16");
+    // Can use stream_args_t to set arguments
+    uhd::tx_streamer::sptr  tx_strmr = inter.usrp_tx->get_device()->get_tx_stream(strm_args);
+
+    // Get max possible buffer size from USRP Device
+    size_t max_samps = tx_strmr->get_max_num_samps();
+
 	// buffer for transmit signal
-	int buffer_len = 2e3;
+	int buffer_len = max_samps;
+	//int buffer_len = 2e3;
 	std::vector<std::complex<float> > usrp_buffer_on(buffer_len);
 	std::vector<std::complex<float> > usrp_buffer_off(buffer_len);
 
 	for(int i=0; i<buffer_len; i++){
-		usrp_buffer_on[i].real(1000*sin(3.1415*i/10));
-		usrp_buffer_on[i].imag(1000*cos(3.1415*i/10));
+		usrp_buffer_on[i].real(1.0);
+		usrp_buffer_on[i].imag(0.0);
 	}
 	for(int i=0; i<buffer_len; i++){
 		usrp_buffer_off[i].real(0.0);
@@ -156,11 +165,10 @@ int main(int argc, char ** argv){
 			// define signal based on interference type
 			switch(inter.int_type){
 			case CW:
-				inter.usrp_tx->get_device()->send(
+				tx_strmr->send(
 					&usrp_buffer_on.front(), usrp_buffer_on.size(),
-					inter.metadata_tx,
-					uhd::io_type_t::COMPLEX_FLOAT32,
-					uhd::device::SEND_MODE_FULL_BUFF
+					inter.metadata_tx
+                    //TODO: Should we set a timeout here?
 				);
 				break;
 			default:
@@ -176,12 +184,12 @@ int main(int argc, char ** argv){
 		printf("Interferer Off\n");
 		for(int i=0; i<iterations_off; i++){
 		//while(timer < off_period){
-			inter.usrp_tx->get_device()->send(
-					&usrp_buffer_off.front(), usrp_buffer_off.size(),
-					inter.metadata_tx,
-					uhd::io_type_t::COMPLEX_FLOAT32,
-					uhd::device::SEND_MODE_FULL_BUFF
-			);
+            tx_strmr->send(
+                &usrp_buffer_off.front(), usrp_buffer_off.size(),
+                inter.metadata_tx
+                //TODO: Should we set a timeout here?
+            );
+            //usleep(1e6*buffer_len/inter.tx_rate);
 			// update timer
 			//timer = clock() -start;
 		}
