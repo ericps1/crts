@@ -728,7 +728,7 @@ void CognitiveRadio::print_metrics(CognitiveRadio * CR){
 }
 
 void CognitiveRadio::log_metrics(CognitiveRadio * CR){
-    std::cout<<"log_metrics() called"<<std::endl;
+    //std::cout<<"log_metrics() called"<<std::endl;
 	// create string of actual file location
 	char file_name[100];
 	strcpy(file_name, "./logs/");
@@ -743,12 +743,12 @@ void CognitiveRadio::log_metrics(CognitiveRadio * CR){
     if (log_file.is_open())
     {
         //fwrite(&CR->CE_metrics, sizeof(struct metric_s), 1, file); 
-        std::cout<<"Log file open"<<std::endl;
+        //std::cout<<"Log file open"<<std::endl;
         log_file.write((char*)&CR->CE_metrics, sizeof(struct metric_s));
     }
     else
     {
-        std::cout<<"Error opening log file:"<<file_name<<std::endl;
+        std::cerr<<"Error opening log file:"<<file_name<<std::endl;
     }
 
 	//fclose(file);
