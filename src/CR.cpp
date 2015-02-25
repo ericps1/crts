@@ -9,6 +9,8 @@
 #include<pthread.h>
 #include"CR.hpp"
 #include"TUN.hpp"
+#include<iostream>
+#include<fstream>
 
 // Constructor
 CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
@@ -726,16 +728,31 @@ void CognitiveRadio::print_metrics(CognitiveRadio * CR){
 }
 
 void CognitiveRadio::log_metrics(CognitiveRadio * CR){
+    std::cout<<"log_metrics() called"<<std::endl;
 	// create string of actual file location
 	char file_name[100];
 	strcpy(file_name, "./logs/");
 	strcat(file_name, CR->log_file);
 	
 	// open file, append metrics, and close
-	FILE * file;
-	file = fopen(file_name, "ab");	
-	fwrite(&CR->CE_metrics, sizeof(struct metric_s), 1, file); 
-	fclose(file);
+	//FILE * file;
+    std::ofstream log_file;
+	//file = fopen(file_name, "ab");	
+    // Open output binary file for appending
+    log_file.open(file_name, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
+    if (log_file.is_open())
+    {
+        //fwrite(&CR->CE_metrics, sizeof(struct metric_s), 1, file); 
+        std::cout<<"Log file open"<<std::endl;
+        log_file.write((char*)&CR->CE_metrics, sizeof(struct metric_s));
+    }
+    else
+    {
+        std::cout<<"Error opening log file:"<<file_name<<std::endl;
+    }
+
+	//fclose(file);
+    log_file.close();
 }
 
 // specific implementation of cognitive engine (will be moved to external file in the future)

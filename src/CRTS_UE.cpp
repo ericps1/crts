@@ -13,6 +13,8 @@
 #include"CR.hpp"
 #include"node_parameters.hpp"
 #include"read_configs.hpp"
+#include<iostream>
+#include<fstream>
 
 void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, struct node_parameters *np){
 	// Listen to socket for message from controller
@@ -51,12 +53,23 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 		CR->set_ce(np->CE);		
 		// open log file to delete any current contents
 		if (CR->log_metrics_flag){
-			FILE * file;
+			//FILE * file;
+            std::ofstream log_file;
 			char log_file_name[50];
 			strcpy(log_file_name, "./logs/");
 			strcat(log_file_name, CR->log_file);
-			file = fopen(log_file_name, "w");
-			fclose(file);
+			//file = fopen(log_file_name, "w");
+            // Open file for writing and clear contents
+            log_file.open("file_name", std::ofstream::out | std::ofstream::trunc);
+            if (log_file.is_open())
+            {
+                //fclose(file);
+                log_file.close();
+            }
+            else
+            {
+                std::cout<<"Error opening log file:"<<log_file_name<<std::endl;
+            }
 		}
 		break;
 	case 't': // terminate program
