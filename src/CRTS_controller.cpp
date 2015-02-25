@@ -122,7 +122,9 @@ int main(int argc, char ** argv){
 				strcat(command, "@");
 				strcat(command, np[j].CORNET_IP);
 				strcat(command, " 'sleep 1 && ");
+				strcat(command, " cd ");
 				strcat(command, crts_dir);
+				strcat(command, " && ./");
 			
 				// add appropriate executable
 				switch (np[j].type){

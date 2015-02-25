@@ -82,6 +82,7 @@ void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
 
 void help_CRTS_UE() {
     printf("CRTS_UE -- Start a cognitive radio UE node. Only needs to be run explicitly when using CRTS_controller with -m option.\n");
+    printf("        -- This program must be run from the main CRTS directory.\n");
     printf(" -h : Help.\n");
     printf(" -t : Run Time - Length of time this node will run. In seconds.\n");
     printf("      Default: 20.0 s\n");
