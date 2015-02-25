@@ -60,7 +60,7 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 			strcat(log_file_name, CR->log_file);
 			//file = fopen(log_file_name, "w");
             // Open file for writing and clear contents
-            log_file.open("file_name", std::ofstream::out | std::ofstream::trunc);
+            log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
             if (log_file.is_open())
             {
                 //fclose(file);
