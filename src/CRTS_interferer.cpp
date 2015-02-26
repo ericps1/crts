@@ -151,7 +151,6 @@ int main(int argc, char ** argv){
 		Receive_command_from_controller(&TCP_controller, &inter, &np);
 		
 		printf("Interferer On\n");
-		//while(timer < transmit_period){
 		for(int i=0; i<iterations_on; i++){
 			// define signal based on interference type
 			switch(inter.int_type){
@@ -165,25 +164,15 @@ int main(int argc, char ** argv){
 			default:
 				break;
 			}
-
-			// update timer
-			//timer = clock() - start;
-			//printf("Timer %li\n", timer);
 		}
-		//start = clock();
-		//timer = 0;
 		printf("Interferer Off\n");
 		for(int i=0; i<iterations_off; i++){
-		//while(timer < off_period){
-            tx_strmr->send(
+			tx_strmr->send(
                 &usrp_buffer_off.front(), usrp_buffer_off.size(),
                 inter.metadata_tx
                 //TODO: Should we set a timeout here?
             );
-            //usleep(1e6*buffer_len/inter.tx_rate);
-			// update timer
-			//timer = clock() -start;
-		}
+   		}
 	}
 }
 
