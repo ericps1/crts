@@ -11,9 +11,12 @@
 #include <time.h>
 #include <uhd/utils/msg.hpp>
 #include <errno.h>
+#include <signal.h>
 #include "CR.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
+
+int sig_terminate;
 
 void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, struct node_parameters *np){
 	// Listen to socket for message from controller
@@ -81,7 +84,17 @@ void help_CRTS_UE() {
     printf(" -a : IP Address of node running CRTS_controller.\n");
 }
 
+void terminate(int signum){
+	printf("Sending termination message to controller\n");
+	sig_terminate = 1;
+}
+
 int main(int argc, char ** argv){
+	
+	// register signal handlers
+	signal(SIGINT, terminate);
+	signal(SIGQUIT, terminate);
+	signal(SIGTERM, terminate);
 	
 	float run_time = 20.0f;
 	float us_sleep = 5e5;
@@ -149,6 +162,7 @@ int main(int argc, char ** argv){
 	for(unsigned int i=0; i<payload_len; i++) payload[i] = i;
 
 	// Loop
+	sig_terminate = 0;
 	for(int i=0; i<iterations; i++){
 		// Listen for any updates from the controller (non-blocking)
 		printf("Listening to controller for command\n");
@@ -194,6 +208,7 @@ int main(int argc, char ** argv){
 		}*/
 
 		// Either reach end of scenario and tell controller or receive end of scenario message from controller
+		if(sig_terminate) break;
 	}
 
 	printf("Sending termination message to controller\n");

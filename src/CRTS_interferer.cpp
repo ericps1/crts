@@ -13,9 +13,13 @@
 #include <uhd/utils/msg.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
 #include <errno.h>
+#include <signal.h>
 #include "interferer.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
+
+// global variables
+int sig_terminate;
 
 void Receive_command_from_controller(int *TCP_controller, Interferer * inter, struct node_parameters *np){
 	// Listen to socket for message from controller
@@ -66,8 +70,17 @@ void help_CRTS_interferer() {
     printf(" -a : IP Address of node running CRTS_controller.\n");
 }
 
+void terminate(int signum){
+	sig_terminate = 1;
+}
+
 int main(int argc, char ** argv){
-	
+
+	// register signal handlers
+	signal(SIGINT, terminate);
+	signal(SIGQUIT, terminate);
+	signal(SIGTERM, terminate);
+
 	float run_time;
 
     // Default IP Address of Node running CRTS_controller
@@ -147,6 +160,7 @@ int main(int argc, char ** argv){
 	int iterations_off = (int)(inter.period*(1.0-inter.duty_cycle)*inter.tx_rate/buffer_len);
 	
 	// Loop
+	sig_terminate = 0;
 	for(int i=0; i<iterations; i++){
 		Receive_command_from_controller(&TCP_controller, &inter, &np);
 		
@@ -164,6 +178,7 @@ int main(int argc, char ** argv){
 			default:
 				break;
 			}
+			if(sig_terminate) break;
 		}
 		printf("Interferer Off\n");
 		for(int i=0; i<iterations_off; i++){
@@ -172,7 +187,10 @@ int main(int argc, char ** argv){
                 inter.metadata_tx
                 //TODO: Should we set a timeout here?
             );
-   		}
+   			if(sig_terminate) break;
+		}
+		
+		if(sig_terminate) break;
 	}
 
 	printf("Sending termination message to controller\n");
