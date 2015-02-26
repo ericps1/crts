@@ -136,10 +136,10 @@ CognitiveRadio::~CognitiveRadio(){
 
 void CognitiveRadio::set_ce(char *ce){
 //EDIT START FLAG
-	if(!strcmp(ce, "CE_Example_1"))
-		CE = new CE_Example_1();
 	if(!strcmp(ce, "CE_Example_2"))
 		CE = new CE_Example_2();
+	if(!strcmp(ce, "CE_Example_1"))
+		CE = new CE_Example_1();
 //EDIT END FLAG
 }
 
