@@ -19,7 +19,9 @@
 
 #define MAXPENDING 5
 
-int sig_terminate;		
+// global variables
+int sig_terminate;
+int num_nodes_terminated;
 
 int Receive_msg_from_nodes(int *client, int num_nodes){
 	// Listen to sockets for messages from any node
@@ -42,12 +44,11 @@ int Receive_msg_from_nodes(int *client, int num_nodes){
 		else{
 			switch (msg){
 			case 't': // terminate program
-				printf("Node %i has sent a termination message. Terminating the current scenario...\n\n", i);
-				// tell all nodes to terminate program
-				for(int j=0; j<num_nodes; j++){
-					write(client[j], &msg, 1);
-				}
-				return 1;
+				printf("Node %i has sent a termination message...\n", i);
+				num_nodes_terminated++;
+				// check if all nodes have terminated
+				if(num_nodes_terminated == num_nodes) return 1;
+				break;
 			default:
 				printf("Invalid message type received from node %i\n", i);
 			}
@@ -230,17 +231,18 @@ int main(int argc, char ** argv){
 		printf("Waiting to for scenario termination message from a node\n");
 		sig_terminate = 0;
 		int msg_terminate = 0;
+		num_nodes_terminated = 0;
 		while((!sig_terminate) && (!msg_terminate)){
 			msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
 		}
 		
 		// if the controller is being terminated, send termination message to other nodes
-		//if(sig_terminate){
+		if(sig_terminate){
 			char msg = 't';
 			for(int j=0; j<sp.num_nodes; j++){
 				write(client[j], &msg, 1);
 			}
-		//}
+		}
 
 		// Generate/push transmit data if needed
 		// Receive feedback if needed

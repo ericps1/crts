@@ -174,6 +174,10 @@ int main(int argc, char ** argv){
             );
    		}
 	}
+
+	printf("Sending termination message to controller\n");
+	char term_message = 't';
+	write(TCP_controller, &term_message, 1);
 }
 
 
