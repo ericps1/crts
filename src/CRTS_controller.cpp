@@ -1,46 +1,56 @@
-#include<stdlib.h>
-#include<stdio.h>
-#include<net/if.h>
-#include<sys/socket.h>
-#include<sys/types.h>
-#include<sys/wait.h>
-#include<signal.h>
-#include<ctype.h>
-#include<unistd.h>
-#include<netinet/in.h>
-#include<arpa/inet.h>
-#include<fcntl.h>
-#include<pthread.h>
-#include<string.h>
-#include<time.h>
-#include"node_parameters.hpp"
-#include"read_configs.hpp"
+#include <stdlib.h>
+#include <stdio.h>
+#include <net/if.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <string.h>
+#include <time.h>
+#include <errno.h>
+#include "node_parameters.hpp"
+#include "read_configs.hpp"
 
 #define MAXPENDING 5
 
+int sig_terminate;		
+
 int Receive_msg_from_nodes(int *client, int num_nodes){
 	// Listen to sockets for messages from any node
-	char msg;//[500+sizeof(struct node_parameters)];
-	
+	char msg;
 	for(int i=0; i<num_nodes; i++){
 		int rflag = recv(client[i], &msg, 1, 0);
-		if (rflag == 0) break;
-		if (rflag == -1){
-			close(client[i]);
-			printf("Node %i has disconnected. Terminating the current scenario..\n\n", i);
-		}
-
-		// Parse command
-		switch (msg){
-		case 't': // terminate program
-			printf("Node %i has sent a termination message. Terminating the current scenario...\n\n", i);
-			// tell all nodes to terminate program
-			for(int j=0; j<num_nodes; j++){
-				write(client[j], &msg, 1);
+		int err = errno;
+		if (rflag <= 0){ 
+			if(!((err == EAGAIN) || (err == EWOULDBLOCK))){
+				close(client[i]);
+				printf("Node %i has disconnected. Terminating the current scenario..\n\n", i);
+				// tell all nodes to terminate program
+				for(int j=0; j<num_nodes; j++){
+					write(client[j], &msg, 1);
+				}
+				return 1;
 			}
-			return 1;
-		default:
-			printf("Invalid message type received from node %i\n", i);
+		}	
+		// Parse command if received a message
+		else{
+			switch (msg){
+			case 't': // terminate program
+				printf("Node %i has sent a termination message. Terminating the current scenario...\n\n", i);
+				// tell all nodes to terminate program
+				for(int j=0; j<num_nodes; j++){
+					write(client[j], &msg, 1);
+				}
+				return 1;
+			default:
+				printf("Invalid message type received from node %i\n", i);
+			}
 		}
 	}
 
@@ -58,7 +68,18 @@ void help_CRTS_controller() {
     printf("      Default: 192.168.1.56\n");
 }
 
+void terminate(int signum){
+	printf("Terminating scenario on all nodes\n");
+	sig_terminate = 1;	
+}
+
 int main(int argc, char ** argv){
+	
+	// register signal handlers
+	signal(SIGINT, terminate);
+	signal(SIGQUIT, terminate);
+	signal(SIGTERM, terminate);
+	//signal(SIGPIPE, terminate);
 	
 	int manual_execution = 0;
 
@@ -195,20 +216,32 @@ int main(int argc, char ** argv){
 				fprintf(stderr, "ERROR: Sever Failed to Connect to Client\n");
 				exit(EXIT_FAILURE);
 			}
+
+			// set socket to non-blocking
+			fcntl(client[j], F_SETFL, O_NONBLOCK);
+
 			// send node parameters
 			printf("\nNode %i has connected. Sending its parameters...\n", j+1);
 			char msg_type = 's';
 			send(client[j], (void*)&msg_type, sizeof(char), 0);
-			send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);
-			
+			send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);			
 		}
 
 		printf("Waiting to for scenario termination message from a node\n");
-		int terminate = 0;
-		while(!terminate){
-			terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
+		sig_terminate = 0;
+		int msg_terminate = 0;
+		while((!sig_terminate) && (!msg_terminate)){
+			msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
 		}
-	
+		
+		// if the controller is being terminated, send termination message to other nodes
+		//if(sig_terminate){
+			char msg = 't';
+			for(int j=0; j<sp.num_nodes; j++){
+				write(client[j], &msg, 1);
+			}
+		//}
+
 		// Generate/push transmit data if needed
 		// Receive feedback if needed
 		// Determine when scenario is over either from feedback or from a message from a CR node
