@@ -44,7 +44,7 @@ int Receive_msg_from_nodes(int *client, int num_nodes){
 		else{
 			switch (msg){
 			case 't': // terminate program
-				printf("Node %i has sent a termination message...\n", i);
+				printf("Node %i has sent a termination message...\n", i+1);
 				num_nodes_terminated++;
 				// check if all nodes have terminated
 				if(num_nodes_terminated == num_nodes) return 1;
@@ -81,8 +81,8 @@ int main(int argc, char ** argv){
 	signal(SIGQUIT, terminate);
 	signal(SIGTERM, terminate);
 	//signal(SIGPIPE, terminate);
-	
-	int manual_execution = 0;
+		
+		int manual_execution = 0;
 
     // Default username for ssh
     char * ssh_uname = (char *) "ericps1";
@@ -228,7 +228,8 @@ int main(int argc, char ** argv){
 			send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);			
 		}
 
-		printf("Waiting to for scenario termination message from a node\n");
+		printf("Listening for scenario termination message from a nodes\n");
+		
 		sig_terminate = 0;
 		int msg_terminate = 0;
 		num_nodes_terminated = 0;

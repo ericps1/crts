@@ -85,7 +85,7 @@ void help_CRTS_UE() {
 }
 
 void terminate(int signum){
-	printf("Sending termination message to controller\n");
+	printf("\nSending termination message to controller\n");
 	sig_terminate = 1;
 }
 
@@ -149,8 +149,7 @@ int main(int argc, char ** argv){
 	// Read scenario info from controller
 	Receive_command_from_controller(&TCP_controller, &CR, &np);
 	CR.start_rx();
-    printf("Setting socket to non-blocking\n");
-	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
+    fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
 	// Start CR
 	//CR.start_tx();
@@ -165,7 +164,7 @@ int main(int argc, char ** argv){
 	sig_terminate = 0;
 	for(int i=0; i<iterations; i++){
 		// Listen for any updates from the controller (non-blocking)
-		printf("Listening to controller for command\n");
+		//printf("Listening to controller for command\n");
 		Receive_command_from_controller(&TCP_controller, &CR, &np);
 
 		// Create TCP client to AP

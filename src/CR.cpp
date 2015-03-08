@@ -24,7 +24,7 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     fgprops.check       = LIQUID_CRC_32;
     fgprops.fec0        = LIQUID_FEC_HAMMING128;
     fgprops.fec1        = LIQUID_FEC_NONE;
-    fgprops.mod_scheme      = LIQUID_MODEM_QAM256;
+    fgprops.mod_scheme      = LIQUID_MODEM_QAM4;
     fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
 
     // allocate memory for frame generator output (single OFDM symbol)

@@ -15,8 +15,11 @@ enum traffic{
 };
 
 enum int_type{
-    CW,
-    RRC
+    CW = 0,
+    AWGN,
+	GMSK,
+	RRC,
+	OFDM
 };
 
 struct node_parameters{
