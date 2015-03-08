@@ -147,20 +147,9 @@ int main(int argc, char ** argv){
 	std::vector<std::complex<float> > tx_buffer(samps_on);
 
 	//printf("duty cycle: %f\n", inter.duty_cycle);
-	printf("samples on: %i\n", samps_on);
+	//printf("samples on: %i\n", samps_on);
 	//printf("samples off: %i\n", samples_off);
 	
-	// variables used to modulate waveforms
-	/*float symbol;
-	iquid_firdes_rnyquist(LIQUID_FIRFILT_GMSKTX, K, M, beta, 0.0f, h);
-	firfilt_rrrf gmsk_filt = firfilt_rrrf_create(h, h_len);
-	float filtered[buffer_len];
-	float theta = 0.0;			
-	std::complex<float> complex_symbol;
-
-	int ofdm_subcarriers = int(inter.tx_rate/15e3);
-	*/
-
 	// gmsk frame generator
 	gmskframegen gmsk_fg = gmskframegen_create();
 	
@@ -194,18 +183,13 @@ int main(int argc, char ** argv){
 		Receive_command_from_controller(&TCP_controller, &inter, &np);
 		
 		printf("Interferer On\n");
-
 		int samp_count = 0;	
 		while(samp_count<samps_on){
-			// modifications for the last group of samples generated
-			//if(samples_remaining <= tx_buffer_len){
-			//	samples_to_generate = samples_remaining;
-			//	last_samples = true;
-			//}
 			
 			int samps_to_transmit= 0;
 			switch(np.int_type){
 			case(CW):
+				// fill buffer (only needs to be done the first time)
 				if(i==0){ 
 					for(int j=0; j<usrp_buffer_len; j++){
 						tx_buffer[j].real(0.5);
@@ -216,9 +200,10 @@ int main(int argc, char ** argv){
 				samp_count += samps_to_transmit;
 				break;
 			case(AWGN):
+				//generate random signal
 				for(int j=0; j<usrp_buffer_len; j++){
-					tx_buffer[j].real(0.5*(float)rand()/(float)RAND_MAX);
-					tx_buffer[j].imag(0.5*(float)rand()/(float)RAND_MAX);
+					tx_buffer[j].real(0.5*(float)rand()/(float)RAND_MAX-0.25);
+					tx_buffer[j].imag(0.5*(float)rand()/(float)RAND_MAX-0.25);
 				}
 				samps_to_transmit = usrp_buffer_len;
 				samp_count += samps_to_transmit;
@@ -240,6 +225,7 @@ int main(int argc, char ** argv){
 				break;
 			}
 			case(RRC):{
+				// fill an entire buffer unless the end has been reached
 				samps_to_transmit= tx_buffer_len;
 				std::complex<float> complex_symbol;
 				if(samps_on-samp_count <= tx_buffer_len){
@@ -247,17 +233,18 @@ int main(int argc, char ** argv){
 				}
 				for(int j=0; j<samps_to_transmit; j++){
 					samp_count++;
+					// generate a random QPSK symbol until within a filter length of the end
 					if(j%k == 0 && samp_count<samps_on-2*h_len){
 						complex_symbol.real(0.5*(float)roundf((float)rand()/(float)RAND_MAX)-0.25);
 						complex_symbol.imag(0.5*(float)roundf((float)rand()/(float)RAND_MAX)-0.25);
 					}
+					// zero insert to interpolate
 					else{
 						complex_symbol.real(0.0);
 						complex_symbol.imag(0.0);
 					}
 					firfilt_crcf_push(rrc_filt, complex_symbol);
 					firfilt_crcf_execute(rrc_filt, &tx_buffer[j]);
-					//printf("%f + j%f\n", usrp_buffer_on[k].real(), usrp_buffer_on[k].imag());
 				}
 				break;
 			}
@@ -269,10 +256,14 @@ int main(int argc, char ** argv){
 					samps_to_transmit += num_subcarriers+cp_len;
 					if(frame_complete) break;
 				}
+				// reduce amplitude of signal to avoid clipping
+				for(int j=0; j<samps_to_transmit; j++)
+					tx_buffer[j] *= 0.125f;
+				// update sample counter
 				samp_count += samps_to_transmit;
 				break;
 			}
-			}
+			}// interference type switch
 			
 			int tx_samp_count = 0;//samps_to_transmit;	
 			int usrp_samps = usrp_buffer_len;
@@ -292,7 +283,8 @@ int main(int argc, char ** argv){
 				// update number of tx samples remaining
 				tx_samp_count += usrp_buffer_len;
 				if(sig_terminate) break;
-			}
+			}// usrp transmit loop
+			if(sig_terminate) break;
 		}
 		printf("Interferer Off\n");
 		int off_samp_counter = 0;	
