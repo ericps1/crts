@@ -42,7 +42,7 @@ CRTS_controller: include/node_parameters.hpp src/CRTS_controller.cpp src/read_co
 	g++ $(FLAGS) -o CRTS_controller src/CRTS_controller.cpp lib/read_configs.o -lconfig
 
 post_process_logs: src/post_process_logs.cpp
-	g++ $(FLAGS) -o post_process_logs src/post_process_logs.cpp -luhd
+	g++ $(FLAGS) -o logs/post_process_logs src/post_process_logs.cpp -luhd
 
 clean:
 	rm -rf lib/*.o

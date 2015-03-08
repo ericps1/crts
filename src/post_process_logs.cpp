@@ -11,11 +11,9 @@ void help_post_process_logs() {
 int main(int argc, char ** argv){
 	
 	char log_file[50]; 
-	strcpy(log_file, "logs/");
 	char output_file[50];
-	strcpy(output_file, "logs/");
 	
-    // Option flags
+	// Option flags
     int l_opt = 0;
     int o_opt = 0;
 
@@ -23,8 +21,8 @@ int main(int argc, char ** argv){
 	while((d = getopt(argc, argv, "hl:o:")) != EOF){
 		switch(d){
 		case 'h': help_post_process_logs();                 return 0;
-		case 'l': strcat(log_file, optarg); l_opt = 1;      break;
-		case 'o': strcat(output_file, optarg); o_opt = 1;   break;
+		case 'l': strcpy(log_file, optarg); l_opt = 1;      break;
+		case 'o': strcpy(output_file, optarg); o_opt = 1;   break;
 		}
 	}
 
@@ -49,7 +47,6 @@ int main(int argc, char ** argv){
 	FILE * file_out = fopen(output_file, "w");
 
 	struct metric_s metrics = {};
-	//float evm;
 	int i = 1;
 	
 	fprintf(file_out, "clear all;\n");
