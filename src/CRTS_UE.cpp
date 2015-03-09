@@ -16,6 +16,14 @@
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
 
+
+#define DEBUG 0
+#if DEBUG == 1
+#define dprintf(...) printf(__VA_ARGS__)
+#else
+#define dprintf(...) /*__VA_ARGS__*/
+#endif
+
 int sig_terminate;
 
 void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, struct node_parameters *np){
@@ -135,24 +143,27 @@ int main(int argc, char ** argv){
 		printf("Failed to Connect to server.\n");
 		exit(EXIT_FAILURE);
 	}
-	printf("Connected to server\n");
+	dprintf("Connected to server\n");
 	
 	// Quiet UHD output and fix buffer issue
 	uhd::msg::register_handler(&uhd_quiet);
 	
 	// Create CR object
+	dprintf("Creating CR object...\n");
 	CognitiveRadio CR;
 	
 	// Create node parameters struct
 	struct node_parameters np;
 		
 	// Read scenario info from controller
+	dprintf("Receiving command from controller...\n");
 	Receive_command_from_controller(&TCP_controller, &CR, &np);
-	CR.start_rx();
-    fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
+	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
 	// Start CR
-	//CR.start_tx();
+	dprintf("Starting CR object...\n");
+	CR.start_rx();
+    //CR.start_tx();
 
 	// Create dumby frame to be transmitted
 	unsigned char header[8] = {};
@@ -215,6 +226,7 @@ int main(int argc, char ** argv){
 
 		// Either reach end of scenario and tell controller or receive end of scenario message from controller
 		if(sig_terminate) break;
+		if(i == iterations-1) printf("Run time has been reached\n");
 	}
 
 	printf("Sending termination message to controller\n");

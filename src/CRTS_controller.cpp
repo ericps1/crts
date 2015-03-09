@@ -32,7 +32,8 @@ int Receive_msg_from_nodes(int *client, int num_nodes){
 		if (rflag <= 0){ 
 			if(!((err == EAGAIN) || (err == EWOULDBLOCK))){
 				close(client[i]);
-				printf("Node %i has disconnected. Terminating the current scenario..\n\n", i);
+				printf("Node %i has disconnected. Terminating the current scenario..\n\n", i+1);
+				//sig_terminate = 1;
 				// tell all nodes to terminate program
 				for(int j=0; j<num_nodes; j++){
 					write(client[j], &msg, 1);
@@ -136,12 +137,7 @@ int main(int argc, char ** argv){
 	struct sockaddr_in clientAddr[48];
 	socklen_t client_addr_size[48];
 	struct node_parameters np[48];
-	/*int client2;
-	struct sockaddr_in clientAddr2;
-	socklen_t client_addr_size2;
-	struct node_parameters np2;
-	*/
-
+	
 	// read master scenario config file
 	char scenario_list[30][60];
 	int num_scenarios = read_scenario_master_file(scenario_list);
@@ -166,6 +162,7 @@ int main(int argc, char ** argv){
 			print_node_parameters(&np[j]);
 			
 			// send command to launch executable if not doing so manually
+			int ssh_return = 0;
 			if (!manual_execution){
 				char command[100] = "ssh "; 
                 // Add username to ssh command
@@ -178,13 +175,13 @@ int main(int argc, char ** argv){
 				// add appropriate executable
 				switch (np[j].type){
 				case BS: 
-					strcat(command, "/CRTS_AP");
+					strcat(command, "CRTS_AP");
 					break;
 				case UE:
-					strcat(command, "/CRTS_UE");
+					strcat(command, "CRTS_UE");
 					break;
 				case interferer:
-					strcat(command, "/CRTS_interferer");
+					strcat(command, "CRTS_interferer");
 					break;
 				}
 		
@@ -199,9 +196,16 @@ int main(int argc, char ** argv){
 				strcat(command, serv_ip_addr);
 
                 // set command to continue program after shell is closed
-				strcat(command, " 2>&1 &'& ");
-				system(command);
+				strcat(command, " 2>&1 &'&");
+				ssh_return = system(command);
 				printf("Command executed: %s\n", command);
+				printf("Return value: %i\n", ssh_return);
+			}
+
+			if(ssh_return != 0){
+				printf("Failed to execute CRTS on node %i\n", j+1);
+				sig_terminate = 1;
+				break;
 			}
 
 			// listen for node to connect to server
@@ -228,7 +232,7 @@ int main(int argc, char ** argv){
 			send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);			
 		}
 
-		printf("Listening for scenario termination message from a nodes\n");
+		printf("Listening for scenario termination message from nodes\n");
 		
 		sig_terminate = 0;
 		int msg_terminate = 0;

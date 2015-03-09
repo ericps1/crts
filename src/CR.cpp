@@ -46,22 +46,8 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     usrp_tx = uhd::usrp::multi_usrp::make(dev_addr);
     usrp_rx = uhd::usrp::multi_usrp::make(dev_addr);
 	
-	// initialize default tx values
-    set_tx_freq(460.0e6f);
-    set_tx_rate(500e3);
-    set_tx_gain_soft(-12.0f);
-    set_tx_gain_uhd(0.0f);
-
-    // initialize default rx values
-    set_rx_freq(460.0e6f);
-    set_rx_rate(500e3);
-    set_rx_gain_uhd(0.0f);
-	
-    // reset transceiver
-    reset_tx();
-    reset_rx();
-
 	// create and start rx thread
+	dprintf("Starting rx thread...\n");
     rx_running = false;             // receiver is not running initially
     rx_thread_running = true;           // receiver thread IS running initially
     pthread_mutex_init(&rx_mutex, NULL);    // receiver mutex
@@ -77,7 +63,8 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
 	
 	
 	// Start CE thread
-    pthread_mutex_init(&CE_mutex, NULL);
+    dprintf("Starting CE thread...\n");
+	pthread_mutex_init(&CE_mutex, NULL);
 	pthread_cond_init(&CE_execute_sig, NULL);
 	pthread_create(&CE_process, NULL, CR_ce_worker, (void*)this);
 	
@@ -92,6 +79,23 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     //strcpy(tap_name, "tap44");
     //tapfd = tun_alloc(tap_name, IFF_TAP);
 
+	// initialize default tx values
+	dprintf("Initializing USRP settings...\n");
+    set_tx_freq(460.0e6f);
+    set_tx_rate(500e3);
+    set_tx_gain_soft(-12.0f);
+    set_tx_gain_uhd(0.0f);
+
+    // initialize default rx values
+    set_rx_freq(460.0e6f);
+    set_rx_rate(500e3);
+    set_rx_gain_uhd(0.0f);
+	
+    // reset transceiver
+    reset_tx();
+    reset_rx();
+
+	
 }
 
 // Destructor
