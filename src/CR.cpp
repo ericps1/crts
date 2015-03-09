@@ -10,6 +10,13 @@
 #include"CR.hpp"
 #include"TUN.hpp"
 
+#define DEBUG 0
+#if DEBUG == 1
+#define dprintf(...) printf(__VA_ARGS__)
+#else
+#define dprintf(...) /*__VA_ARGS__*/
+#endif
+
 // Constructor
 CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
 
@@ -62,16 +69,13 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     pthread_create(&rx_process,   NULL, CR_rx_worker, (void*)this);
 	
     // create and start tx thread
-    /*tx_running = false; // transmitter is not running initially
-    tx_thread_running = true; // transmitter thread IS running initially
+    //tx_running = false; // transmitter is not running initially
+    //tx_thread_running = true; // transmitter thread IS running initially
     pthread_mutex_init(&tx_mutex, NULL); // transmitter mutex
     pthread_cond_init(&tx_cond, NULL); // transmitter condition
-    pthread_create(&tx_process, NULL, CR_tx_worker, (void*)this);
-	*/
+    //pthread_create(&tx_process, NULL, CR_tx_worker, (void*)this);
 	
-	// Point to CE execute function	
-    //CE_execute = &CE_execute_1;
-
+	
 	// Start CE thread
     pthread_mutex_init(&CE_mutex, NULL);
 	pthread_cond_init(&CE_execute_sig, NULL);
@@ -93,31 +97,31 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
 // Destructor
 CognitiveRadio::~CognitiveRadio(){
 
-    printf("waiting for process to finish...\n");
+    dprintf("waiting for process to finish...\n");
 
     // ensure reciever thread is not running
     if (rx_running) stop_rx();
 
     // signal condition (tell rx worker to continue)
-    printf("destructor signaling condition...\n");
+    dprintf("destructor signaling condition...\n");
     rx_thread_running = false;
     pthread_cond_signal(&rx_cond);
 
-    printf("destructor joining rx thread...\n");
+    dprintf("destructor joining rx thread...\n");
     void * exit_status;
     pthread_join(rx_process, &exit_status);
 
     // destroy threading objects
-    printf("destructor destroying mutex...\n");
+    dprintf("destructor destroying mutex...\n");
     pthread_mutex_destroy(&rx_mutex);
-    printf("destructor destroying condition...\n");
+    dprintf("destructor destroying condition...\n");
     pthread_cond_destroy(&rx_cond);
     
     // TODO: output debugging file
     if (debug_enabled)
     ofdmflexframesync_debug_print(fs, "ofdmtxrx_framesync_debug.m");
 
-    printf("destructor destroying other objects...\n");
+    dprintf("destructor destroying other objects...\n");
     // destroy framing objects
     ofdmflexframegen_destroy(fg);
     ofdmflexframesync_destroy(fs);
@@ -136,6 +140,8 @@ CognitiveRadio::~CognitiveRadio(){
 
 void CognitiveRadio::set_ce(char *ce){
 //EDIT START FLAG
+	if(!strcmp(ce, "AMC_CE"))
+		CE = new AMC_CE();
 	if(!strcmp(ce, "CE_Example_2"))
 		CE = new CE_Example_2();
 	if(!strcmp(ce, "CE_Example_1"))
@@ -182,42 +188,45 @@ void CognitiveRadio::reset_tx()
 // set transmitter frequency
 void CognitiveRadio::set_tx_freq(float _tx_freq)
 {
-    //pthread_mutex_lock(&tx_mutex);
+    pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_freq(_tx_freq);
-    //pthread_mutex_unlock(&tx_mutex);
+    pthread_mutex_unlock(&tx_mutex);
 }
 
 // set transmitter sample rate
 void CognitiveRadio::set_tx_rate(float _tx_rate)
 {
-    //pthread_mutex_lock(&tx_mutex);
+    pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_rate(_tx_rate);
-    //pthread_mutex_unlock(&tx_mutex);
+    pthread_mutex_unlock(&tx_mutex);
 }
 
 // set transmitter software gain
 void CognitiveRadio::set_tx_gain_soft(float _tx_gain_soft)
 {
-    //pthread_mutex_lock(&tx_mutex);
+    pthread_mutex_lock(&tx_mutex);
 	tx_gain = powf(10.0f, _tx_gain_soft / 20.0f);
-    //pthread_mutex_unlock(&tx_mutex);
+    pthread_mutex_unlock(&tx_mutex);
 }
 
 // set transmitter hardware (UHD) gain
 void CognitiveRadio::set_tx_gain_uhd(float _tx_gain_uhd)
 {
-    //pthread_mutex_lock(&tx_mutex);
+    pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_gain(_tx_gain_uhd);
-    //pthread_mutex_unlock(&tx_mutex);
+    pthread_mutex_unlock(&tx_mutex);
 }
 
 // set modulation scheme
 void CognitiveRadio::set_tx_modulation(int mod_scheme)
 {
-    //pthread_mutex_lock(&tx_mutex);
+    pthread_mutex_lock(&tx_mutex);
+	//ofdmflexframegen_print(fg);
+	//printf("updating frame props\n");
     fgprops.mod_scheme = mod_scheme;
     ofdmflexframegen_setprops(fg, &fgprops);
-    //pthread_mutex_unlock(&tx_mutex);
+    //ofdmflexframegen_print(fg);
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 // decrease modulation order
@@ -226,10 +235,10 @@ void CognitiveRadio::decrease_tx_mod_order()
 	// Check to see if modulation order is already minimized
 	if (fgprops.mod_scheme != 1 && fgprops.mod_scheme != 9 && fgprops.mod_scheme != 17 &&
 		fgprops.mod_scheme != 25 && fgprops.mod_scheme != 32){
-			//pthread_mutex_lock(&tx_mutex);
+			pthread_mutex_lock(&tx_mutex);
    		 	fgprops.mod_scheme--;
     		ofdmflexframegen_setprops(fg, &fgprops);
-			//pthread_mutex_unlock(&tx_mutex);
+			pthread_mutex_unlock(&tx_mutex);
 	}
 }
 
@@ -239,90 +248,87 @@ void CognitiveRadio::increase_tx_mod_order()
 	// check to see if modulation order is already maximized
 	if (fgprops.mod_scheme != 8 && fgprops.mod_scheme != 16 && fgprops.mod_scheme != 24 &&
 		fgprops.mod_scheme != 31 && fgprops.mod_scheme != 38){		
-			//pthread_mutex_lock(&tx_mutex);
+			pthread_mutex_lock(&tx_mutex);
    			fgprops.mod_scheme++;
     		ofdmflexframegen_setprops(fg, &fgprops);
-    		//pthread_mutex_unlock(&tx_mutex);
+    		pthread_mutex_unlock(&tx_mutex);
 	}
 }
 
 // set CRC scheme
 void CognitiveRadio::set_tx_crc(int crc_scheme){
-	//pthread_mutex_lock(&tx_mutex);
+	pthread_mutex_lock(&tx_mutex);
     fgprops.check = crc_scheme;
 	ofdmflexframegen_setprops(fg, &fgprops);
-    //pthread_mutex_unlock(&tx_mutex);
+    pthread_mutex_unlock(&tx_mutex);
 }
 
 // set FEC0
 void CognitiveRadio::set_tx_fec0(int fec_scheme)
 {
-    //pthread_mutex_lock(&tx_mutex);
+    pthread_mutex_lock(&tx_mutex);
     fgprops.fec0 = fec_scheme;
     ofdmflexframegen_setprops(fg, &fgprops);
-    //pthread_mutex_unlock(&tx_mutex);
+    pthread_mutex_unlock(&tx_mutex);
 }
 
 // set FEC1
 void CognitiveRadio::set_tx_fec1(int fec_scheme)
 {
-    //pthread_mutex_lock(&tx_mutex);
+    pthread_mutex_lock(&tx_mutex);
     fgprops.fec1 = fec_scheme;
     ofdmflexframegen_setprops(fg, &fgprops);
-    //pthread_mutex_unlock(&tx_mutex);
+    pthread_mutex_unlock(&tx_mutex);
 }
 
 // set number of subcarriers
 void CognitiveRadio::set_tx_subcarriers(unsigned int _M)
 {
     // destroy frame gen, set cp length, recreate frame gen
-	//pthread_mutex_lock(&tx_mutex);
+	pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
 	M = _M;
 	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
-	//pthread_mutex_unlock(&tx_mutex);
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 // set subcarrier allocation
 void CognitiveRadio::set_tx_subcarrier_alloc(char *_p)
 {
     // destroy frame gen, set cp length, recreate frame gen
-	//pthread_mutex_lock(&tx_mutex);
+	pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
 	memcpy(p, _p, M);
 	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
-	//pthread_mutex_unlock(&tx_mutex);
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 // set cp_len
 void CognitiveRadio::set_tx_cp_len(unsigned int _cp_len)
 {
     // destroy frame gen, set cp length, recreate frame gen
-	//pthread_mutex_lock(&tx_mutex);
+	pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
 	cp_len = _cp_len;
 	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
-	//pthread_mutex_unlock(&tx_mutex);
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 // set taper_len
 void CognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
 {
 	// destroy frame gen, set cp length, recreate frame gen
-	//pthread_mutex_lock(&tx_mutex);
+	pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
 	taper_len = _taper_len;
 	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
-	//pthread_mutex_unlock(&tx_mutex);
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 // update payload data on a particular channel
 void CognitiveRadio::transmit_packet(unsigned char * _header,
                    unsigned char * _payload,
-                   unsigned int    _payload_len)/*,
-                   int         _mod,
-                   int         _fec0,
-                   int         _fec1)*/
+                   unsigned int    _payload_len)
 {
     // set up the metadta flags
     metadata_tx.start_of_burst = false; // never SOB when continuous
@@ -333,36 +339,32 @@ void CognitiveRadio::transmit_packet(unsigned char * _header,
     // fector buffer to send data to device
     std::vector<std::complex<float> > usrp_buffer(fgbuffer_len);
 
-    // set properties
-    /*fgprops.mod_scheme  = _mod;
-    fgprops.fec0    = _fec0;
-    fgprops.fec1    = _fec1;
-    ofdmflexframegen_setprops(fg, &fgprops);*/
-
     // assemble frame
     ofdmflexframegen_assemble(fg, _header, _payload, _payload_len);
 
     // generate a single OFDM frame
     bool last_symbol=false;
     unsigned int i;
+	pthread_mutex_lock(&tx_mutex);
     while (!last_symbol) {
 
-    // generate symbol
-    last_symbol = ofdmflexframegen_writesymbol(fg, fgbuffer);
+    	// generate symbol
+    	last_symbol = ofdmflexframegen_writesymbol(fg, fgbuffer);
 
-    // copy symbol and apply gain
-    for (i=0; i<fgbuffer_len; i++)
-        usrp_buffer[i] = fgbuffer[i] * tx_gain;
-
-    // send samples to the device
-    usrp_tx->get_device()->send(
-        &usrp_buffer.front(), usrp_buffer.size(),
-        metadata_tx,
-        uhd::io_type_t::COMPLEX_FLOAT32,
-        uhd::device::SEND_MODE_FULL_BUFF
-    );
+    	// copy symbol and apply gain
+    	for (i=0; i<fgbuffer_len; i++)
+        	usrp_buffer[i] = fgbuffer[i] * tx_gain;
+	
+    	// send samples to the device
+    	usrp_tx->get_device()->send(
+        	&usrp_buffer.front(), usrp_buffer.size(),
+        	metadata_tx,
+        	uhd::io_type_t::COMPLEX_FLOAT32,
+        	uhd::device::SEND_MODE_FULL_BUFF
+    	);
 
     } // while loop
+	pthread_mutex_unlock(&tx_mutex);
 
     // send a few extra samples to the device
     // NOTE: this seems necessary to preserve last OFDM symbol in
@@ -512,7 +514,7 @@ void * CR_rx_worker(void * _arg)
     pthread_mutex_unlock(&(CR->rx_mutex));
 	// condition given; check state: run or exit
     if (!CR->rx_running) {
-        printf("rx_worker finished\n");
+        dprintf("rx_worker finished\n");
         break;
     }
 
@@ -557,12 +559,12 @@ void * CR_rx_worker(void * _arg)
         }
 		
     } // while rx_running
-    printf("rx_worker finished running\n");
+    dprintf("rx_worker finished running\n");
 
     } // while true
     
     //
-    printf("rx_worker exiting thread\n");
+    dprintf("rx_worker exiting thread\n");
     pthread_exit(NULL);
 }
 

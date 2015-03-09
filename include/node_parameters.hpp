@@ -4,22 +4,28 @@
 #include<string>
 
 enum type{
-    BS,
-    UE,
-    interferer
+    BS = 0,			// basestation node type
+    UE,				// user equipment node type
+    interferer		// interferer node type
+};
+
+enum duplex{
+	FDD = 0,		// frequency division duplexing
+	TDD,			// time division duplexing (not implemented)
+	HD				// half-duplex
 };
 
 enum traffic{
-    stream,
+    stream = 0,
     burst
 };
 
 enum int_type{
-    CW = 0,
-    AWGN,
-	GMSK,
-	RRC,
-	OFDM
+    CW = 0,			// continuous-wave interference
+    AWGN,			// additive white gaussian noise interference
+	GMSK,			// gaussian minimum-shift keying inteference
+	RRC,			// root-raised cosine interference (as in WCDMA)
+	OFDM			// orthogonal frequency division multiplexing interference
 };
 
 struct node_parameters{
@@ -35,6 +41,7 @@ struct node_parameters{
 	char log_file[30];
 
 	// RF
+	int duplex;
     float tx_freq;
     float rx_freq;
     float tx_rate;
