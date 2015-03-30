@@ -244,6 +244,7 @@ int main(int argc, char ** argv){
 		}
 		
 		// if the controller is being terminated, send termination message to other nodes
+        //FIXME: process doesn't end with ctrl+C if hasn't connected to all nodes yet
 		if(sig_terminate){
 			char msg = 't';
 			for(int j=0; j<sp.num_nodes; j++){
