@@ -18,8 +18,10 @@ int main(){
 	dpdf = opendir("./cognitive_engines");
 	if (dpdf != NULL){
 		while ((epdf = readdir(dpdf))){
-			if(strcmp(epdf->d_name,".") && strcmp(epdf->d_name, "..")){
+			if(epdf->d_name[0]!='.' ){
+                // Copy filename into list of CE names
 				ce_list[num_ces].assign(epdf->d_name);
+                // Strip the extension from the name
 				std::size_t dot_pos = ce_list[num_ces].find(".");
 				ce_list[num_ces].resize(dot_pos);
 				num_ces++;
