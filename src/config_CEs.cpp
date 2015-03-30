@@ -49,7 +49,7 @@ int main(){
 	bool edit_content = false;
 	
 	// open read file
-	std::ifstream file_in("/users/ericps1/crts/src/CR.cpp", std::ifstream::in);
+	std::ifstream file_in("src/CR.cpp", std::ifstream::in);
 
 	// read file until the end
 	while(!(file_in.eof())){
@@ -89,7 +89,7 @@ int main(){
 	file_in.close();
 	
 	// write file
-	std::ofstream file_out("/users/ericps1/crts/src/CR.cpp", std::ofstream::out);
+	std::ofstream file_out("src/CR.cpp", std::ofstream::out);
 	for(std::vector<std::string>::iterator i=file_lines.begin(); i!=file_lines.end(); i++){
 		file_out << (*i);// + "\r";//.substr(0, (*i).length()-1);
 		if(i!=file_lines.end()-1)
@@ -102,7 +102,7 @@ int main(){
 	file_lines.clear();
 
 	// open header file
-	file_in.open("/users/ericps1/crts/include/CE.hpp", std::ifstream::in);
+	file_in.open("include/CE.hpp", std::ifstream::in);
 
 	// read file until the end
 	while(!(file_in.eof())){
@@ -159,7 +159,7 @@ int main(){
 	file_in.close();
 
 	// write file
-	file_out.open("/users/ericps1/crts/include/CE.hpp", std::ofstream::out);
+	file_out.open("include/CE.hpp", std::ofstream::out);
 	for(std::vector<std::string>::iterator i=file_lines.begin(); i!=file_lines.end(); i++){
 		file_out << (*i);//.substr(0, (*i).length()-1);
 		if(i!=file_lines.end()-1)
@@ -172,7 +172,7 @@ int main(){
 	file_lines.clear();
 	
 	// open header file
-	file_in.open("/users/ericps1/crts/makefile", std::ifstream::in);
+	file_in.open("makefile", std::ifstream::in);
 
 	// read file until the end
 	while(!(file_in.eof())){
@@ -215,7 +215,7 @@ int main(){
 	file_in.close();
 
 	// write file
-	file_out.open("/users/ericps1/crts/makefile", std::ofstream::out);
+	file_out.open("makefile", std::ofstream::out);
 	for(std::vector<std::string>::iterator i=file_lines.begin(); i!=file_lines.end(); i++){
 		file_out << (*i);//.substr(0, (*i).length()-1);
 		if(i!=file_lines.end()-1)
