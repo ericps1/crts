@@ -31,6 +31,7 @@ struct metric_s{
 
 	// PHY
 	int header_valid;
+	unsigned char header[8];
 	int payload_valid;
 	framesyncstats_s stats; // stats used by ofdmtxrx object (RSSI, EVM)
 	uhd::time_spec_t time_spec;
@@ -73,6 +74,7 @@ public:
     // transmitter methods
     //
     void set_tx_freq(float _tx_freq);
+    float get_tx_freq();
     void set_tx_rate(float _tx_rate);
     void set_tx_gain_soft(float _tx_gain_soft);
     void set_tx_gain_uhd(float _tx_gain_uhd);
@@ -89,11 +91,13 @@ public:
     void set_tx_subcarrier_alloc(char *subcarrier_alloc);
     void set_tx_cp_len(unsigned int cp_len);
     void set_tx_taper_len(unsigned int taper_len);
+    void set_header(unsigned char * _header);
 
     // 
     // receiver methods
     //
     void set_rx_freq(float _rx_freq);
+    float get_rx_freq();
     void set_rx_rate(float _rx_rate);
     void set_rx_gain_uhd(float _rx_gain_uhd);
     void set_rx_antenna(char * _rx_antenna);
@@ -131,6 +135,7 @@ public:
     std::complex<float> * fgbuffer; // frame generator output buffer [size: M + cp_len x 1]
     unsigned int fgbuffer_len;      // length of frame generator buffer
     float tx_gain;                  // soft transmit gain (linear)
+    unsigned char tx_header[8];        // header container (must have length 8)
 
     void transmit_packet(unsigned char * _header,
 			unsigned char *  _payload,

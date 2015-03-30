@@ -146,6 +146,8 @@ CognitiveRadio::~CognitiveRadio(){
 
 void CognitiveRadio::set_ce(char *ce){
 //EDIT START FLAG
+	if(!strcmp(ce, "CE_DSA"))
+		CE = new CE_DSA();
 	if(!strcmp(ce, "CE_Example_2"))
 		CE = new CE_Example_2();
 	if(!strcmp(ce, "CE_Example_1"))
@@ -195,6 +197,15 @@ void CognitiveRadio::set_tx_freq(float _tx_freq)
     pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_freq(_tx_freq);
     pthread_mutex_unlock(&tx_mutex);
+}
+
+// get transmitter frequency
+float CognitiveRadio::get_tx_freq()
+{
+    pthread_mutex_lock(&tx_mutex);
+    float freq = usrp_tx->get_tx_freq();
+    pthread_mutex_unlock(&tx_mutex);
+    return freq;
 }
 
 // set transmitter sample rate
@@ -329,6 +340,18 @@ void CognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
 	pthread_mutex_unlock(&tx_mutex);
 }
 
+// set header data (must have length 8)
+void CognitiveRadio::set_header(unsigned char * _header)
+{
+    //FIXME: Need mutex here
+    int i;
+    for (i=0; i<8; i++)
+    {
+        tx_header[i] = _header[i];
+    }
+}
+
+
 // update payload data on a particular channel
 void CognitiveRadio::transmit_packet(unsigned char * _header,
                    unsigned char * _payload,
@@ -399,6 +422,13 @@ void CognitiveRadio::transmit_packet(unsigned char * _header,
 void CognitiveRadio::set_rx_freq(float _rx_freq)
 {
     usrp_rx->set_rx_freq(_rx_freq);
+}
+
+// set receiver frequency
+float CognitiveRadio::get_rx_freq()
+{
+    float freq = usrp_tx->get_rx_freq();
+    return freq;
 }
 
 // set receiver sample rate
@@ -596,6 +626,11 @@ int rxCallback(unsigned char * _header,
     // Store metrics and signal CE thread if using PHY layer metrics
     if (CR->PHY_metrics){
 		CR->CE_metrics.header_valid = _header_valid;
+        int j;
+        for (j=0; j<8; j++)
+        {
+            CR->CE_metrics.header[j] = _header[j];
+        }
 		CR->CE_metrics.payload_valid = _payload_valid;
 		CR->CE_metrics.stats = _stats;
 		CR->CE_metrics.time_spec = CR->metadata_rx.time_spec;
@@ -646,7 +681,7 @@ void * CR_tx_worker(void * _arg)
     unsigned char buffer[buffer_len];
     unsigned char *payload;
     unsigned int payload_len;
-    unsigned char header[1];
+    //unsigned char header[1];
     int nread;
 
     while (CR->tx_thread_running) {
@@ -675,7 +710,7 @@ void * CR_tx_worker(void * _arg)
 			
 
 	    	// set header (needs to be modified)
-	    	header[1] = 1;
+	    	//header[1] = 1;
 
 	    	// resize to packet length if necessary
 	    	payload = buffer;
@@ -683,7 +718,7 @@ void * CR_tx_worker(void * _arg)
 	 
 	    	// transmit packet
 	    	pthread_mutex_lock(&(CR->tx_mutex));
-	    	CR->transmit_packet(header,
+	    	CR->transmit_packet(CR->tx_header,
 				payload,
 				payload_len);
 			pthread_mutex_unlock(&(CR->tx_mutex));
