@@ -13,10 +13,10 @@ public:
 ///////////////////////////////////////////
 // Custom Cognitive Engine sub classes
 //EDIT START FLAG
-class CE_Example_1 : public Cognitive_Engine {
+class AMC_CE : public Cognitive_Engine {
 public:
-	CE_Example_1();
-	~CE_Example_1();
+	AMC_CE();
+	~AMC_CE();
 	virtual void execute(void * _args);
 	void * custom_members;
 };
@@ -24,6 +24,13 @@ class CE_Example_2 : public Cognitive_Engine {
 public:
 	CE_Example_2();
 	~CE_Example_2();
+	virtual void execute(void * _args);
+	void * custom_members;
+};
+class CE_Example_1 : public Cognitive_Engine {
+public:
+	CE_Example_1();
+	~CE_Example_1();
 	virtual void execute(void * _args);
 	void * custom_members;
 };

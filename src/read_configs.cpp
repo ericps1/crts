@@ -139,6 +139,12 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_string(node_config, "log_file", &tmpS))
 		strcpy(np.log_file, tmpS);
 
+	if (config_setting_lookup_string(node_config, "duplex", &tmpS)){
+		if(!strcmp(tmpS, "FDD")) np.duplex = FDD;
+		else if(!strcmp(tmpS, "TDD")) np.duplex = TDD;
+		else if(!strcmp(tmpS, "HD")) np.duplex = HD;
+	}
+
 	if (config_setting_lookup_float(node_config, "tx_freq", &tmpD))
 		np.tx_freq = tmpD;
 
@@ -160,8 +166,18 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_float(node_config, "rx_gain", &tmpD))
 		np.rx_gain = tmpD;
 
-	if (config_setting_lookup_int(node_config, "int_type", &tmpI))
-		np.int_type = (int)tmpI;
+	if (config_setting_lookup_string(node_config, "int_type", &tmpS)){
+		if(!strcmp(tmpS, "CW"))
+			np.int_type = CW;
+		if(!strcmp(tmpS, "AWGN")) 
+			np.int_type = AWGN;
+		if(!strcmp(tmpS, "GMSK"))
+			np.int_type = GMSK;
+		if(!strcmp(tmpS, "RRC")) 
+			np.int_type = RRC;
+		if(!strcmp(tmpS, "OFDM")) 
+			np.int_type = OFDM;
+	}
 	
 	if (config_setting_lookup_float(node_config, "period", &tmpD))
 		np.period = tmpD;
@@ -173,44 +189,59 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 }
 
 void print_node_parameters(struct node_parameters * np){
-	printf("\n");
-	printf("------------------------------------------------\n");
-	printf("-               node parameters                -\n");
-	printf("------------------------------------------------\n");
-	printf("General:\n");
+		printf("\n");
+		printf("------------------------------------------------\n");
+		printf("-               node parameters                -\n");
+		printf("------------------------------------------------\n");
+		printf("General:\n");
 	char node_type[15];
 	if(np->type == UE) strcpy(node_type, "UE");
 	else if(np->type == BS) strcpy(node_type, "BS");
 	else if(np->type == interferer) strcpy(node_type, "Interferer");
-	printf("	Node type:                 %-s\n", node_type);
-	printf("	CORNET IP:                 %-s\n", np->CORNET_IP);
+		printf("	Node type:                 %-s\n", node_type);
+		printf("	CORNET IP:                 %-s\n", np->CORNET_IP);
 	if(np->type != interferer){
-	printf("	CRTS IP:                   %-s\n", np->CRTS_IP);
-	printf("	Cognitive Engine:          %-s\n", np->CE); }
-	if(np->type == UE)
-	printf("	Traffic type:              %-i\n", np->traffic);
-	printf("	Log file:                  %-s\n", np->log_file);
-	printf("RF:\n");
-	printf("	Transmit frequency:        %-.2e\n", np->tx_freq);
-	if(np->type != interferer)
-	printf("	Receive frequency:         %-.2e\n", np->rx_freq);
-	printf("	Transmit rate:             %-.2e\n", np->tx_rate);
-	if(np->type != interferer)
-	printf("	Receive rate:              %-.2e\n", np->rx_rate);
-	if(np->type != interferer)
-	printf("	Transmit soft gain:        %-.2e\n", np->tx_gain_soft);
-	printf("	Transmit gain:             %-.2e\n", np->tx_gain);
-	if(np->type != interferer)
-	printf("	Receive gain:              %-.2e\n", np->rx_gain);
-	if(np->type == interferer){
-	char int_type[5];
-	if(np->int_type == CW) strcpy(int_type, "CW");
-	else if(np->int_type == RRC) strcpy(int_type, "RRC");
-	printf("	Interference type:         %-s\n", int_type);
-	printf("	Interference period:	   %-.2f\n", np->period);
-	printf("	Interference duty cycle:   %-.2f\n", np->duty_cycle);
+		printf("	CRTS IP:                   %-s\n", np->CRTS_IP);
+		printf("	Cognitive Engine:          %-s\n", np->CE);
 	}
-	printf("------------------------------------------------\n");
+	if(np->type == UE)
+		printf("	Traffic type:              %-i\n", np->traffic);
+		printf("	Log file:                  %-s\n", np->log_file);
+		printf("RF:\n");
+	if(np->type != interferer){
+		char duplex[4] = "FDD";
+		switch(np->duplex){
+			case (FDD): strcpy(duplex, "FDD"); break;
+			case (TDD): strcpy(duplex, "TDD"); break;
+			case (HD): strcpy(duplex, "HD"); break;
+		}
+		printf("	Duplex scheme:             %-s\n", duplex);
+	}
+		printf("	Transmit frequency:        %-.2e\n", np->tx_freq);
+	if(np->type != interferer)
+		printf("	Receive frequency:         %-.2e\n", np->rx_freq);
+		printf("	Transmit rate:             %-.2e\n", np->tx_rate);
+	if(np->type != interferer)
+		printf("	Receive rate:              %-.2e\n", np->rx_rate);
+	if(np->type != interferer)
+		printf("	Transmit soft gain:        %-.2f\n", np->tx_gain_soft);
+		printf("	Transmit gain:             %-.2f\n", np->tx_gain);
+	if(np->type != interferer)
+		printf("	Receive gain:              %-.2f\n", np->rx_gain);
+	if(np->type == interferer){
+		char int_type[5] = "NONE";
+		switch(np->int_type){
+			case (CW): strcpy(int_type, "CW"); break;
+			case (AWGN): strcpy(int_type, "AWGN"); break;
+			case (GMSK): strcpy(int_type, "GMSK"); break;
+			case (RRC): strcpy(int_type, "RRC"); break;
+			case (OFDM): strcpy(int_type, "OFDM"); break;
+		}
+		printf("	Interference type:         %-s\n", int_type);
+		printf("	Interference period:	   %-.2f\n", np->period);
+		printf("	Interference duty cycle:   %-.2f\n", np->duty_cycle);
+	}
+		printf("------------------------------------------------\n");
 }
 
 

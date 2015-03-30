@@ -1,22 +1,63 @@
-#include<stdlib.h>
-#include<stdio.h>
-#include<net/if.h>
-#include<sys/socket.h>
-#include<sys/types.h>
-#include<sys/wait.h>
-#include<signal.h>
-#include<ctype.h>
-#include<unistd.h>
-#include<netinet/in.h>
-#include<arpa/inet.h>
-#include<fcntl.h>
-#include<pthread.h>
-#include<string.h>
-#include<time.h>
-#include"node_parameters.hpp"
-#include"read_configs.hpp"
+#include <stdlib.h>
+#include <stdio.h>
+#include <net/if.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <string.h>
+#include <time.h>
+#include <errno.h>
+#include "node_parameters.hpp"
+#include "read_configs.hpp"
 
 #define MAXPENDING 5
+
+// global variables
+int sig_terminate;
+int num_nodes_terminated;
+
+int Receive_msg_from_nodes(int *client, int num_nodes){
+	// Listen to sockets for messages from any node
+	char msg;
+	for(int i=0; i<num_nodes; i++){
+		int rflag = recv(client[i], &msg, 1, 0);
+		int err = errno;
+		if (rflag <= 0){ 
+			if(!((err == EAGAIN) || (err == EWOULDBLOCK))){
+				close(client[i]);
+				printf("Node %i has disconnected. Terminating the current scenario..\n\n", i+1);
+				//sig_terminate = 1;
+				// tell all nodes to terminate program
+				for(int j=0; j<num_nodes; j++){
+					write(client[j], &msg, 1);
+				}
+				return 1;
+			}
+		}	
+		// Parse command if received a message
+		else{
+			switch (msg){
+			case 't': // terminate program
+				printf("Node %i has sent a termination message...\n", i+1);
+				num_nodes_terminated++;
+				// check if all nodes have terminated
+				if(num_nodes_terminated == num_nodes) return 1;
+				break;
+			default:
+				printf("Invalid message type received from node %i\n", i);
+			}
+		}
+	}
+
+	return 0;
+}
 
 void help_CRTS_controller() {
     printf("CRTS_controller -- Initiate cognitive radio testing.\n");
@@ -29,9 +70,20 @@ void help_CRTS_controller() {
     printf("      Default: 192.168.1.56\n");
 }
 
+void terminate(int signum){
+	printf("Terminating scenario on all nodes\n");
+	sig_terminate = 1;	
+}
+
 int main(int argc, char ** argv){
 	
-	int manual_execution = 0;
+	// register signal handlers
+	signal(SIGINT, terminate);
+	signal(SIGQUIT, terminate);
+	signal(SIGTERM, terminate);
+	//signal(SIGPIPE, terminate);
+		
+		int manual_execution = 0;
 
     // Default username for ssh
     char * ssh_uname = (char *) "ericps1";
@@ -85,12 +137,7 @@ int main(int argc, char ** argv){
 	struct sockaddr_in clientAddr[48];
 	socklen_t client_addr_size[48];
 	struct node_parameters np[48];
-	/*int client2;
-	struct sockaddr_in clientAddr2;
-	socklen_t client_addr_size2;
-	struct node_parameters np2;
-	*/
-
+	
 	// read master scenario config file
 	char scenario_list[30][60];
 	int num_scenarios = read_scenario_master_file(scenario_list);
@@ -115,6 +162,7 @@ int main(int argc, char ** argv){
 			print_node_parameters(&np[j]);
 			
 			// send command to launch executable if not doing so manually
+			int ssh_return = 0;
 			if (!manual_execution){
 				char command[100] = "ssh "; 
                 // Add username to ssh command
@@ -129,13 +177,13 @@ int main(int argc, char ** argv){
 				// add appropriate executable
 				switch (np[j].type){
 				case BS: 
-					strcat(command, "/CRTS_AP");
+					strcat(command, "CRTS_AP");
 					break;
 				case UE:
-					strcat(command, "/CRTS_UE");
+					strcat(command, "CRTS_UE");
 					break;
 				case interferer:
-					strcat(command, "/CRTS_interferer");
+					strcat(command, "CRTS_interferer");
 					break;
 				}
 		
@@ -150,9 +198,16 @@ int main(int argc, char ** argv){
 				strcat(command, serv_ip_addr);
 
                 // set command to continue program after shell is closed
-				strcat(command, " 2>&1 &'& ");
-				system(command);
+				strcat(command, " 2>&1 &'&");
+				ssh_return = system(command);
 				printf("Command executed: %s\n", command);
+				printf("Return value: %i\n", ssh_return);
+			}
+
+			if(ssh_return != 0){
+				printf("Failed to execute CRTS on node %i\n", j+1);
+				sig_terminate = 1;
+				break;
 			}
 
 			// listen for node to connect to server
@@ -168,50 +223,34 @@ int main(int argc, char ** argv){
 				fprintf(stderr, "ERROR: Sever Failed to Connect to Client\n");
 				exit(EXIT_FAILURE);
 			}
+
+			// set socket to non-blocking
+			fcntl(client[j], F_SETFL, O_NONBLOCK);
+
 			// send node parameters
 			printf("\nNode %i has connected. Sending its parameters...\n", j+1);
 			char msg_type = 's';
 			send(client[j], (void*)&msg_type, sizeof(char), 0);
-			send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);
-			
-			/*
-			// read in node settings
-			memset(&np2, 0, sizeof(struct node_parameters));
-			printf("Reading node %i's parameters...\n", 2);
-			np2 = read_node_parameters(2, &scenario_list[i][0]);
-			print_node_parameters(&np2);
-			
-			// listen for node to connect to server
-			if (listen(sockfd, MAXPENDING) < 0)
-			{
-				fprintf(stderr, "ERROR: Failed to Set Sleeping (listening) Mode\n");
-				exit(EXIT_FAILURE);
-			}	
-			// accept connection
-			client2 = accept(sockfd, (struct sockaddr *)&clientAddr2, &client_addr_size2);
-			if (client2 < 0)
-			{
-				fprintf(stderr, "ERROR: Sever Failed to Connect to Client\n");
-				exit(EXIT_FAILURE);
+			send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);			
+		}
+
+		printf("Listening for scenario termination message from nodes\n");
+		
+		sig_terminate = 0;
+		int msg_terminate = 0;
+		num_nodes_terminated = 0;
+		while((!sig_terminate) && (!msg_terminate)){
+			msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
+		}
+		
+		// if the controller is being terminated, send termination message to other nodes
+		if(sig_terminate){
+			char msg = 't';
+			for(int j=0; j<sp.num_nodes; j++){
+				write(client[j], &msg, 1);
 			}
-			// send node parameters
-			printf("\nNode %i has connected. Sending its parameters...\n", 2);
-			//char msg_type = 's';
-			send(client2, (void*)&msg_type, sizeof(char), 0);
-			send(client2, (void*)&np2, sizeof(struct node_parameters), 0);
-			*/
 		}
 
-		printf("Waiting to for scenario termination message from a node\n");
-		while(true){;}
-	
-		// tell nodes to terminate the scenario
-
-		for(int i=0; i<sp.num_nodes; i++){
-			close(client[i]);
-		}
-		
-		
 		// Generate/push transmit data if needed
 		// Receive feedback if needed
 		// Determine when scenario is over either from feedback or from a message from a CR node
