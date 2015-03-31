@@ -26,7 +26,7 @@ lib/CR.o: include/CR.hpp src/CR.cpp
 #CR_test: include/CR.hpp src/TUN.cpp src/CR.cpp test/CR_test.cpp
 #	g++ $(FLAGS) -o CR_test test/CR_test.cpp lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc 
 
-CRTS_UE: include/CR.hpp src/TUN.cpp src/CR.cpp src/CRTS_UE.cpp
+CRTS_UE: include/CR.hpp src/TUN.cpp src/CR.cpp src/CRTS_UE.cpp $(CEs)
 	g++ $(FLAGS) -o CRTS_UE src/CRTS_UE.cpp src/read_configs.cpp lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig $(CEs)
 
 CRTS_AP: src/CRTS_AP.cpp
