@@ -63,8 +63,6 @@ void help_CRTS_controller() {
     printf("CRTS_controller -- Initiate cognitive radio testing.\n");
     printf(" -h : Help.\n");
     printf(" -m : Manual Mode - Start each node manually rather than have CRTS_controller do it automatically.\n");
-    printf(" -l : CRTS Location - Directory containing CRTS Executables. Must be same for all remote nodes.\n");
-    printf("      Default: ~/crts\n");
     printf(" -a : IP Address - IP address of this computer as seen by remote nodes.\n");
     printf("      Default: 192.168.1.56\n");
 }
@@ -84,22 +82,23 @@ int main(int argc, char ** argv){
 		
 		int manual_execution = 0;
 
-    // User current username as default username for ssh
+    // Use current username as default username for ssh
     char ssh_uname[100];
     getlogin_r(ssh_uname, 100);
 
-    // Default location of CRTS Directory
-    char * crts_dir = (char *) "~/crts/";
+    // Use currnet location of CRTS Directory as defualt for ssh
+    char crts_dir[1000];
+    getcwd(crts_dir, 1000);
+
     // Default IP address of server as seen by other nodes
     // TODO: Autodetect IP address as seen by other nodes
     char * serv_ip_addr = (char *) "192.168.1.56";
 
 	int d;
-	while((d = getopt(argc, argv, "hml:a:")) != EOF){
+	while((d = getopt(argc, argv, "hma:")) != EOF){
 		switch (d){
             case 'h': help_CRTS_controller();   return 0;
             case 'm': manual_execution = 1;     break;
-            case 'l': crts_dir = optarg;        break;
             case 'a': serv_ip_addr = optarg;    break;
 		}
 	}
@@ -164,7 +163,7 @@ int main(int argc, char ** argv){
 			// send command to launch executable if not doing so manually
 			int ssh_return = 0;
 			if (!manual_execution){
-				char command[100] = "ssh "; 
+				char command[2000] = "ssh "; 
                 // Add username to ssh command
 				strcat(command, ssh_uname);
 				strcat(command, "@");
