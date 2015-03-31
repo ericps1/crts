@@ -13,10 +13,10 @@ public:
 ///////////////////////////////////////////
 // Custom Cognitive Engine sub classes
 //EDIT START FLAG
-class AMC_CE : public Cognitive_Engine {
+class CE_DSA : public Cognitive_Engine {
 public:
-	AMC_CE();
-	~AMC_CE();
+	CE_DSA();
+	~CE_DSA();
 	virtual void execute(void * _args);
 	void * custom_members;
 };
