@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/ioctl.h>
 #include <signal.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -64,7 +65,7 @@ void help_CRTS_controller() {
     printf(" -h : Help.\n");
     printf(" -m : Manual Mode - Start each node manually rather than have CRTS_controller do it automatically.\n");
     printf(" -a : IP Address - IP address of this computer as seen by remote nodes.\n");
-    printf("      Default: 192.168.1.56\n");
+    printf("      Autodetected by default.\n");
 }
 
 void terminate(int signum){
@@ -91,8 +92,21 @@ int main(int argc, char ** argv){
     getcwd(crts_dir, 1000);
 
     // Default IP address of server as seen by other nodes
-    // TODO: Autodetect IP address as seen by other nodes
-    char * serv_ip_addr = (char *) "192.168.1.56";
+    char * serv_ip_addr;
+    // Autodetect IP address as seen by other nodes
+        struct ifreq interfaces;
+        //Create a socket
+        int fd_ip = socket(AF_INET, SOCK_DGRAM, 0);
+        // For IPv4 Address
+        interfaces.ifr_addr.sa_family = AF_INET;
+        // Get Address associated with eth0
+        strncpy(interfaces.ifr_name, "eth0", IFNAMSIZ-1);
+        ioctl(fd_ip, SIOCGIFADDR, &interfaces);
+        close(fd_ip);
+        // Get IP address out of struct
+        char serv_ip_addr_auto[30];
+        strcpy(serv_ip_addr_auto, inet_ntoa(((struct sockaddr_in *)&interfaces.ifr_addr)->sin_addr) );
+        serv_ip_addr = serv_ip_addr_auto;
 
 	int d;
 	while((d = getopt(argc, argv, "hma:")) != EOF){
@@ -103,6 +117,10 @@ int main(int argc, char ** argv){
 		}
 	}
 	
+    // Message about IP Address Detection
+    printf("IP address of CRTS_controller autodetected as %s\n", serv_ip_addr_auto);
+    printf("If this is incorrect, use -a option to fix.\n\n");
+
 	// create TCP server
 	//int reusePortOption = 1;
 	//int client_count = 0; // Client counter
