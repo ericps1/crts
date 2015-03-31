@@ -5,7 +5,7 @@ LIBS = lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 CEs = src/CE.cpp cognitive_engines/CE_Example_2.cpp cognitive_engines/CE_Example_1.cpp
 #EDIT END FLAG
 
-all: lib/TUN.o TUN lib/read_configs.o config_CEs lib/CR.o CRTS_UE lib/interferer.o CRTS_interferer CRTS_controller post_process_logs
+all: lib/TUN.o TUN lib/read_configs.o config_CEs lib/CR.o CRTS_UE lib/interferer.o CRTS_interferer CRTS_controller logs/post_process_logs
 #CRTS_test
 
 lib/TUN.o: src/TUN.cpp
@@ -41,7 +41,7 @@ CRTS_interferer: src/CRTS_interferer.cpp
 CRTS_controller: include/node_parameters.hpp src/CRTS_controller.cpp src/read_configs.cpp
 	g++ $(FLAGS) -o CRTS_controller src/CRTS_controller.cpp lib/read_configs.o -lconfig
 
-post_process_logs: src/post_process_logs.cpp
+logs/post_process_logs: src/post_process_logs.cpp
 	g++ $(FLAGS) -o logs/post_process_logs src/post_process_logs.cpp -luhd
 
 clean:
