@@ -200,8 +200,8 @@ int main(int argc, char ** argv){
                 // set command to continue program after shell is closed
 				strcat(command, " 2>&1 &'&");
 				ssh_return = system(command);
-				printf("Command executed: %s\n", command);
-				printf("Return value: %i\n", ssh_return);
+				//printf("Command executed: %s\n", command);
+				//printf("Return value: %i\n", ssh_return);
 			}
 
 			if(ssh_return != 0){
@@ -257,6 +257,7 @@ int main(int argc, char ** argv){
 		// Determine when scenario is over either from feedback or from a message from a CR node
 		// Terminate scenario on all nodes
 	}
+
 }
 
 

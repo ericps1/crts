@@ -20,17 +20,17 @@ public:
 	virtual void execute(void * _args);
 	void * custom_members;
 };
-class CE_Example_2 : public Cognitive_Engine {
+class CE_Example : public Cognitive_Engine {
 public:
-	CE_Example_2();
-	~CE_Example_2();
+	CE_Example();
+	~CE_Example();
 	virtual void execute(void * _args);
 	void * custom_members;
 };
-class CE_Example_1 : public Cognitive_Engine {
+class CE_AMC : public Cognitive_Engine {
 public:
-	CE_Example_1();
-	~CE_Example_1();
+	CE_AMC();
+	~CE_AMC();
 	virtual void execute(void * _args);
 	void * custom_members;
 };

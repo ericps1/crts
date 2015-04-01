@@ -4,10 +4,10 @@
 // custom member struct
 struct CE_DSA_members{
 	float example_ce_metric;
-    float freq_a = 781e6;
-    float freq_b = 783e6;
-    float freq_x = 785e6;
-    float freq_y = 787e6;
+    static const float freq_a = 781e6;
+    static const float freq_b = 783e6;
+    static const float freq_x = 785e6;
+    static const float freq_y = 787e6;
 };
 
 // custom function declarations

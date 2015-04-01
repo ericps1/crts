@@ -2,7 +2,7 @@ FLAGS = -I include -Wall -fPIC -g
 LIBS = lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
 #EDIT START FLAG
-CEs = src/CE.cpp cognitive_engines/CE_Example_2.cpp cognitive_engines/CE_Example_1.cpp
+CEs = src/CE.cpp cognitive_engines/CE_DSA.cpp cognitive_engines/CE_Example.cpp cognitive_engines/CE_AMC.cpp
 #EDIT END FLAG
 
 all: lib/TUN.o TUN lib/read_configs.o config_CEs lib/CR.o CRTS_UE lib/interferer.o CRTS_interferer CRTS_controller logs/post_process_logs

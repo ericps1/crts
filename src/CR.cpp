@@ -124,8 +124,8 @@ CognitiveRadio::~CognitiveRadio(){
     pthread_cond_destroy(&rx_cond);
     
     // TODO: output debugging file
-    if (debug_enabled)
-    ofdmflexframesync_debug_print(fs, "ofdmtxrx_framesync_debug.m");
+    //if (debug_enabled)
+    //ofdmflexframesync_debug_print(fs, "ofdmtxrx_framesync_debug.m");
 
     dprintf("destructor destroying other objects...\n");
     // destroy framing objects
@@ -146,10 +146,12 @@ CognitiveRadio::~CognitiveRadio(){
 
 void CognitiveRadio::set_ce(char *ce){
 //EDIT START FLAG
-	if(!strcmp(ce, "CE_Example_2"))
-		CE = new CE_Example_2();
-	if(!strcmp(ce, "CE_Example_1"))
-		CE = new CE_Example_1();
+	if(!strcmp(ce, "CE_DSA"))
+		CE = new CE_DSA();
+	if(!strcmp(ce, "CE_Example"))
+		CE = new CE_Example();
+	if(!strcmp(ce, "CE_AMC"))
+		CE = new CE_AMC();
 //EDIT END FLAG
 }
 
@@ -234,10 +236,9 @@ void CognitiveRadio::set_tx_gain_uhd(float _tx_gain_uhd)
 void CognitiveRadio::set_tx_modulation(int mod_scheme)
 {
     pthread_mutex_lock(&tx_mutex);
-	//ofdmflexframegen_print(fg);
-	//printf("updating frame props\n");
-    fgprops.mod_scheme = mod_scheme;
+	fgprops.mod_scheme = mod_scheme;
     ofdmflexframegen_setprops(fg, &fgprops);
+    //printf("\nupdating frame props\n");
     //ofdmflexframegen_print(fg);
 	pthread_mutex_unlock(&tx_mutex);
 }

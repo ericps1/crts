@@ -119,7 +119,7 @@ int main(int argc, char ** argv){
 	signal(SIGTERM, terminate);
 	
 	float run_time = 20.0f;
-	float us_sleep = 2.5e5;
+	float us_sleep = 1e5;
 	int iterations;
 
     // Default IP address of controller
