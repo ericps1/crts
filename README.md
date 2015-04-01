@@ -13,7 +13,6 @@ at Virginia Tech.
 	These should already be installed on most CORNET nodes.
 	-uhd
 	-liquid-dsp
-	-liquid-usrp
 	-libconfig
 
 ###CRTS 
