@@ -46,9 +46,9 @@ struct metric_s{
 };
 
 // thread functions
-void * CR_tx_worker(void * _arg);
-void * CR_rx_worker(void * _arg);
-void * CR_ce_worker(void * _arg);
+void * ECR_tx_worker(void * _arg);
+void * ECR_rx_worker(void * _arg);
+void * ECR_ce_worker(void * _arg);
 
 // function that defines cognitive engine
 void CE_execute_1(void * _arg);
@@ -62,10 +62,10 @@ int rxCallback(unsigned char * _header,
 		framesyncstats_s _stats,
 		void * _userdata);
 
-class CognitiveRadio {
+class ExtensibleCognitiveRadio {
 public:
-	CognitiveRadio(/*string with name of CE_execute function*/);
-	~CognitiveRadio();
+	ExtensibleCognitiveRadio(/*string with name of CE_execute function*/);
+	~ExtensibleCognitiveRadio();
 
 	void start_tx();
 	void stop_tx();
@@ -111,9 +111,9 @@ public:
     void set_rx_taper_len(unsigned int taper_len);
 
 	// print/log metrics methods and variables
-	void print_metrics(CognitiveRadio * CR);
+	void print_metrics(ExtensibleCognitiveRadio * CR);
 	int print_metrics_flag;
-	void log_metrics(CognitiveRadio * CR);
+	void log_metrics(ExtensibleCognitiveRadio * CR);
 	int log_metrics_flag;
 	char log_file[30];
 

@@ -1,5 +1,5 @@
 #include "CE.hpp"
-#include "CR.hpp"
+#include "ECR.hpp"
 
 // custom member struct
 struct CE_DSA_members{
@@ -29,16 +29,16 @@ CE_DSA::~CE_DSA(){
 // execute function
 void CE_DSA::execute(void * _args){
 	struct CE_DSA_members * cm = (struct CE_DSA_members*) custom_members;
-    CognitiveRadio * CR = (CognitiveRadio *) _args;
+    ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 
     float current_rx_freq; 
     // Check if packets received from other node are poor 
     // or not being received
-    if (!CR->CE_metrics.payload_valid)
+    if (!ECR->CE_metrics.payload_valid)
     {
         // If so, switch to other rx frequency and tell
         // other node to switch their tx frequency likewise.
-        current_rx_freq = CR->get_rx_freq();
+        current_rx_freq = ECR->get_rx_freq();
         if (current_rx_freq == cm->freq_a)
         {
             current_rx_freq = cm->freq_b;
@@ -59,12 +59,12 @@ void CE_DSA::execute(void * _args){
 
     // TODO: Put current rx freq in header of next packet
     unsigned char * header = (unsigned char * ) &current_rx_freq;
-    CR->set_header(header);
+    ECR->set_header(header);
     
     // TODO: Set tx freq to that specified by 
     // packet received from other node
-    float * new_tx_freq = (float *) CR->CE_metrics.header;
-    CR->set_tx_freq(*new_tx_freq);
+    float * new_tx_freq = (float *) ECR->CE_metrics.header;
+    ECR->set_tx_freq(*new_tx_freq);
 
 	//printf("Entered DSA's execute function\n");
 	//printf("The example metric is now %f\n", cm->example_ce_metric);

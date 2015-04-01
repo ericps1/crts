@@ -7,7 +7,7 @@
 #include<complex>
 #include<liquid/liquid.h>
 #include<pthread.h>
-#include"CR.hpp"
+#include"ECR.hpp"
 #include"TUN.hpp"
 #include<iostream>
 #include<fstream>
@@ -20,7 +20,7 @@
 #endif
 
 // Constructor
-CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
+ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_execute function*/){
 
 	// set internal properties
     M = 64;
@@ -54,21 +54,21 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
     rx_thread_running = true;           // receiver thread IS running initially
     pthread_mutex_init(&rx_mutex, NULL);    // receiver mutex
     pthread_cond_init(&rx_cond,   NULL);    // receiver condition
-    pthread_create(&rx_process,   NULL, CR_rx_worker, (void*)this);
+    pthread_create(&rx_process,   NULL, ECR_rx_worker, (void*)this);
 	
     // create and start tx thread
     //tx_running = false; // transmitter is not running initially
     //tx_thread_running = true; // transmitter thread IS running initially
     pthread_mutex_init(&tx_mutex, NULL); // transmitter mutex
     pthread_cond_init(&tx_cond, NULL); // transmitter condition
-    //pthread_create(&tx_process, NULL, CR_tx_worker, (void*)this);
+    //pthread_create(&tx_process, NULL, ECR_tx_worker, (void*)this);
 	
 	
 	// Start CE thread
     dprintf("Starting CE thread...\n");
 	pthread_mutex_init(&CE_mutex, NULL);
 	pthread_cond_init(&CE_execute_sig, NULL);
-	pthread_create(&CE_process, NULL, CR_ce_worker, (void*)this);
+	pthread_create(&CE_process, NULL, ECR_ce_worker, (void*)this);
 	
 
     // Create TUN interface
@@ -101,7 +101,7 @@ CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
 }
 
 // Destructor
-CognitiveRadio::~CognitiveRadio(){
+ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 
     dprintf("waiting for process to finish...\n");
 
@@ -144,7 +144,7 @@ CognitiveRadio::~CognitiveRadio(){
 
 }
 
-void CognitiveRadio::set_ce(char *ce){
+void ExtensibleCognitiveRadio::set_ce(char *ce){
 //EDIT START FLAG
 	if(!strcmp(ce, "CE_DSA"))
 		CE = new CE_DSA();
@@ -155,7 +155,7 @@ void CognitiveRadio::set_ce(char *ce){
 //EDIT END FLAG
 }
 
-void CognitiveRadio::set_ip(char *ip){
+void ExtensibleCognitiveRadio::set_ip(char *ip){
 	char command[40];
 	sprintf(command, "ip addr add %s/24 dev tun0", ip);
 	system(command);
@@ -168,7 +168,7 @@ void CognitiveRadio::set_ip(char *ip){
 ////////////////////////////////////////////////////////////////////////
 
 // start transmitter
-void CognitiveRadio::start_tx()
+void ExtensibleCognitiveRadio::start_tx()
 {
     printf("usrp tx start\n");
     // set tx running flag
@@ -178,7 +178,7 @@ void CognitiveRadio::start_tx()
 }
 
 // stop transmitter
-void CognitiveRadio::stop_tx()
+void ExtensibleCognitiveRadio::stop_tx()
 {
     printf("usrp tx stop\n");
     // set rx running flag
@@ -186,13 +186,13 @@ void CognitiveRadio::stop_tx()
 }
 
 // reset transmitter objects and buffers
-void CognitiveRadio::reset_tx()
+void ExtensibleCognitiveRadio::reset_tx()
 {
     ofdmflexframegen_reset(fg);
 }
 
 // set transmitter frequency
-void CognitiveRadio::set_tx_freq(float _tx_freq)
+void ExtensibleCognitiveRadio::set_tx_freq(float _tx_freq)
 {
     pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_freq(_tx_freq);
@@ -200,7 +200,7 @@ void CognitiveRadio::set_tx_freq(float _tx_freq)
 }
 
 // get transmitter frequency
-float CognitiveRadio::get_tx_freq()
+float ExtensibleCognitiveRadio::get_tx_freq()
 {
     pthread_mutex_lock(&tx_mutex);
     float freq = usrp_tx->get_tx_freq();
@@ -209,7 +209,7 @@ float CognitiveRadio::get_tx_freq()
 }
 
 // set transmitter sample rate
-void CognitiveRadio::set_tx_rate(float _tx_rate)
+void ExtensibleCognitiveRadio::set_tx_rate(float _tx_rate)
 {
     pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_rate(_tx_rate);
@@ -217,7 +217,7 @@ void CognitiveRadio::set_tx_rate(float _tx_rate)
 }
 
 // set transmitter software gain
-void CognitiveRadio::set_tx_gain_soft(float _tx_gain_soft)
+void ExtensibleCognitiveRadio::set_tx_gain_soft(float _tx_gain_soft)
 {
     pthread_mutex_lock(&tx_mutex);
 	tx_gain = powf(10.0f, _tx_gain_soft / 20.0f);
@@ -225,7 +225,7 @@ void CognitiveRadio::set_tx_gain_soft(float _tx_gain_soft)
 }
 
 // set transmitter hardware (UHD) gain
-void CognitiveRadio::set_tx_gain_uhd(float _tx_gain_uhd)
+void ExtensibleCognitiveRadio::set_tx_gain_uhd(float _tx_gain_uhd)
 {
     pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_gain(_tx_gain_uhd);
@@ -233,7 +233,7 @@ void CognitiveRadio::set_tx_gain_uhd(float _tx_gain_uhd)
 }
 
 // set modulation scheme
-void CognitiveRadio::set_tx_modulation(int mod_scheme)
+void ExtensibleCognitiveRadio::set_tx_modulation(int mod_scheme)
 {
     pthread_mutex_lock(&tx_mutex);
 	fgprops.mod_scheme = mod_scheme;
@@ -244,7 +244,7 @@ void CognitiveRadio::set_tx_modulation(int mod_scheme)
 }
 
 // decrease modulation order
-void CognitiveRadio::decrease_tx_mod_order()
+void ExtensibleCognitiveRadio::decrease_tx_mod_order()
 {
 	// Check to see if modulation order is already minimized
 	if (fgprops.mod_scheme != 1 && fgprops.mod_scheme != 9 && fgprops.mod_scheme != 17 &&
@@ -257,7 +257,7 @@ void CognitiveRadio::decrease_tx_mod_order()
 }
 
 // increase modulation order
-void CognitiveRadio::increase_tx_mod_order()
+void ExtensibleCognitiveRadio::increase_tx_mod_order()
 {
 	// check to see if modulation order is already maximized
 	if (fgprops.mod_scheme != 8 && fgprops.mod_scheme != 16 && fgprops.mod_scheme != 24 &&
@@ -269,8 +269,8 @@ void CognitiveRadio::increase_tx_mod_order()
 	}
 }
 
-// set CRC scheme
-void CognitiveRadio::set_tx_crc(int crc_scheme){
+// set ECRC scheme
+void ExtensibleCognitiveRadio::set_tx_crc(int crc_scheme){
 	pthread_mutex_lock(&tx_mutex);
     fgprops.check = crc_scheme;
 	ofdmflexframegen_setprops(fg, &fgprops);
@@ -278,7 +278,7 @@ void CognitiveRadio::set_tx_crc(int crc_scheme){
 }
 
 // set FEC0
-void CognitiveRadio::set_tx_fec0(int fec_scheme)
+void ExtensibleCognitiveRadio::set_tx_fec0(int fec_scheme)
 {
     pthread_mutex_lock(&tx_mutex);
     fgprops.fec0 = fec_scheme;
@@ -287,7 +287,7 @@ void CognitiveRadio::set_tx_fec0(int fec_scheme)
 }
 
 // set FEC1
-void CognitiveRadio::set_tx_fec1(int fec_scheme)
+void ExtensibleCognitiveRadio::set_tx_fec1(int fec_scheme)
 {
     pthread_mutex_lock(&tx_mutex);
     fgprops.fec1 = fec_scheme;
@@ -296,7 +296,7 @@ void CognitiveRadio::set_tx_fec1(int fec_scheme)
 }
 
 // set number of subcarriers
-void CognitiveRadio::set_tx_subcarriers(unsigned int _M)
+void ExtensibleCognitiveRadio::set_tx_subcarriers(unsigned int _M)
 {
     // destroy frame gen, set cp length, recreate frame gen
 	pthread_mutex_lock(&tx_mutex);
@@ -307,7 +307,7 @@ void CognitiveRadio::set_tx_subcarriers(unsigned int _M)
 }
 
 // set subcarrier allocation
-void CognitiveRadio::set_tx_subcarrier_alloc(char *_p)
+void ExtensibleCognitiveRadio::set_tx_subcarrier_alloc(char *_p)
 {
     // destroy frame gen, set cp length, recreate frame gen
 	pthread_mutex_lock(&tx_mutex);
@@ -318,7 +318,7 @@ void CognitiveRadio::set_tx_subcarrier_alloc(char *_p)
 }
 
 // set cp_len
-void CognitiveRadio::set_tx_cp_len(unsigned int _cp_len)
+void ExtensibleCognitiveRadio::set_tx_cp_len(unsigned int _cp_len)
 {
     // destroy frame gen, set cp length, recreate frame gen
 	pthread_mutex_lock(&tx_mutex);
@@ -329,7 +329,7 @@ void CognitiveRadio::set_tx_cp_len(unsigned int _cp_len)
 }
 
 // set taper_len
-void CognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
+void ExtensibleCognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
 {
 	// destroy frame gen, set cp length, recreate frame gen
 	pthread_mutex_lock(&tx_mutex);
@@ -340,7 +340,7 @@ void CognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
 }
 
 // set header data (must have length 8)
-void CognitiveRadio::set_header(unsigned char * _header)
+void ExtensibleCognitiveRadio::set_header(unsigned char * _header)
 {
     //FIXME: Need mutex here
     int i;
@@ -352,7 +352,7 @@ void CognitiveRadio::set_header(unsigned char * _header)
 
 
 // update payload data on a particular channel
-void CognitiveRadio::transmit_packet(unsigned char * _header,
+void ExtensibleCognitiveRadio::transmit_packet(unsigned char * _header,
                    unsigned char * _payload,
                    unsigned int    _payload_len)
 {
@@ -418,44 +418,44 @@ void CognitiveRadio::transmit_packet(unsigned char * _header,
 /////////////////////////////////////////////////////////////////////
 
 // set receiver frequency
-void CognitiveRadio::set_rx_freq(float _rx_freq)
+void ExtensibleCognitiveRadio::set_rx_freq(float _rx_freq)
 {
     usrp_rx->set_rx_freq(_rx_freq);
 }
 
 // set receiver frequency
-float CognitiveRadio::get_rx_freq()
+float ExtensibleCognitiveRadio::get_rx_freq()
 {
     float freq = usrp_tx->get_rx_freq();
     return freq;
 }
 
 // set receiver sample rate
-void CognitiveRadio::set_rx_rate(float _rx_rate)
+void ExtensibleCognitiveRadio::set_rx_rate(float _rx_rate)
 {
     usrp_rx->set_rx_rate(_rx_rate);
 }
 
 // set receiver hardware (UHD) gain
-void CognitiveRadio::set_rx_gain_uhd(float _rx_gain_uhd)
+void ExtensibleCognitiveRadio::set_rx_gain_uhd(float _rx_gain_uhd)
 {
     usrp_rx->set_rx_gain(_rx_gain_uhd);
 }
 
 // set receiver antenna
-void CognitiveRadio::set_rx_antenna(char * _rx_antenna)
+void ExtensibleCognitiveRadio::set_rx_antenna(char * _rx_antenna)
 {
     usrp_rx->set_rx_antenna(_rx_antenna);
 }
 
 // reset receiver objects and buffers
-void CognitiveRadio::reset_rx()
+void ExtensibleCognitiveRadio::reset_rx()
 {
     ofdmflexframesync_reset(fs);
 }
 
 // set number of subcarriers
-void CognitiveRadio::set_rx_subcarriers(unsigned int _M)
+void ExtensibleCognitiveRadio::set_rx_subcarriers(unsigned int _M)
 {
     // stop rx, destroy frame sync, set subcarriers, recreate frame sync
 	stop_rx();
@@ -467,7 +467,7 @@ void CognitiveRadio::set_rx_subcarriers(unsigned int _M)
 }
 
 // set subcarrier allocation
-void CognitiveRadio::set_rx_subcarrier_alloc(char *_p)
+void ExtensibleCognitiveRadio::set_rx_subcarrier_alloc(char *_p)
 {
     // destroy frame gen, set cp length, recreate frame gen
 	stop_rx();
@@ -479,7 +479,7 @@ void CognitiveRadio::set_rx_subcarrier_alloc(char *_p)
 }
 
 // set cp_len
-void CognitiveRadio::set_rx_cp_len(unsigned int _cp_len)
+void ExtensibleCognitiveRadio::set_rx_cp_len(unsigned int _cp_len)
 {
 	// destroy frame gen, set cp length, recreate frame gen
 	stop_rx();
@@ -491,7 +491,7 @@ void CognitiveRadio::set_rx_cp_len(unsigned int _cp_len)
 }
 
 // set taper_len
-void CognitiveRadio::set_rx_taper_len(unsigned int _taper_len)
+void ExtensibleCognitiveRadio::set_rx_taper_len(unsigned int _taper_len)
 {
     // destroy frame gen, set cp length, recreate frame gen
 	stop_rx();
@@ -503,7 +503,7 @@ void CognitiveRadio::set_rx_taper_len(unsigned int _taper_len)
 }
 
 // start receiver
-void CognitiveRadio::start_rx()
+void ExtensibleCognitiveRadio::start_rx()
 {
     // set rx running flag
     rx_running = true;
@@ -516,7 +516,7 @@ void CognitiveRadio::start_rx()
 }
 
 // stop receiver
-void CognitiveRadio::stop_rx()
+void ExtensibleCognitiveRadio::stop_rx()
 {
     // set rx running flag
     rx_running = false;
@@ -526,38 +526,38 @@ void CognitiveRadio::stop_rx()
 }
 
 // receiver worker thread
-void * CR_rx_worker(void * _arg)
+void * ECR_rx_worker(void * _arg)
 {
     // type cast input argument as ofdmtxrx object
-    CognitiveRadio * CR = (CognitiveRadio*) _arg;
+    ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio*) _arg;
 
     // set up receive buffer
-    const size_t max_samps_per_packet = CR->usrp_rx->get_device()->get_max_recv_samps_per_packet();
+    const size_t max_samps_per_packet = ECR->usrp_rx->get_device()->get_max_recv_samps_per_packet();
     std::vector<std::complex<float> > buffer(max_samps_per_packet);
 
-    while (CR->rx_thread_running) {
+    while (ECR->rx_thread_running) {
     // wait for signal to start; lock mutex
-    pthread_mutex_lock(&(CR->rx_mutex));
+    pthread_mutex_lock(&(ECR->rx_mutex));
 
     // this function unlocks the mutex and waits for the condition;
     // once the condition is set, the mutex is again locked
-    pthread_cond_wait(&(CR->rx_cond), &(CR->rx_mutex));
+    pthread_cond_wait(&(ECR->rx_cond), &(ECR->rx_mutex));
     
 	// unlock the mutex
-    pthread_mutex_unlock(&(CR->rx_mutex));
+    pthread_mutex_unlock(&(ECR->rx_mutex));
 	// condition given; check state: run or exit
-    if (!CR->rx_running) {
+    if (!ECR->rx_running) {
         dprintf("rx_worker finished\n");
         break;
     }
 
     // run receiver
-    while (CR->rx_running) {
+    while (ECR->rx_running) {
 
         // grab data from device
         //printf("rx_worker waiting for samples...\n");
-        size_t num_rx_samps = CR->usrp_rx->get_device()->recv(
-        &buffer.front(), buffer.size(), CR->metadata_rx,
+        size_t num_rx_samps = ECR->usrp_rx->get_device()->recv(
+        &buffer.front(), buffer.size(), ECR->metadata_rx,
         uhd::io_type_t::COMPLEX_FLOAT32,
         uhd::device::RECV_MODE_ONE_PACKET
         );
@@ -588,7 +588,7 @@ void * CR_rx_worker(void * _arg)
         std::complex<float> usrp_sample = buffer[j];
 
         // push resulting samples through synchronizer
-        ofdmflexframesync_execute(CR->fs, &usrp_sample, 1);
+        ofdmflexframesync_execute(ECR->fs, &usrp_sample, 1);
         }
 		
     } // while rx_running
@@ -601,7 +601,7 @@ void * CR_rx_worker(void * _arg)
     pthread_exit(NULL);
 }
 
-// function to handle packets received by the CR object
+// function to handle packets received by the ECR object
 int rxCallback(unsigned char * _header,
 	int _header_valid,
 	unsigned char * _payload,
@@ -614,66 +614,66 @@ int rxCallback(unsigned char * _header,
 	//for (unsigned int i=0; i<_payload_len; i++)
 	//	printf("%c\n", _payload[i]);
 	
-	// typecast user argument as CR object
-    CognitiveRadio * CR = (CognitiveRadio*)_userdata;
+	// typecast user argument as ECR object
+    ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio*)_userdata;
 		
     // if using PHY layer ARQ
-    //if (CR->arq)
+    //if (ECR->arq)
 	// Check if ACK/NACK and update ARQ state
-    //	if (*_header == ACK || *_header == NACK) CR->arq.update();
+    //	if (*_header == ACK || *_header == NACK) ECR->arq.update();
 
     // Store metrics and signal CE thread if using PHY layer metrics
-    if (CR->PHY_metrics){
-		CR->CE_metrics.header_valid = _header_valid;
+    if (ECR->PHY_metrics){
+		ECR->CE_metrics.header_valid = _header_valid;
         int j;
         for (j=0; j<8; j++)
         {
-            CR->CE_metrics.header[j] = _header[j];
+            ECR->CE_metrics.header[j] = _header[j];
         }
-		CR->CE_metrics.payload_valid = _payload_valid;
-		CR->CE_metrics.stats = _stats;
-		CR->CE_metrics.time_spec = CR->metadata_rx.time_spec;
+		ECR->CE_metrics.payload_valid = _payload_valid;
+		ECR->CE_metrics.stats = _stats;
+		ECR->CE_metrics.time_spec = ECR->metadata_rx.time_spec;
 
 		// Signal CE thread
 		//printf("Signaling CE thread to execute CE\n");
-		pthread_mutex_lock(&CR->CE_mutex);
-		pthread_cond_signal(&CR->CE_execute_sig);
-		pthread_mutex_unlock(&CR->CE_mutex);
+		pthread_mutex_lock(&ECR->CE_mutex);
+		pthread_cond_signal(&ECR->CE_execute_sig);
+		pthread_mutex_unlock(&ECR->CE_mutex);
 
 		// Print metrics if required
-		if(CR->print_metrics_flag)
-			CR->print_metrics(CR);
+		if(ECR->print_metrics_flag)
+			ECR->print_metrics(ECR);
 
 		// Pass metrics to controller if required
 		// Log metrics locally if required
-		if(CR->log_metrics_flag)
-			CR->log_metrics(CR);
+		if(ECR->log_metrics_flag)
+			ECR->log_metrics(ECR);
     }
     // Pass payload to tun interface
-    //int nwrite = cwrite(CR->tun_fd, (char*)_payload, (int)_payload_len);
+    //int nwrite = cwrite(ECR->tun_fd, (char*)_payload, (int)_payload_len);
     //if(nwrite != (int)_payload_len) 
 	//	printf("Number of bytes written to TUN interface not equal to payload length\n"); 
 
     // Transmit acknowledgement if using PHY ARQ
     /*unsigned char *ACK;
-    pthread_mutex_lock(&(CR->tx_mutex));
-    CR->transmit_packet(ACK,
+    pthread_mutex_lock(&(ECR->tx_mutex));
+    ECR->transmit_packet(ACK,
 	ACK,
 	0,
 	LIQUID_MODEM_QPSK, // might want to use set schemes
 	LIQUID_FEC_NONE,
 	LIQUID_FEC_HAMMING128);
-    pthread_mutex_unlock(&(CR->tx_mutex));
+    pthread_mutex_unlock(&(ECR->tx_mutex));
     */
     return 0;
 }
 
 
 // transmitter worker thread
-void * CR_tx_worker(void * _arg)
+void * ECR_tx_worker(void * _arg)
 {
-    // type cast input argument as CR object
-    CognitiveRadio * CR = (CognitiveRadio*)_arg;
+    // type cast input argument as ECR object
+    ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio*)_arg;
 
     // set up transmit buffer
     int buffer_len = 1024;
@@ -683,27 +683,27 @@ void * CR_tx_worker(void * _arg)
     //unsigned char header[1];
     int nread;
 
-    while (CR->tx_thread_running) {
+    while (ECR->tx_thread_running) {
 		// wait for signal to start; lock mutex
-		//pthread_mutex_lock(&(CR->tx_mutex));
+		//pthread_mutex_lock(&(ECR->tx_mutex));
 		// this function unlocks the mutex and waits for the condition;
 		// once the condition is set, the mutex is again locked
-		pthread_cond_wait(&(CR->tx_cond), &(CR->tx_mutex));
+		pthread_cond_wait(&(ECR->tx_cond), &(ECR->tx_mutex));
 		// unlock the mutex
 		//printf("tx_worker unlocking mutex\n");
-		//pthread_mutex_unlock(&(CR->tx_mutex));
+		//pthread_mutex_unlock(&(ECR->tx_mutex));
 		// condition given; check state: run or exit
-		if (!CR->tx_running) {
+		if (!ECR->tx_running) {
 	    	printf("tx_worker finished\n");
 		break;
 		}
 		// run transmitter
-		while (CR->tx_running) {
+		while (ECR->tx_running) {
 	    	// grab data from TAP interface
-	    	nread = read(CR->tun_fd, buffer, sizeof(buffer));
+	    	nread = read(ECR->tun_fd, buffer, sizeof(buffer));
 	    	if (nread < 0) {
 				perror("Reading from interface");
-				close(CR->tun_fd);
+				close(ECR->tun_fd);
 				exit(1);
 	    	}
 			
@@ -716,11 +716,11 @@ void * CR_tx_worker(void * _arg)
 	    	payload_len = nread;
 	 
 	    	// transmit packet
-	    	pthread_mutex_lock(&(CR->tx_mutex));
-	    	CR->transmit_packet(CR->tx_header,
+	    	pthread_mutex_lock(&(ECR->tx_mutex));
+	    	ECR->transmit_packet(ECR->tx_header,
 				payload,
 				payload_len);
-			pthread_mutex_unlock(&(CR->tx_mutex));
+			pthread_mutex_unlock(&(ECR->tx_mutex));
 			
         } // while tx_running
         printf("tx_worker finished running\n");
@@ -731,46 +731,46 @@ void * CR_tx_worker(void * _arg)
 }
 
 // main loop of CE
-void * CR_ce_worker(void *_arg){
+void * ECR_ce_worker(void *_arg){
     //printf("CE thread has begun\n");
-	CognitiveRadio *CR = (CognitiveRadio *) _arg; 
+	ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *) _arg; 
     // Infinite loop
     while (true){
         // Wait for signal from receiver
-		pthread_mutex_lock(&CR->CE_mutex);
-		pthread_cond_wait(&CR->CE_execute_sig, &CR->CE_mutex);
+		pthread_mutex_lock(&ECR->CE_mutex);
+		pthread_cond_wait(&ECR->CE_execute_sig, &ECR->CE_mutex);
 		// execute CE
 		//printf("Executing CE\n");
-		CR->CE->execute((void*)CR);
-    	pthread_mutex_unlock(&CR->CE_mutex);
+		ECR->CE->execute((void*)ECR);
+    	pthread_mutex_unlock(&ECR->CE_mutex);
     }
     printf("ce_worker exiting thread\n");
     pthread_exit(NULL);
 
 }
 
-void CognitiveRadio::print_metrics(CognitiveRadio * CR){
+void ExtensibleCognitiveRadio::print_metrics(ExtensibleCognitiveRadio * ECR){
 	printf("\n---------------------------------------------------------\n");
 	printf("Received packet metrics:      Received Packet Parameters:\n");
 	printf("---------------------------------------------------------\n");
 	printf("Header Valid:     %-6i      Modulation Scheme:   %u\n", 
-		CR->CE_metrics.header_valid, CR->CE_metrics.stats.mod_scheme);
+		ECR->CE_metrics.header_valid, ECR->CE_metrics.stats.mod_scheme);
 	printf("Payload Valid:    %-6i      Modulation bits/sym: %u\n", 
-		CR->CE_metrics.payload_valid, CR->CE_metrics.stats.mod_bps);
+		ECR->CE_metrics.payload_valid, ECR->CE_metrics.stats.mod_bps);
 	printf("EVM:              %-8.2f    Check:               %u\n", 
-		CR->CE_metrics.stats.evm, CR->CE_metrics.stats.check);
+		ECR->CE_metrics.stats.evm, ECR->CE_metrics.stats.check);
 	printf("RSSI:             %-8.2f    Inner FEC:           %u\n", 
-		CR->CE_metrics.stats.rssi, CR->CE_metrics.stats.fec0);
+		ECR->CE_metrics.stats.rssi, ECR->CE_metrics.stats.fec0);
 	printf("Frequency Offset: %-8.2f    Outter FEC:          %u\n", 
-		CR->CE_metrics.stats.cfo, CR->CE_metrics.stats.fec1);
+		ECR->CE_metrics.stats.cfo, ECR->CE_metrics.stats.fec1);
 }
 
-void CognitiveRadio::log_metrics(CognitiveRadio * CR){
+void ExtensibleCognitiveRadio::log_metrics(ExtensibleCognitiveRadio * ECR){
     //std::cout<<"log_metrics() called"<<std::endl;
 	// create string of actual file location
 	char file_name[100];
 	strcpy(file_name, "./logs/");
-	strcat(file_name, CR->log_file);
+	strcat(file_name, ECR->log_file);
 	
 	// open file, append metrics, and close
 	//FILE * file;
@@ -780,9 +780,9 @@ void CognitiveRadio::log_metrics(CognitiveRadio * CR){
     log_file.open(file_name, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
     if (log_file.is_open())
     {
-        //fwrite(&CR->CE_metrics, sizeof(struct metric_s), 1, file); 
+        //fwrite(&ECR->CE_metrics, sizeof(struct metric_s), 1, file); 
         //std::cout<<"Log file open"<<std::endl;
-        log_file.write((char*)&CR->CE_metrics, sizeof(struct metric_s));
+        log_file.write((char*)&ECR->CE_metrics, sizeof(struct metric_s));
     }
     else
     {
@@ -796,12 +796,12 @@ void CognitiveRadio::log_metrics(CognitiveRadio * CR){
 // specific implementation of cognitive engine (will be moved to external file in the future)
 void CE_execute_1(void * _arg){
 	//printf("Executing CE\n");
-	CognitiveRadio * CR = (CognitiveRadio *)_arg;
+	ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *)_arg;
 	
 	// Modify modulation based on EVM
-	if (!CR->CE_metrics.payload_valid){
-		//printf("Payload was invalid (%i) decreasing modulation order\n", CR->CE_metrics.payload_valid);
-		CR->decrease_tx_mod_order();
+	if (!ECR->CE_metrics.payload_valid){
+		//printf("Payload was invalid (%i) decreasing modulation order\n", ECR->CE_metrics.payload_valid);
+		ECR->decrease_tx_mod_order();
 	}
 }
 

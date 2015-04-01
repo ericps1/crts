@@ -1,5 +1,5 @@
 #include "CE.hpp"
-#include "CR.hpp"
+#include "ECR.hpp"
 
 // custom member struct
 struct CE_Example_members{
@@ -23,7 +23,7 @@ CE_Example::~CE_Example() {}
 // execute function
 void CE_Example::execute(void * _args){
 	// type cast pointer to cognitive radio object
-	CognitiveRadio * CR = (CognitiveRadio *) _args;
+	ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 	// type cast custom members void pointer to custom member struct
 	struct CE_Example_members * cm = (struct CE_Example_members*) custom_members;	
 

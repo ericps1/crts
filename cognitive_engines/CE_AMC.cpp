@@ -1,5 +1,5 @@
 #include "CE.hpp"
-#include "CR.hpp"
+#include "ECR.hpp"
 
 #if 1
 #define dprintf(...) printf(__VA_ARGS__)
@@ -31,13 +31,13 @@ CE_AMC::~CE_AMC() {}
 // execute function
 void CE_AMC::execute(void * _args){
 	// type cast pointer to cognitive radio object
-	CognitiveRadio * CR = (CognitiveRadio *) _args;
+	ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 	// type cast custom members void pointer to custom member struct
 	struct CE_AMC_members * cm = (struct CE_AMC_members*) custom_members;	
 
 	// define old and new EVM values
 	float EVM_old = cm->EVM_buff[cm->ind];
-	float EVM_new = CR->CE_metrics.stats.evm;
+	float EVM_new = ECR->CE_metrics.stats.evm;
 	
 	// update EVM history
 	cm->EVM_buff[cm->ind] = EVM_new;
@@ -52,15 +52,15 @@ void CE_AMC::execute(void * _args){
 	// update modulation scheme based on averaged EVM
 	if(cm->EVM_avg > -10.0f){
 		dprintf("Setting modulation to QPSK\n");
-		CR->set_tx_modulation(LIQUID_MODEM_QAM4);
+		ECR->set_tx_modulation(LIQUID_MODEM_QAM4);
 	}
 	else if(cm->EVM_avg > -25.0f){
 		dprintf("Setting modulation to 16-QAM\n");
-		CR->set_tx_modulation(LIQUID_MODEM_QAM16);
+		ECR->set_tx_modulation(LIQUID_MODEM_QAM16);
 	}
 	else if(cm->EVM_avg > -30.0f){
 		dprintf("Setting modulation to 64-QAM\n");
-		CR->set_tx_modulation(LIQUID_MODEM_QAM64);
+		ECR->set_tx_modulation(LIQUID_MODEM_QAM64);
 	}
 
 	// increment the buffer index and wrap around
