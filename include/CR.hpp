@@ -187,6 +187,7 @@ public:
 
 	void set_ip(char *ip);
 
+
     // TX thread, mutex, signal, and thread states
     pthread_t tx_process;
     pthread_mutex_t tx_mutex;
@@ -199,8 +200,13 @@ public:
     pthread_mutex_t CE_mutex;
     pthread_cond_t CE_execute_sig;
 
-    // CE thread timeout
+    // CE thread timeout length in milliseconds
     float timeout_length_ms;
+    void set_timeout_length_ms(float new_timeout_length_ms);
+    float get_timeout_length_ms();
+
+
+
 private:
 };
 

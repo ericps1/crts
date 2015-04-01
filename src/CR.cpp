@@ -24,6 +24,9 @@
 // Constructor
 CognitiveRadio::CognitiveRadio(/*string with name of CE_execute function*/){
 
+    // Set initial timeout value for executing CE
+    timeout_length_ms = 1000;
+
 	// set internal properties
     M = 64;
     cp_len = 16;
@@ -163,6 +166,14 @@ void CognitiveRadio::set_ip(char *ip){
 	system(command);
 	//system("route add default gw 10.0.0.1 tun0");
 	system("ip link set dev tun0 up");
+}
+
+void CognitiveRadio::set_timeout_length_ms(float new_timeout_length_ms){
+    timeout_length_ms = new_timeout_length_ms;
+}
+
+float CognitiveRadio::get_timeout_length_ms(){
+    return timeout_length_ms ;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -740,7 +751,6 @@ void * CR_ce_worker(void *_arg){
 
     struct timespec timeoutTime;
     struct timeval time_now;
-    //int cond_timedwait_rt;
     double timeout_length_spart;
     double timeout_length_nspart;
 
