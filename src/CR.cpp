@@ -11,6 +11,8 @@
 #include"TUN.hpp"
 #include<iostream>
 #include<fstream>
+#include<errno.h>
+#include<sys/time.h>
 
 #define DEBUG 0
 #if DEBUG == 1
@@ -735,14 +737,38 @@ void * CR_tx_worker(void * _arg)
 void * CR_ce_worker(void *_arg){
     //printf("CE thread has begun\n");
 	CognitiveRadio *CR = (CognitiveRadio *) _arg; 
+
+    struct timespec timeoutTime;
+    struct timeval time_now;
+    //int cond_timedwait_rt;
+    double timeout_length_spart;
+    double timeout_length_nspart;
+
+    // Convert timeout length to s and ns parts
+    timeout_length_spart = modf(CR->timeout_length_ms*1000., &timeout_length_nspart);
+    timeout_length_nspart *= 1e9;
+
     // Infinite loop
     while (true){
-        // Wait for signal from receiver
+        // Get current time
+        gettimeofday(&time_now,NULL);
+
+        // Set time for when to initiate timeout execution
+        timeoutTime.tv_sec = time_now.tv_sec+timeout_length_spart;
+        timeoutTime.tv_nsec = time_now.tv_usec*1000UL + timeout_length_nspart;
+
+        // Wait for signal from receiver or timeout, whichever is first
 		pthread_mutex_lock(&CR->CE_mutex);
-		pthread_cond_wait(&CR->CE_execute_sig, &CR->CE_mutex);
-		// execute CE
-		//printf("Executing CE\n");
-		CR->CE->execute((void*)CR);
+		if (ETIMEDOUT == pthread_cond_timedwait(&CR->CE_execute_sig, &CR->CE_mutex, &timeoutTime))
+        {
+            // execute CE with 1 to indicate timeout
+            CR->CE->execute(1, (void*)CR);
+        }
+        else
+        {
+            // execute CE with 0 to indicate this is not a timeout call
+            CR->CE->execute(0, (void*)CR);
+        }
     	pthread_mutex_unlock(&CR->CE_mutex);
     }
     printf("ce_worker exiting thread\n");

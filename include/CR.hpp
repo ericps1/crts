@@ -199,6 +199,8 @@ public:
     pthread_mutex_t CE_mutex;
     pthread_cond_t CE_execute_sig;
 
+    // CE thread timeout
+    float timeout_length_ms;
 private:
 };
 

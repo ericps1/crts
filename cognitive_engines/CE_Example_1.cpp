@@ -21,7 +21,7 @@ CE_Example_1::CE_Example_1(){
 CE_Example_1::~CE_Example_1() {}
 
 // execute function
-void CE_Example_1::execute(void * _args){
+void CE_Example_1::execute(int timed_out, void * _args){
 	// type cast pointer to cognitive radio object
 	CognitiveRadio * CR = (CognitiveRadio *) _args;
 	// type cast custom members void pointer to custom member struct

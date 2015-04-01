@@ -7,7 +7,7 @@ class Cognitive_Engine{
 public:
 	Cognitive_Engine();
 	~Cognitive_Engine();
-	virtual void execute(void * _args);
+	virtual void execute(int timed_out, void * _args);
 };
 
 ///////////////////////////////////////////
@@ -17,21 +17,21 @@ class CE_DSA : public Cognitive_Engine {
 public:
 	CE_DSA();
 	~CE_DSA();
-	virtual void execute(void * _args);
+	virtual void execute(int timed_out, void * _args);
 	void * custom_members;
 };
 class CE_Example_2 : public Cognitive_Engine {
 public:
 	CE_Example_2();
 	~CE_Example_2();
-	virtual void execute(void * _args);
+	virtual void execute(int timed_out, void * _args);
 	void * custom_members;
 };
 class CE_Example_1 : public Cognitive_Engine {
 public:
 	CE_Example_1();
 	~CE_Example_1();
-	virtual void execute(void * _args);
+	virtual void execute(int timed_out, void * _args);
 	void * custom_members;
 };
 //EDIT END FLAG

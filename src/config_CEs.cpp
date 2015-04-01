@@ -113,7 +113,7 @@ int main(){
 					file_lines.push_back(line_new);
 					line_new = "	~" + ce_list[i] + "();\r";
 					file_lines.push_back(line_new);
-					line_new = "	virtual void execute(void * _args);\r";
+					line_new = "	virtual void execute(int timed_out, void * _args);\r";
 					file_lines.push_back(line_new);
 					line_new = "	void * custom_members;\r";
 					file_lines.push_back(line_new);

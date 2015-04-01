@@ -27,7 +27,7 @@ CE_DSA::~CE_DSA(){
 }
 
 // execute function
-void CE_DSA::execute(void * _args){
+void CE_DSA::execute(int timed_out, void * _args){
 	struct CE_DSA_members * cm = (struct CE_DSA_members*) custom_members;
     CognitiveRadio * CR = (CognitiveRadio *) _args;
 
