@@ -202,6 +202,7 @@ public:
 
     // CE thread timeout length in milliseconds
     float timeout_length_ms;
+    bool timed_out;
     void set_timeout_length_ms(float new_timeout_length_ms);
     float get_timeout_length_ms();
 

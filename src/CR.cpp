@@ -749,36 +749,38 @@ void * CR_ce_worker(void *_arg){
     //printf("CE thread has begun\n");
 	CognitiveRadio *CR = (CognitiveRadio *) _arg; 
 
-    struct timespec timeoutTime;
     struct timeval time_now;
-    double timeout_length_spart;
-    double timeout_length_nspart;
-
-    // Convert timeout length to s and ns parts
-    timeout_length_spart = modf(CR->timeout_length_ms*1000., &timeout_length_nspart);
-    timeout_length_nspart *= 1e9;
+    double timeout_time_ns;
+    double timeout_time_spart;
+    double timeout_time_nspart;
+    struct timespec timeout_time;
 
     // Infinite loop
     while (true){
+
         // Get current time
         gettimeofday(&time_now,NULL);
 
-        // Set time for when to initiate timeout execution
-        timeoutTime.tv_sec = time_now.tv_sec+timeout_length_spart;
-        timeoutTime.tv_nsec = time_now.tv_usec*1000UL + timeout_length_nspart;
+        // Calculate timeout time in nanoseconds
+        timeout_time_ns = time_now.tv_usec*1e3+time_now.tv_sec*1e9+CR->timeout_length_ms*1e6;
+        // Convert timeout time to s and ns parts
+        timeout_time_nspart = modf(timeout_time_ns/1e9, &timeout_time_spart);
+        // Put timout time into timespec struct
+        timeout_time.tv_sec = timeout_time_spart;
+        timeout_time.tv_nsec = timeout_time_nspart;
 
         // Wait for signal from receiver or timeout, whichever is first
 		pthread_mutex_lock(&CR->CE_mutex);
-		if (ETIMEDOUT == pthread_cond_timedwait(&CR->CE_execute_sig, &CR->CE_mutex, &timeoutTime))
+		if (ETIMEDOUT == pthread_cond_timedwait(&CR->CE_execute_sig, &CR->CE_mutex, &timeout_time))
         {
-            // execute CE with 1 to indicate timeout
-            CR->CE->execute(1, (void*)CR);
+            CR->timed_out = true;
         }
         else
         {
-            // execute CE with 0 to indicate this is not a timeout call
-            CR->CE->execute(0, (void*)CR);
+            CR->timed_out = false;
         }
+        // execute CE 
+        CR->CE->execute((void*)CR);
     	pthread_mutex_unlock(&CR->CE_mutex);
     }
     printf("ce_worker exiting thread\n");
