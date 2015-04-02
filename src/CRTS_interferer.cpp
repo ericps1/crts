@@ -70,6 +70,7 @@ void help_CRTS_interferer() {
     printf(" -t : Run Time - Length of time this node will run. In seconds.\n");
     printf("      Default: 20.0 s\n");
     printf(" -a : IP Address of node running CRTS_controller.\n");
+    printf("      Default: 192.168.1.56.\n");
 }
 
 void terminate(int signum){
@@ -86,7 +87,7 @@ int main(int argc, char ** argv){
 	float run_time = 20.0f;
 
     // Default IP Address of Node running CRTS_controller
-	char * controller_ipaddr = (char*) "192.168.1.28";
+	char * controller_ipaddr = (char*) "192.168.1.56";
 
 	int d;
 	while((d = getopt(argc, argv, "ht:a:")) != EOF){
