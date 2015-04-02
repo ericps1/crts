@@ -39,6 +39,7 @@ struct node_parameters{
 	int print_metrics;
 	int log_metrics;
 	char log_file[30];
+    float ce_timeout_length_ms;
 
 	// RF
 	int duplex;

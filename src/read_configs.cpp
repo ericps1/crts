@@ -139,6 +139,9 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_string(node_config, "log_file", &tmpS))
 		strcpy(np.log_file, tmpS);
 
+	if (config_setting_lookup_float(node_config, "ce_timeout_length_ms", &tmpD))
+		np.ce_timeout_length_ms = tmpD;
+
 	if (config_setting_lookup_string(node_config, "duplex", &tmpS)){
 		if(!strcmp(tmpS, "FDD")) np.duplex = FDD;
 		else if(!strcmp(tmpS, "TDD")) np.duplex = TDD;
@@ -207,6 +210,7 @@ void print_node_parameters(struct node_parameters * np){
 	if(np->type == UE)
 		printf("	Traffic type:              %-i\n", np->traffic);
 		printf("	Log file:                  %-s\n", np->log_file);
+		printf("	CE timeout:                %-.2f\n", np->ce_timeout_length_ms);
 		printf("RF:\n");
 	if(np->type != interferer){
 		char duplex[4] = "FDD";

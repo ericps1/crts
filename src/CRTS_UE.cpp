@@ -56,6 +56,7 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 		CR->print_metrics_flag = np->print_metrics;
 		CR->log_metrics_flag = np->log_metrics;
 		strcpy(CR->log_file, np->log_file);
+        CR->set_timeout_length_ms(np->ce_timeout_length_ms);
 		CR->set_tx_freq(np->tx_freq);
 		CR->set_rx_freq(np->rx_freq);
 		CR->set_tx_rate(np->tx_rate);

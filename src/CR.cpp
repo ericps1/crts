@@ -169,6 +169,7 @@ void CognitiveRadio::set_ip(char *ip){
 }
 
 void CognitiveRadio::set_timeout_length_ms(float new_timeout_length_ms){
+    printf("timout_length_ms set to %f", new_timeout_length_ms);
     timeout_length_ms = new_timeout_length_ms;
 }
 
