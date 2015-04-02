@@ -48,6 +48,25 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_exec
     usrp_tx = uhd::usrp::multi_usrp::make(dev_addr);
     usrp_rx = uhd::usrp::multi_usrp::make(dev_addr);
 	
+	// Create TAP interface
+	printf("Creating tun interface\n");
+    char tun_name[IFNAMSIZ];
+    strcpy(tun_name, "tun0");
+    tunfd = tun_alloc(tun_name, IFF_TUN);
+
+	//if(ioctl(tunfd, TUNSETPERSIST,1)<0){
+	//	printf("Error enabling TUN to persist\n");
+	//	exit(1);
+	//}
+
+	printf("Bringing up tun interface\n");
+	system("ip link set dev tun0 up");
+	//system("ip addr add 10.0.0.2/24 dev tun0");
+	//system("route add default gw 10.0.0.1 tun0");
+	//system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
+		
+	usleep(1e6);
+
 	// create and start rx thread
 	dprintf("Starting rx thread...\n");
     rx_running = false;             // receiver is not running initially
@@ -57,31 +76,19 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_exec
     pthread_create(&rx_process,   NULL, ECR_rx_worker, (void*)this);
 	
     // create and start tx thread
-    //tx_running = false; // transmitter is not running initially
-    //tx_thread_running = true; // transmitter thread IS running initially
+    tx_running = false; // transmitter is not running initially
+    tx_thread_running = true; // transmitter thread IS running initially
     pthread_mutex_init(&tx_mutex, NULL); // transmitter mutex
     pthread_cond_init(&tx_cond, NULL); // transmitter condition
-    //pthread_create(&tx_process, NULL, ECR_tx_worker, (void*)this);
-	
+    pthread_create(&tx_process, NULL, ECR_tx_worker, (void*)this);	
 	
 	// Start CE thread
     dprintf("Starting CE thread...\n");
 	pthread_mutex_init(&CE_mutex, NULL);
 	pthread_cond_init(&CE_execute_sig, NULL);
 	pthread_create(&CE_process, NULL, ECR_ce_worker, (void*)this);
-	
-
-    // Create TUN interface
-    /*char tun_name[IFNAMSIZ];
-    strcpy(tun_name, "tun1");
-    tun_fd = tun_alloc(tun_name, IFF_TUN);
-	*/
-    // Create TAP interface
-    //char tap_name[IFNAMSIZ];
-    //strcpy(tap_name, "tap44");
-    //tapfd = tun_alloc(tap_name, IFF_TAP);
-
-	// initialize default tx values
+		
+    // initialize default tx values
 	dprintf("Initializing USRP settings...\n");
     set_tx_freq(460.0e6f);
     set_tx_rate(500e3);
@@ -96,14 +103,17 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_exec
     // reset transceiver
     reset_tx();
     reset_rx();
-
 	
 }
 
 // Destructor
 ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 
-    dprintf("waiting for process to finish...\n");
+    // undo modifications to network interface
+	system("route del -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
+	system("ip link set dev tun0 down");
+	
+	dprintf("waiting for process to finish...\n");
 
     // ensure reciever thread is not running
     if (rx_running) stop_rx();
@@ -156,11 +166,13 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
 }
 
 void ExtensibleCognitiveRadio::set_ip(char *ip){
-	char command[40];
+	char command[50];
 	sprintf(command, "ip addr add %s/24 dev tun0", ip);
+	printf("%s\n", command);
 	system(command);
+	system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
 	//system("route add default gw 10.0.0.1 tun0");
-	system("ip link set dev tun0 up");
+	//system("ip link set dev tun0 up");
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -610,11 +622,7 @@ int rxCallback(unsigned char * _header,
 	framesyncstats_s _stats,
 	void * _userdata)
 {
-    // print payload
-	//for (unsigned int i=0; i<_payload_len; i++)
-	//	printf("%c\n", _payload[i]);
-	
-	// typecast user argument as ECR object
+    // typecast user argument as ECR object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio*)_userdata;
 		
     // if using PHY layer ARQ
@@ -649,12 +657,29 @@ int rxCallback(unsigned char * _header,
 		if(ECR->log_metrics_flag)
 			ECR->log_metrics(ECR);
     }
-    // Pass payload to tun interface
-    //int nwrite = cwrite(ECR->tun_fd, (char*)_payload, (int)_payload_len);
-    //if(nwrite != (int)_payload_len) 
-	//	printf("Number of bytes written to TUN interface not equal to payload length\n"); 
 
-    // Transmit acknowledgement if using PHY ARQ
+	// print payload
+	dprintf("\nReceived Payload:\n");
+	for (unsigned int i=0; i<_payload_len; i++)
+		dprintf("%c", _payload[i]);
+	dprintf("\n");
+
+	char payload[_payload_len];
+	for(int i=0; i<_payload_len; i++)
+		payload[i] = _payload[i];
+
+	int nwrite = 0;
+	if(_payload_valid){
+		// Pass payload to tun interface
+    	dprintf("Passing payload to tun interface\n");
+		nwrite = cwrite(ECR->tunfd, payload, (int)_payload_len);
+		if(nwrite != (int)_payload_len) 
+			printf("Number of bytes written to TUN interface not equal to payload length\n"); 
+	}
+
+	usleep(1e5);
+	
+	// Transmit acknowledgement if using PHY ARQ
     /*unsigned char *ACK;
     pthread_mutex_lock(&(ECR->tx_mutex));
     ECR->transmit_packet(ACK,
@@ -680,18 +705,14 @@ void * ECR_tx_worker(void * _arg)
     unsigned char buffer[buffer_len];
     unsigned char *payload;
     unsigned int payload_len;
-    //unsigned char header[1];
     int nread;
 
     while (ECR->tx_thread_running) {
-		// wait for signal to start; lock mutex
-		//pthread_mutex_lock(&(ECR->tx_mutex));
-		// this function unlocks the mutex and waits for the condition;
-		// once the condition is set, the mutex is again locked
+		// wait for signal to start 
 		pthread_cond_wait(&(ECR->tx_cond), &(ECR->tx_mutex));
 		// unlock the mutex
-		//printf("tx_worker unlocking mutex\n");
-		//pthread_mutex_unlock(&(ECR->tx_mutex));
+		pthread_mutex_unlock(&(ECR->tx_mutex));
+		
 		// condition given; check state: run or exit
 		if (!ECR->tx_running) {
 	    	printf("tx_worker finished\n");
@@ -699,29 +720,31 @@ void * ECR_tx_worker(void * _arg)
 		}
 		// run transmitter
 		while (ECR->tx_running) {
-	    	// grab data from TAP interface
-	    	nread = read(ECR->tun_fd, buffer, sizeof(buffer));
-	    	if (nread < 0) {
-				perror("Reading from interface");
-				close(ECR->tun_fd);
-				exit(1);
-	    	}
+	    	memset(buffer, 0, buffer_len);
 			
-
-	    	// set header (needs to be modified)
-	    	//header[1] = 1;
+			// grab data from TUN interface
+	    	dprintf("Reading from tun interface\n");
+			nread = cread(ECR->tunfd, (char*)buffer, buffer_len);
+	    	if (nread < 0) {
+				printf("Error reading from interface");
+				close(ECR->tunfd);
+				exit(1);
+	    	}			
 
 	    	// resize to packet length if necessary
 	    	payload = buffer;
 	    	payload_len = nread;
 	 
 	    	// transmit packet
-	    	pthread_mutex_lock(&(ECR->tx_mutex));
-	    	ECR->transmit_packet(ECR->tx_header,
+			dprintf("Buffer read from tun interface:\n");
+			for(int i=0; i<buffer_len; i++)
+				dprintf("%c", buffer[i]);
+			dprintf("\n");
+
+			dprintf("Transmitting packet\n");	
+			ECR->transmit_packet(ECR->tx_header,
 				payload,
-				payload_len);
-			pthread_mutex_unlock(&(ECR->tx_mutex));
-			
+				payload_len);						
         } // while tx_running
         printf("tx_worker finished running\n");
     } // while true

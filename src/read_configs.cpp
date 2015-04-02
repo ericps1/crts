@@ -107,6 +107,10 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	//printf("Read node %i config\n", node);
 
 	// read CORNET IP address for the node
+	if (config_setting_lookup_string(node_config, "TARGET_IP", &tmpS))
+		strcpy(np.TARGET_IP, tmpS);
+
+	// read CORNET IP address for the node
 	if (config_setting_lookup_string(node_config, "CORNET_IP", &tmpS))
 		strcpy(np.CORNET_IP, tmpS);
 
@@ -202,6 +206,7 @@ void print_node_parameters(struct node_parameters * np){
 		printf("	CORNET IP:                 %-s\n", np->CORNET_IP);
 	if(np->type != interferer){
 		printf("	CRTS IP:                   %-s\n", np->CRTS_IP);
+		printf("	Target IP:                 %-s\n", np->TARGET_IP);
 		printf("	Cognitive Engine:          %-s\n", np->CE);
 	}
 	if(np->type == UE)

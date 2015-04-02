@@ -1,7 +1,7 @@
 #include "CE.hpp"
 #include "ECR.hpp"
 
-#if 1
+#if 0
 #define dprintf(...) printf(__VA_ARGS__)
 #else
 #define dprintf(...) /*__VA_ARGS__*/

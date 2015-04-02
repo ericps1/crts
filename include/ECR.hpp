@@ -64,7 +64,7 @@ int rxCallback(unsigned char * _header,
 
 class ExtensibleCognitiveRadio {
 public:
-	ExtensibleCognitiveRadio(/*string with name of CE_execute function*/);
+	ExtensibleCognitiveRadio();
 	~ExtensibleCognitiveRadio();
 
 	void start_tx();
@@ -123,7 +123,7 @@ public:
     friend void * CR_rx_worker(void * _arg);
     friend void * CR_ce_worker(void * _arg);
 
-    // OFDM properties
+	// OFDM properties
     unsigned int M;                 // number of subcarriers
     unsigned int cp_len;            // cyclic prefix length
     unsigned int taper_len;         // taper length
@@ -159,10 +159,7 @@ public:
 	float max_gain_tx;
 	float max_gain_rx;
 
-    // pointer to CE execute function
-    //void (*CE_execute)(void * _arg);
-
-	// pointer to CE object
+    // pointer to CE object
 	Cognitive_Engine * CE;
 	// method to set CE to custom defined subclass
 	void set_ce(char * ce);
@@ -183,7 +180,7 @@ public:
     //ARQ arq;
 
     // TUN file descriptor
-    int tun_fd;
+    int tunfd;
 
 	void set_ip(char *ip);
 

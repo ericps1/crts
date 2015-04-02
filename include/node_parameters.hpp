@@ -33,7 +33,8 @@ struct node_parameters{
     int type;
     char CORNET_IP[20];
     char CRTS_IP[20];
-    char CE[30];
+    char TARGET_IP[20];
+	char CE[30];
     int layers;
     int traffic;
 	int print_metrics;

@@ -59,7 +59,7 @@ int main(){
 
     // Write to TUN interface
     while(true){
-	sendto(sockfd, message, strlen(message), 0, (struct sockaddr*)&server, sizeof(server));
+		sendto(sockfd, message, strlen(message), 0, (struct sockaddr*)&server, sizeof(server));
     }
 
     return 0;
@@ -80,3 +80,4 @@ void * CR_tx_worker(void * _arg){
     }
     return NULL;
 }
+

@@ -83,7 +83,7 @@ int main(int argc, char ** argv){
 	signal(SIGTERM, terminate);
 	//signal(SIGPIPE, terminate);
 		
-		int manual_execution = 0;
+	int manual_execution = 0;
 
     // Default username for ssh
     char * ssh_uname = (char *) "ericps1";
