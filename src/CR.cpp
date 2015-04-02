@@ -745,6 +745,15 @@ void * CR_tx_worker(void * _arg)
     pthread_exit(NULL);
 }
 
+// start cognitive engine execution
+void CognitiveRadio::start_ce()
+{
+    // signal condition 
+    // tell ce worker to start listening for more signals,
+    // each signal will tell ce worker to execute the CE.
+    pthread_cond_signal(&CE_execute_sig);
+}
+
 // main loop of CE
 void * CR_ce_worker(void *_arg){
     //printf("CE thread has begun\n");
@@ -755,6 +764,14 @@ void * CR_ce_worker(void *_arg){
     double timeout_time_spart;
     double timeout_time_nspart;
     struct timespec timeout_time;
+    
+    // wait for signal to start ce execution
+    // The first signal should be sent by start_ce()
+    // every signal therafter should be sent when a frame
+    // is received
+    pthread_mutex_lock(&CR->CE_mutex);
+    pthread_cond_wait(&CR->CE_execute_sig, &CR->CE_mutex);
+    pthread_mutex_unlock(&CR->CE_mutex);
 
     // Infinite loop
     while (true){

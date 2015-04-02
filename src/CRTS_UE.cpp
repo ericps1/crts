@@ -179,6 +179,7 @@ int main(int argc, char ** argv){
 	dprintf("Starting CR object...\n");
 	CR.start_rx();
     //CR.start_tx();
+	CR.start_ce();
 
 	// Create dumby frame to be transmitted
 	unsigned char header[8] = {};

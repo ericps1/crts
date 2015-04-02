@@ -200,6 +200,9 @@ public:
     pthread_mutex_t CE_mutex;
     pthread_cond_t CE_execute_sig;
 
+    // CE thread management
+    void start_ce();
+
     // CE thread timeout length in milliseconds
     float timeout_length_ms;
     bool timed_out;
