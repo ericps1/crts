@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "CR.hpp"
+#include "ECR.hpp"
 
 void help_post_process_logs() {
         printf("post_process_logs -- Create Octave .m file to visualize logs.\n");
