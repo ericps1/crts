@@ -76,7 +76,7 @@ int main(){
 	file_in.close();
 	
 	// write file
-	std::ofstream file_out("src/CR.cpp", std::ofstream::out);
+	std::ofstream file_out("src/ECR.cpp", std::ofstream::out);
 	for(std::vector<std::string>::iterator i=file_lines.begin(); i!=file_lines.end(); i++){
 		file_out << (*i);
 		if(i!=file_lines.end()-1)
