@@ -52,4 +52,5 @@ clean:
 	rm -rf CRTS_interferer
 	rm -rf CRTS_controller
 	rm -rf post_process_logs
+	rm -rf config_CEs
     
