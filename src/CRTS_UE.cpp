@@ -14,7 +14,7 @@
 #include<fstream>
 #include <errno.h>
 #include <signal.h>
-#include "CR.hpp"
+#include "ECR.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
 
@@ -28,7 +28,7 @@
 
 int sig_terminate;
 
-void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, struct node_parameters *np){
+void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRadio *ECR, struct node_parameters *np){
 	// Listen to socket for message from controller
 	char command_buffer[500+sizeof(struct node_parameters)];
 	int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(struct node_parameters), 0);
@@ -52,29 +52,29 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 		print_node_parameters(np);
 
 		// set cognitive radio parameters
-		//CR->set_ip(np->CRTS_IP);
-		CR->print_metrics_flag = np->print_metrics;
-		CR->log_metrics_flag = np->log_metrics;
-		strcpy(CR->log_file, np->log_file);
-        CR->set_timeout_length_ms(np->ce_timeout_length_ms);
-		CR->set_tx_freq(np->tx_freq);
-		CR->set_rx_freq(np->rx_freq);
-		CR->set_tx_rate(np->tx_rate);
-		CR->set_rx_rate(np->rx_rate);
-		CR->set_tx_gain_soft(np->tx_gain_soft);
-		CR->set_tx_gain_uhd(np->tx_gain);
-		CR->set_rx_gain_uhd(np->rx_gain);
-		CR->max_gain_tx = np->tx_max_gain;
-		CR->max_gain_rx = np->rx_max_gain;
-		CR->PHY_metrics = true;
-		CR->set_ce(np->CE);		
+		//ECR->set_ip(np->ECRTS_IP);
+		ECR->print_metrics_flag = np->print_metrics;
+		ECR->log_metrics_flag = np->log_metrics;
+        ECR->set_timeout_length_ms(np->ce_timeout_length_ms);
+		strcpy(ECR->log_file, np->log_file);
+		ECR->set_tx_freq(np->tx_freq);
+		ECR->set_rx_freq(np->rx_freq);
+		ECR->set_tx_rate(np->tx_rate);
+		ECR->set_rx_rate(np->rx_rate);
+		ECR->set_tx_gain_soft(np->tx_gain_soft);
+		ECR->set_tx_gain_uhd(np->tx_gain);
+		ECR->set_rx_gain_uhd(np->rx_gain);
+		ECR->max_gain_tx = np->tx_max_gain;
+		ECR->max_gain_rx = np->rx_max_gain;
+		ECR->PHY_metrics = true;
+		ECR->set_ce(np->CE);		
 		// open log file to delete any current contents
-		if (CR->log_metrics_flag){
+		if (ECR->log_metrics_flag){
 			//FILE * file;
             std::ofstream log_file;
 			char log_file_name[50];
 			strcpy(log_file_name, "./logs/");
-			strcat(log_file_name, CR->log_file);
+			strcat(log_file_name, ECR->log_file);
 			//file = fopen(log_file_name, "w");
             // Open file for writing and clear contents
             log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
@@ -98,13 +98,13 @@ void Receive_command_from_controller(int *TCP_controller, CognitiveRadio *CR, st
 
 void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
 
-void help_CRTS_UE() {
-    printf("CRTS_UE -- Start a cognitive radio UE node. Only needs to be run explicitly when using CRTS_controller with -m option.\n");
-    printf("        -- This program must be run from the main CRTS directory.\n");
+void help_ECRTS_UE() {
+    printf("ECRTS_UE -- Start a cognitive radio UE node. Only needs to be run explicitly when using ECRTS_controller with -m option.\n");
+    printf("        -- This program must be run from the main ECRTS directory.\n");
     printf(" -h : Help.\n");
     printf(" -t : Run Time - Length of time this node will run. In seconds.\n");
     printf("      Default: 20.0 s\n");
-    printf(" -a : IP Address of node running CRTS_controller.\n");
+    printf(" -a : IP Address of node running ECRTS_controller.\n");
 }
 
 void terminate(int signum){
@@ -120,7 +120,7 @@ int main(int argc, char ** argv){
 	signal(SIGTERM, terminate);
 	
 	float run_time = 20.0f;
-	float us_sleep = 2.5e5;
+	float us_sleep = 1e5;
 	int iterations;
 
     // Default IP address of controller
@@ -129,7 +129,7 @@ int main(int argc, char ** argv){
 	int d;
 	while((d = getopt(argc, argv, "ht:a:")) != EOF){
 		switch(d){
-		case 'h': help_CRTS_UE();               return 0;
+		case 'h': help_ECRTS_UE();               return 0;
 		case 't': run_time = atof(optarg);      break;
 		case 'a': controller_ipaddr = optarg;   break;
 		}
@@ -163,23 +163,30 @@ int main(int argc, char ** argv){
 	// Quiet UHD output and fix buffer issue
 	uhd::msg::register_handler(&uhd_quiet);
 	
-	// Create CR object
-	dprintf("Creating CR object...\n");
-	CognitiveRadio CR;
+	// Create ECR object
+	dprintf("Creating ECR object...\n");
+	ExtensibleCognitiveRadio ECR;
 	
 	// Create node parameters struct
 	struct node_parameters np;
 		
 	// Read scenario info from controller
 	dprintf("Receiving command from controller...\n");
-	Receive_command_from_controller(&TCP_controller, &CR, &np);
+	Receive_command_from_controller(&TCP_controller, &ECR, &np);
 	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
+<<<<<<< HEAD
 	// Start CR
 	dprintf("Starting CR object...\n");
 	CR.start_rx();
     //CR.start_tx();
 	CR.start_ce();
+=======
+	// Start ECR
+	dprintf("Starting ECR object...\n");
+	ECR.start_rx();
+    //ECR.start_tx();
+>>>>>>> master
 
 	// Create dumby frame to be transmitted
 	unsigned char header[8] = {};
@@ -192,7 +199,7 @@ int main(int argc, char ** argv){
 	for(int i=0; i<iterations; i++){
 		// Listen for any updates from the controller (non-blocking)
 		//printf("Listening to controller for command\n");
-		Receive_command_from_controller(&TCP_controller, &CR, &np);
+		Receive_command_from_controller(&TCP_controller, &ECR, &np);
 
 		// Create TCP client to AP
 		/*const int TCP_AP = socket(AF_INET, SOCK_STREAM, 0);
@@ -221,19 +228,19 @@ int main(int argc, char ** argv){
 		// for now there's no difference
 		switch (np.traffic){
 		case burst:
-			CR.transmit_packet(header, payload, payload_len);
+			ECR.transmit_packet(header, payload, payload_len);
 		case stream:
 			if(np.duplex != FDD){ 
-				CR.stop_rx();
+				ECR.stop_rx();
 				usleep(1e3);
 			}
 			
-			CR.transmit_packet(header, payload, payload_len);
+			ECR.transmit_packet(header, payload, payload_len);
 			
-			if(np.duplex != FDD) CR.start_rx();
+			if(np.duplex != FDD) ECR.start_rx();
 		}
 		
-		// Send data via CR
+		// Send data via ECR
 		/*int nwrite = write(TCP_AP, (void*)buffer, nbytes);
 		if (nwrite != nbytes){
 			printf("Failed to Connect to server.\n");

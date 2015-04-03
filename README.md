@@ -10,10 +10,9 @@ at Virginia Tech.
 
 ##Installation:
 ###Dependencies
-	These should be installed on most CORNET nodes.
+	These should already be installed on most CORNET nodes.
 	-uhd
 	-liquid-dsp
-	-liquid-usrp
 	-libconfig
 
 ###CRTS 
@@ -30,11 +29,11 @@ Begin by opening four ssh sessions on CORNET using the following command:
 Navigate to the crts directory. First open up the master\_scenario\_config.cfg file.
 This file simply tells the experiment controller how many tests will be performed
 and their names. Now open the default scenario configuration file,
-./scenarios/interferenceTest.cfg. This file defines all of the nodes that will be
+./scenarios/interferer.cfg. This file defines all of the nodes that will be
 involved in the scenario along with some parameters that define their behavior.
 
 One of the more important features of CRTS is that it allows users to write their
-own cognitive engines in C++. Take a look at ./cognitive\_engines/CE\_Example\_1.cpp.
+own cognitive engines in C++. Take a look at ./cognitive\_engines/CE\_Example.cpp.
 The execute function is what defines the operation of the cognitive engine. Here,
 the cognitive engine will be continually updated with information about what the
 radio is doing which it can use to adjust the radios behavior.
@@ -53,7 +52,14 @@ Now we'll actually run CRTS. On the node you want to use as the controller execu
 	$ ./CRTS_controller -m
 
 The -m option tells the controller that you want to run the experiment manually
-by explicitly telling the nodes to start. On two of the other nodes:
+by launching the processes on the other nodes yourself. The controller can do this
+for you by using the following command.
+
+	$ ./CRTS_controller -a <controller internal ip>
+
+In this case you need to make sure that the ips are set up correctly in the scenario
+config file being used. Assuming you've launched CRTS manually, on two of the other 
+nodes run:
 
 	$ ./CRTS_UE -a <controller internal ip>
 
