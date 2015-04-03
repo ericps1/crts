@@ -1,0 +1,13 @@
+#!/bin/sh
+if [ -z "$1" ]; then
+	echo "Starting up visudo with this script as first parameter"
+	export EDITOR=$0 
+	export ORIGIN_USER=$USER
+	sudo -E visudo
+else
+	echo "Changing sudoers"
+	SCRIPT=$(readlink -f "$0")
+	CRTS=$(dirname "$SCRIPT")
+	CRTS="$CRTS/CRTS_UE"
+	echo "$ORIGIN_USER ALL = NOPASSWD: $CRTS" >> $1
+fi

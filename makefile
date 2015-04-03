@@ -1,6 +1,9 @@
 FLAGS = -I include -Wall -fPIC -g
 LIBS = lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
+# Used to define the path upon install
+CRTS_PATH = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
 #EDIT START FLAG
 CEs = src/CE.cpp cognitive_engines/CE_DSA.cpp cognitive_engines/CE_Example.cpp cognitive_engines/CE_AMC.cpp
 #EDIT END FLAG
@@ -43,6 +46,16 @@ CRTS_controller: include/node_parameters.hpp src/CRTS_controller.cpp src/read_co
 
 logs/post_process_logs: src/post_process_logs.cpp
 	g++ $(FLAGS) -o logs/post_process_logs src/post_process_logs.cpp -luhd
+
+setup_env:
+	echo "CRTS_PATH DEFAULT=$(CRTS_PATH)" >> ~/.pam_environment
+	chmod +x ./.add_sudoers
+	./.add_sudoers	
+
+teardown_env:
+	sed -i "/\b\(CRTS_PATH\)\b/d" ~/.pam_environment
+	chmod +x ./.rm_sudoers
+	./.rm_sudoers
 
 clean:
 	rm -rf lib/*.o

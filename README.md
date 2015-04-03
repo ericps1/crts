@@ -19,6 +19,16 @@ at Virginia Tech.
 	$ git clone https://github.com/ericps1/crts.git
 	$ cd crts
 	$ make
+	$ make setup_env
+
+	The last command sets up an environment variable for the CRTS path and allows
+	the user to launch CRTS_UE as sudo without a password. This is important for
+	the automatic operation so that the user doesn't need to enter his/her 
+	password for every node. Sudo is required by CRTS_UE because it creates and 
+	tears down a virtual network interface upon each run. To undo these changes
+	run:
+
+	$ make teardown_env
 
 ##Tutorial:
 
@@ -61,7 +71,7 @@ In this case you need to make sure that the ips are set up correctly in the scen
 config file being used. Assuming you've launched CRTS manually, on two of the other 
 nodes run:
 
-	$ ./CRTS_UE -a <controller internal ip>
+	$ sudo ./CRTS_UE -a <controller internal ip>
 
 The internal ip will be 192.168.1.<external port number -6990>. Observe that 
 the two nodes have received their operating parameters and will begin to 
