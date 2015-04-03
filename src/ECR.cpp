@@ -359,12 +359,13 @@ void ExtensibleCognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
 // set header data (must have length 8)
 void ExtensibleCognitiveRadio::set_header(unsigned char * _header)
 {
-    //FIXME: Need mutex here
+	pthread_mutex_lock(&tx_mutex);
     int i;
     for (i=0; i<8; i++)
     {
         tx_header[i] = _header[i];
     }
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 
