@@ -32,6 +32,9 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_exec
     cp_len = 16;
     taper_len = 4; 
     p = NULL;   // subcarrier allocation (default)
+
+    // Initialize header to all zeros
+    memset(tx_header, 0, sizeof(tx_header));
     
     // create frame generator
     ofdmflexframegenprops_init_default(&fgprops);
