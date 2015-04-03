@@ -175,18 +175,11 @@ int main(int argc, char ** argv){
 	Receive_command_from_controller(&TCP_controller, &ECR, &np);
 	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
-<<<<<<< HEAD
-	// Start CR
-	dprintf("Starting CR object...\n");
-	CR.start_rx();
-    //CR.start_tx();
-	CR.start_ce();
-=======
 	// Start ECR
 	dprintf("Starting ECR object...\n");
 	ECR.start_rx();
     //ECR.start_tx();
->>>>>>> master
+	ECR.start_ce();
 
 	// Create dumby frame to be transmitted
 	unsigned char header[8] = {};

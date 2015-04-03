@@ -168,12 +168,12 @@ void ExtensibleCognitiveRadio::set_ip(char *ip){
 	system("ip link set dev tun0 up");
 }
 
-void CognitiveRadio::set_timeout_length_ms(float new_timeout_length_ms){
+void ExtensibleCognitiveRadio::set_timeout_length_ms(float new_timeout_length_ms){
     //printf("timout_length_ms set to %f", new_timeout_length_ms);
     timeout_length_ms = new_timeout_length_ms;
 }
 
-float CognitiveRadio::get_timeout_length_ms(){
+float ExtensibleCognitiveRadio::get_timeout_length_ms(){
     return timeout_length_ms ;
 }
 
@@ -745,7 +745,7 @@ void * ECR_tx_worker(void * _arg)
 }
 
 // start cognitive engine execution
-void CognitiveRadio::start_ce()
+void ExtensibleCognitiveRadio::start_ce()
 {
     // signal condition 
     // tell ce worker to start listening for more signals,
@@ -769,7 +769,7 @@ void * ECR_ce_worker(void *_arg){
     // every signal therafter should be sent when a frame
     // is received
     pthread_mutex_lock(&ECR->CE_mutex);
-    pthread_cond_wait(&ECR->CE_execute_sig, &CR->CE_mutex);
+    pthread_cond_wait(&ECR->CE_execute_sig, &ECR->CE_mutex);
     pthread_mutex_unlock(&ECR->CE_mutex);
 
     // Infinite loop
@@ -779,7 +779,7 @@ void * ECR_ce_worker(void *_arg){
         gettimeofday(&time_now,NULL);
 
         // Calculate timeout time in nanoseconds
-        timeout_time_ns = time_now.tv_usec*1e3+time_now.tv_sec*1e9+CR->timeout_length_ms*1e6;
+        timeout_time_ns = time_now.tv_usec*1e3+time_now.tv_sec*1e9+ECR->timeout_length_ms*1e6;
         // Convert timeout time to s and ns parts
         timeout_time_nspart = modf(timeout_time_ns/1e9, &timeout_time_spart);
         // Put timout time into timespec struct
@@ -787,8 +787,8 @@ void * ECR_ce_worker(void *_arg){
         timeout_time.tv_nsec = timeout_time_nspart;
 
         // Wait for signal from receiver or timeout, whichever is first
-		pthread_mutex_lock(&CR->CE_mutex);
-		if (ETIMEDOUT == pthread_cond_timedwait(&CR->CE_execute_sig, &CR->CE_mutex, &timeout_time))
+		pthread_mutex_lock(&ECR->CE_mutex);
+		if (ETIMEDOUT == pthread_cond_timedwait(&ECR->CE_execute_sig, &ECR->CE_mutex, &timeout_time))
         {
             ECR->timed_out = true;
         }
