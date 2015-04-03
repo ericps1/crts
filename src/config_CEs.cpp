@@ -41,7 +41,7 @@ int main(){
 	bool edit_content = false;
 	
 	// open read file
-	std::ifstream file_in("src/CR.cpp", std::ifstream::in);
+	std::ifstream file_in("src/ECR.cpp", std::ifstream::in);
 
 	// read file until the end
 	while(!(file_in.eof())){
