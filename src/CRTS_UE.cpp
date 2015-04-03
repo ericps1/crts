@@ -182,7 +182,7 @@ int main(int argc, char ** argv){
 	ECR.start_ce();
 
 	// Create dumby frame to be transmitted
-	unsigned char header[8] = {};
+	//unsigned char header[8] = {};
 	unsigned int payload_len = 256;
 	unsigned char payload[payload_len];
 	for(unsigned int i=0; i<payload_len; i++) payload[i] = i;
@@ -221,14 +221,14 @@ int main(int argc, char ** argv){
 		// for now there's no difference
 		switch (np.traffic){
 		case burst:
-			ECR.transmit_packet(header, payload, payload_len);
+			ECR.transmit_packet(ECR.tx_header, payload, payload_len);
 		case stream:
 			if(np.duplex != FDD){ 
 				ECR.stop_rx();
 				usleep(1e3);
 			}
 			
-			ECR.transmit_packet(header, payload, payload_len);
+			ECR.transmit_packet(ECR.tx_header, payload, payload_len);
 			
 			if(np.duplex != FDD) ECR.start_rx();
 		}
