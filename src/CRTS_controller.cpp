@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/ioctl.h>
 #include <signal.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -63,11 +64,8 @@ void help_CRTS_controller() {
     printf("CRTS_controller -- Initiate cognitive radio testing.\n");
     printf(" -h : Help.\n");
     printf(" -m : Manual Mode - Start each node manually rather than have CRTS_controller do it automatically.\n");
-    printf(" -u : Username - For logging into other nodes via ssh.\n");
-    printf(" -l : CRTS Location - Directory containing CRTS Executables. Must be same for all remote nodes.\n");
-    printf("      Default: ~/crts\n");
     printf(" -a : IP Address - IP address of this computer as seen by remote nodes.\n");
-    printf("      Default: 192.168.1.56\n");
+    printf("      Autodetected by default.\n");
 }
 
 void terminate(int signum){
@@ -85,25 +83,44 @@ int main(int argc, char ** argv){
 		
 	int manual_execution = 0;
 
-    // Default username for ssh
-    char * ssh_uname = (char *) "ericps1";
-    // Default location of CRTS Directory
-    char * crts_dir = (char *) "~/crts/";
+    // Use current username as default username for ssh
+    char ssh_uname[100];
+    getlogin_r(ssh_uname, 100);
+
+    // Use currnet location of CRTS Directory as defualt for ssh
+    char crts_dir[1000];
+    getcwd(crts_dir, 1000);
+
     // Default IP address of server as seen by other nodes
-    // TODO: Autodetect IP address as seen by other nodes
-    char * serv_ip_addr = (char *) "192.168.1.56";
+    char * serv_ip_addr;
+    // Autodetect IP address as seen by other nodes
+        struct ifreq interfaces;
+        //Create a socket
+        int fd_ip = socket(AF_INET, SOCK_DGRAM, 0);
+        // For IPv4 Address
+        interfaces.ifr_addr.sa_family = AF_INET;
+        // Get Address associated with eth0
+        strncpy(interfaces.ifr_name, "eth0", IFNAMSIZ-1);
+        ioctl(fd_ip, SIOCGIFADDR, &interfaces);
+        close(fd_ip);
+        // Get IP address out of struct
+        char serv_ip_addr_auto[30];
+        strcpy(serv_ip_addr_auto, inet_ntoa(((struct sockaddr_in *)&interfaces.ifr_addr)->sin_addr) );
+        serv_ip_addr = serv_ip_addr_auto;
 
 	int d;
-	while((d = getopt(argc, argv, "hmu:l:a:")) != EOF){
+	while((d = getopt(argc, argv, "hma:")) != EOF){
 		switch (d){
             case 'h': help_CRTS_controller();   return 0;
             case 'm': manual_execution = 1;     break;
-            case 'u': ssh_uname = optarg;       break;
-            case 'l': crts_dir = optarg;        break;
             case 'a': serv_ip_addr = optarg;    break;
 		}
 	}
 	
+    // Message about IP Address Detection
+    printf("IP address of CRTS_controller autodetected as %s\n", serv_ip_addr_auto);
+    printf("If this is incorrect, use -a option to fix.\n\n");
+
 	// create TCP server
 	//int reusePortOption = 1;
 	//int client_count = 0; // Client counter
@@ -164,7 +181,7 @@ int main(int argc, char ** argv){
 			// send command to launch executable if not doing so manually
 			int ssh_return = 0;
 			if (!manual_execution){
-				char command[100] = "ssh "; 
+				char command[2000] = "ssh "; 
                 // Add username to ssh command
 				strcat(command, ssh_uname);
 				strcat(command, "@");
@@ -172,18 +189,18 @@ int main(int argc, char ** argv){
 				strcat(command, " 'sleep 1 && ");
 				strcat(command, " cd ");
 				strcat(command, crts_dir);
-				strcat(command, " && ./");
+				//strcat(command, " && ./");
 			
 				// add appropriate executable
 				switch (np[j].type){
 				case BS: 
-					strcat(command, "CRTS_AP");
+					strcat(command, " && ./CRTS_AP");
 					break;
 				case UE:
-					strcat(command, "CRTS_UE");
+					strcat(command, " && sudo ./CRTS_UE");
 					break;
 				case interferer:
-					strcat(command, "CRTS_interferer");
+					strcat(command, " && ./CRTS_interferer");
 					break;
 				}
 		
@@ -242,7 +259,10 @@ int main(int argc, char ** argv){
 		while((!sig_terminate) && (!msg_terminate)){
 			msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
 		}
-		
+
+		if(msg_terminate)
+			printf("Terminating controller because all nodes have finished running\n");
+
 		// if the controller is being terminated, send termination message to other nodes
         //FIXME: process doesn't end with ctrl+C if hasn't connected to all nodes yet
 		if(sig_terminate){

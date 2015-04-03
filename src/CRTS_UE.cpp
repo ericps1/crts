@@ -56,6 +56,7 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 		ECR->set_ip(np->CRTS_IP);
 		ECR->print_metrics_flag = np->print_metrics;
 		ECR->log_metrics_flag = np->log_metrics;
+		ECR->set_ce_timeout_ms(np->ce_timeout_ms);
 		strcpy(ECR->log_file, np->log_file);
 		ECR->set_tx_freq(np->tx_freq);
 		ECR->set_rx_freq(np->rx_freq);
@@ -64,9 +65,6 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 		ECR->set_tx_gain_soft(np->tx_gain_soft);
 		ECR->set_tx_gain_uhd(np->tx_gain);
 		ECR->set_rx_gain_uhd(np->rx_gain);
-		ECR->max_gain_tx = np->tx_max_gain;
-		ECR->max_gain_rx = np->rx_max_gain;
-		ECR->PHY_metrics = true;
 		ECR->set_ce(np->CE);		
 
 		// open log file to delete any current contents
@@ -274,5 +272,4 @@ int main(int argc, char ** argv){
 	char term_message = 't';
 	write(TCP_controller, &term_message, 1);
 }
-
 

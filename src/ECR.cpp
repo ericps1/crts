@@ -20,7 +20,10 @@
 #endif
 
 // Constructor
-ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_execute function*/){
+ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
+
+	// Set initial timeout value for executing CE
+	ce_timeout_ms = 1000;
 
 	// set internal properties
     M = 64;
@@ -28,6 +31,9 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_exec
     taper_len = 4; 
     p = NULL;   // subcarrier allocation (default)
     
+	// enable physical layer events for ce
+	ce_phy_events = true;
+
     // create frame generator
     ofdmflexframegenprops_init_default(&fgprops);
     fgprops.check       = LIQUID_CRC_32;
@@ -61,10 +67,6 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_exec
 
 	printf("Bringing up tun interface\n");
 	system("ip link set dev tun0 up");
-	//system("ip addr add 10.0.0.2/24 dev tun0");
-	//system("route add default gw 10.0.0.1 tun0");
-	//system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
-		
 	usleep(1e6);
 
 	// create and start rx thread
@@ -133,10 +135,6 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
     dprintf("destructor destroying condition...\n");
     pthread_cond_destroy(&rx_cond);
     
-    // TODO: output debugging file
-    //if (debug_enabled)
-    //ofdmflexframesync_debug_print(fs, "ofdmtxrx_framesync_debug.m");
-
     dprintf("destructor destroying other objects...\n");
     // destroy framing objects
     ofdmflexframegen_destroy(fg);
@@ -154,6 +152,10 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 
 }
 
+///////////////////////////////////////////////////////////////////////
+// Cognitive engine methods
+///////////////////////////////////////////////////////////////////////
+
 void ExtensibleCognitiveRadio::set_ce(char *ce){
 //EDIT START FLAG
 	if(!strcmp(ce, "CE_DSA"))
@@ -165,14 +167,25 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
 //EDIT END FLAG
 }
 
+void ExtensibleCognitiveRadio::set_ce_timeout_ms(float new_timeout_ms){
+	ce_timeout_ms = new_timeout_ms;
+}
+
+float ExtensibleCognitiveRadio::get_ce_timeout_ms(){
+	return ce_timeout_ms;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Network methods
+///////////////////////////////////////////////////////////////////////
+
+// set the ip address for the virtual network interface
 void ExtensibleCognitiveRadio::set_ip(char *ip){
 	char command[50];
 	sprintf(command, "ip addr add %s/24 dev tun0", ip);
 	printf("%s\n", command);
 	system(command);
 	system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
-	//system("route add default gw 10.0.0.1 tun0");
-	//system("ip link set dev tun0 up");
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -281,7 +294,7 @@ void ExtensibleCognitiveRadio::increase_tx_mod_order()
 	}
 }
 
-// set ECRC scheme
+// set CRC scheme
 void ExtensibleCognitiveRadio::set_tx_crc(int crc_scheme){
 	pthread_mutex_lock(&tx_mutex);
     fgprops.check = crc_scheme;
@@ -354,12 +367,10 @@ void ExtensibleCognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
 // set header data (must have length 8)
 void ExtensibleCognitiveRadio::set_header(unsigned char * _header)
 {
-    //FIXME: Need mutex here
-    int i;
-    for (i=0; i<8; i++)
-    {
+    pthread_mutex_lock(&tx_mutex);
+    for(int i=0; i<8; i++)
         tx_header[i] = _header[i];
-    }
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 
@@ -631,7 +642,7 @@ int rxCallback(unsigned char * _header,
     //	if (*_header == ACK || *_header == NACK) ECR->arq.update();
 
     // Store metrics and signal CE thread if using PHY layer metrics
-    if (ECR->PHY_metrics){
+    if (ECR->ce_phy_events){
 		ECR->CE_metrics.header_valid = _header_valid;
         int j;
         for (j=0; j<8; j++)
@@ -827,14 +838,5 @@ void CE_execute_1(void * _arg){
 		ECR->decrease_tx_mod_order();
 	}
 }
-
-
-
-
-
-
-
-
-
 
 

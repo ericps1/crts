@@ -41,7 +41,7 @@ int main(){
 	bool edit_content = false;
 	
 	// open read file
-	std::ifstream file_in("src/CR.cpp", std::ifstream::in);
+	std::ifstream file_in("src/ECR.cpp", std::ifstream::in);
 
 	// read file until the end
 	while(!(file_in.eof())){
@@ -76,7 +76,7 @@ int main(){
 	file_in.close();
 	
 	// write file
-	std::ofstream file_out("src/CR.cpp", std::ofstream::out);
+	std::ofstream file_out("src/ECR.cpp", std::ofstream::out);
 	for(std::vector<std::string>::iterator i=file_lines.begin(); i!=file_lines.end(); i++){
 		file_out << (*i);
 		if(i!=file_lines.end()-1)
