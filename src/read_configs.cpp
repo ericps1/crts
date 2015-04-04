@@ -117,8 +117,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	// read type of node
 	if (config_setting_lookup_string(node_config, "type", &tmpS)){
 		//printf("\nNode type: %s\n", tmpS);
-		if (!strcmp(tmpS,"BS")) np.type = BS;
-		else if (!strcmp(tmpS, "UE")) np.type = UE;
+		if (!strcmp(tmpS, "CR")) np.type = CR;
 		else if (!strcmp(tmpS, "interferer")) np.type = interferer;
 	}
 
@@ -205,8 +204,7 @@ void print_node_parameters(struct node_parameters * np){
 		printf("------------------------------------------------\n");
 		printf("General:\n");
 	char node_type[15];
-	if(np->type == UE) strcpy(node_type, "UE");
-	else if(np->type == BS) strcpy(node_type, "BS");
+	if(np->type == CR) strcpy(node_type, "CR");
 	else if(np->type == interferer) strcpy(node_type, "Interferer");
 		printf("	Node type:                 %-s\n", node_type);
 		printf("	CORNET IP:                 %-s\n", np->CORNET_IP);
@@ -215,7 +213,7 @@ void print_node_parameters(struct node_parameters * np){
 		printf("	Target IP:                 %-s\n", np->TARGET_IP);
 		printf("	Cognitive Engine:          %-s\n", np->CE);
 	}
-	if(np->type == UE)
+	if(np->type == CR)
 		printf("	Traffic type:              %-i\n", np->traffic);
 		printf("	Log file:                  %-s\n", np->log_file);
 		printf("	CE timeout:                %-.2f\n", np->ce_timeout_ms);

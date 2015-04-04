@@ -8,6 +8,6 @@ else
 	echo "Changing sudoers"
 	SCRIPT=$(readlink -f "$0")
 	CRTS=$(dirname "$SCRIPT")
-	CRTS="$CRTS/CRTS_UE"
+	CRTS="$CRTS/CRTS_CR"
 	echo "$ORIGIN_USER ALL = NOPASSWD: $CRTS" >> $1
 fi

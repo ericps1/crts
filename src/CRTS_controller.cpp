@@ -193,11 +193,8 @@ int main(int argc, char ** argv){
 			
 				// add appropriate executable
 				switch (np[j].type){
-				case BS: 
-					strcat(command, " && ./CRTS_AP");
-					break;
-				case UE:
-					strcat(command, " && sudo ./CRTS_UE");
+				case CR:
+					strcat(command, " && sudo ./CRTS_CR");
 					break;
 				case interferer:
 					strcat(command, " && ./CRTS_interferer");

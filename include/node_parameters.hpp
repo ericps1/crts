@@ -4,8 +4,7 @@
 #include<string>
 
 enum type{
-    BS = 0,			// basestation node type
-    UE,				// user equipment node type
+    CR = 0,				// user equipment node type
     interferer		// interferer node type
 };
 

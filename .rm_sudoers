@@ -7,5 +7,5 @@ if [ -z "$1" ]; then
 else
 	echo "Changing sudoers"
 	echo "$ORIGIN_USER"
-	sed -i "/$ORIGIN_USER/{/CRTS_UE/d}" $1
+	sed -i "/$ORIGIN_USER/{/CRTS_CR/d}" $1
 fi

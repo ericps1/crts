@@ -96,13 +96,13 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 
 void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
 
-void help_ECRTS_UE() {
-    printf("ECRTS_UE -- Start a cognitive radio UE node. Only needs to be run explicitly when using ECRTS_controller with -m option.\n");
-    printf("        -- This program must be run from the main ECRTS directory.\n");
+void help_CRTS_CR() {
+    printf("CRTS_CR -- Start a cognitive radio node. Only needs to be run explicitly when using CRTS_controller with -m option.\n");
+    printf("        -- This program must be run from the main CRTS directory.\n");
     printf(" -h : Help.\n");
     printf(" -t : Run Time - Length of time this node will run. In seconds.\n");
     printf("      Default: 20.0 s\n");
-    printf(" -a : IP Address of node running ECRTS_controller.\n");
+    printf(" -a : IP Address of node running CRTS_controller.\n");
 }
 
 void terminate(int signum){
@@ -127,7 +127,7 @@ int main(int argc, char ** argv){
 	int d;
 	while((d = getopt(argc, argv, "ht:a:")) != EOF){
 		switch(d){
-		case 'h': help_ECRTS_UE();               return 0;
+		case 'h': help_CRTS_CR();               return 0;
 		case 't': run_time = atof(optarg);      break;
 		case 'a': controller_ipaddr = optarg;   break;
 		}
@@ -259,7 +259,7 @@ int main(int argc, char ** argv){
 		recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0, (struct sockaddr *)&CRTS_server_addr, &clientlen);
 		// print out received messages
 		if(recv_len > 0){
-			printf("\nCRTS_UE received message:\n");
+			printf("\nCRTS_CR received message:\n");
 			for(int j=0; j<recv_len; j++)
 				printf("%c", recv_buffer[j]);
 			printf("\n");
