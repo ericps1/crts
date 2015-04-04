@@ -10,21 +10,15 @@
 #include <uhd/usrp/multi_usrp.hpp>
 #include "CE.hpp"
 
-/*enum headers{
-	ACK,	// Acknowledgement
-	NACK,	// Negative-acknowledgement
-	PRACH,  // Physical random access request
-	PCH,    // Paging channel
-	DCH		// Data 
-};*/
+enum CE_event_types{
+	ce_timeout = 0,	// event is triggered by a timer
+	ce_phy_event	// event is triggered by the reception of a physical layer frame
+};
 
 // metric struct
 struct metric_s{
 	// Flag for metric type
-	enum CE_event{
-		PHY = 0,
-		timeout
-	};
+	int CE_event;
 
 	// PHY
 	int header_valid;
@@ -32,14 +26,7 @@ struct metric_s{
 	int payload_valid;
 	framesyncstats_s stats; // stats used by ofdmtxrx object (RSSI, EVM)
 	uhd::time_spec_t time_spec;
-
-	// MAC
-
-	// NET
-
-	// TRP
-
-	// APP
+	
 };
 
 // thread functions

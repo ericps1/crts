@@ -654,8 +654,8 @@ int rxCallback(unsigned char * _header,
 		ECR->CE_metrics.time_spec = ECR->metadata_rx.time_spec;
 
 		// Signal CE thread
-		//printf("Signaling CE thread to execute CE\n");
 		pthread_mutex_lock(&ECR->CE_mutex);
+		ECR->CE_metrics.CE_event = ce_phy_event;		// set event type to phy once mutex is locked
 		pthread_cond_signal(&ECR->CE_execute_sig);
 		pthread_mutex_unlock(&ECR->CE_mutex);
 
@@ -776,7 +776,8 @@ void * ECR_ce_worker(void *_arg){
 		// execute CE
 		//printf("Executing CE\n");
 		ECR->CE->execute((void*)ECR);
-    	pthread_mutex_unlock(&ECR->CE_mutex);
+    	ECR->CE_metrics.CE_event = ce_timeout;
+		pthread_mutex_unlock(&ECR->CE_mutex);
     }
     printf("ce_worker exiting thread\n");
     pthread_exit(NULL);
