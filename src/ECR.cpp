@@ -812,18 +812,24 @@ void * ECR_ce_worker(void *_arg){
 
 void ExtensibleCognitiveRadio::print_metrics(ExtensibleCognitiveRadio * ECR){
 	printf("\n---------------------------------------------------------\n");
-	printf("Received packet metrics:      Received Packet Parameters:\n");
+	printf("Received Packet Metrics:      Received Packet Parameters:\n");
 	printf("---------------------------------------------------------\n");
-	printf("Header Valid:     %-6i      Modulation Scheme:   %u\n", 
-		ECR->CE_metrics.header_valid, ECR->CE_metrics.stats.mod_scheme);
+	printf("Header Valid:     %-6i      Modulation Scheme:   %s\n", 
+		ECR->CE_metrics.header_valid, modulation_types[ECR->CE_metrics.stats.mod_scheme].name);
+        // See liquid soruce: src/modem/src/modem_utilities.c
+        // for definition of modulation_types
 	printf("Payload Valid:    %-6i      Modulation bits/sym: %u\n", 
 		ECR->CE_metrics.payload_valid, ECR->CE_metrics.stats.mod_bps);
-	printf("EVM:              %-8.2f    Check:               %u\n", 
-		ECR->CE_metrics.stats.evm, ECR->CE_metrics.stats.check);
-	printf("RSSI:             %-8.2f    Inner FEC:           %u\n", 
-		ECR->CE_metrics.stats.rssi, ECR->CE_metrics.stats.fec0);
-	printf("Frequency Offset: %-8.2f    Outter FEC:          %u\n", 
-		ECR->CE_metrics.stats.cfo, ECR->CE_metrics.stats.fec1);
+	printf("EVM:              %-8.2f    Check:               %s\n", 
+		ECR->CE_metrics.stats.evm, crc_scheme_str[ECR->CE_metrics.stats.check][0]);
+        // See liquid soruce: src/fec/src/crc.c
+        // for definition of crc_scheme_str
+	printf("RSSI:             %-8.2f    Inner FEC:           %s\n", 
+		ECR->CE_metrics.stats.rssi, fec_scheme_str[ECR->CE_metrics.stats.fec0][0]);
+	printf("Frequency Offset: %-8.2f    Outter FEC:          %s\n", 
+		ECR->CE_metrics.stats.cfo, fec_scheme_str[ECR->CE_metrics.stats.fec1][0]);
+        // See liquid soruce: src/fec/src/fec.c
+        // for definition of fec_scheme_str
 }
 
 void ExtensibleCognitiveRadio::log_metrics(ExtensibleCognitiveRadio * ECR){
