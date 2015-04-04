@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sstream>
+#include <liquid/liquid.h>
 #include "read_configs.hpp"
 #include "node_parameters.hpp"
 
@@ -168,6 +169,21 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 
 	if (config_setting_lookup_float(node_config, "rx_gain", &tmpD))
 		np.rx_gain = tmpD;
+
+	if (config_setting_lookup_string(node_config, "tx_modulation", &tmpS)){
+
+        // In case modulation scheme isn't found, set to unkown
+        np.tx_modulation = LIQUID_MODEM_UNKNOWN;;
+
+        // Iterate through every liquid modulation scheme 
+        // and if the string matches, then assign that scheme.
+        // See liquid soruce: src/modem/src/modem_utilities.c
+        // for definition of modulation_types
+        for (int k = 0; k<LIQUID_MODEM_NUM_SCHEMES; k++){
+            if(!strcmp(tmpS, modulation_types[k].name))
+                np.tx_modulation = modulation_types[k].scheme;
+        }
+	}
 
 	if (config_setting_lookup_string(node_config, "int_type", &tmpS)){
 		if(!strcmp(tmpS, "CW"))

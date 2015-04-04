@@ -66,6 +66,7 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 		ECR->set_rx_gain_uhd(np->rx_gain);
 		ECR->max_gain_tx = np->tx_max_gain;
 		ECR->max_gain_rx = np->rx_max_gain;
+		ECR->set_tx_modulation(np->tx_modulation);
 		ECR->PHY_metrics = true;
 		ECR->set_ce(np->CE);		
 		// open log file to delete any current contents

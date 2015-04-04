@@ -2,6 +2,7 @@
 #define _H_NODE_PARAMS_
 
 #include<string>
+#include<liquid/liquid.h>
 
 enum type{
     BS = 0,			// basestation node type
@@ -52,6 +53,7 @@ struct node_parameters{
     float rx_gain;
     float tx_max_gain;
     float rx_max_gain;
+    int tx_modulation;
 
     // interferer only
     int int_type;

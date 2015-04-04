@@ -39,7 +39,7 @@ CRTS_interferer: src/CRTS_interferer.cpp
 	g++ $(FLAGS) -o CRTS_interferer src/CRTS_interferer.cpp lib/interferer.o lib/read_configs.o -luhd -lc -lconfig -lliquid
 
 CRTS_controller: include/node_parameters.hpp src/CRTS_controller.cpp src/read_configs.cpp
-	g++ $(FLAGS) -o CRTS_controller src/CRTS_controller.cpp lib/read_configs.o -lconfig
+	g++ $(FLAGS) -o CRTS_controller src/CRTS_controller.cpp lib/read_configs.o -lconfig -lliquid
 
 logs/post_process_logs: src/post_process_logs.cpp
 	g++ $(FLAGS) -o logs/post_process_logs src/post_process_logs.cpp -luhd
