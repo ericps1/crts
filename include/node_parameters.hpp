@@ -54,6 +54,9 @@ struct node_parameters{
     float tx_max_gain;
     float rx_max_gain;
     int tx_modulation;
+    int tx_crc;
+    int tx_fec0;
+    int tx_fec1;
 
     // interferer only
     int int_type;
