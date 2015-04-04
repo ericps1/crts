@@ -5,7 +5,7 @@
 #include <math.h>
 #include <complex>
 #include <liquid/liquid.h>
-#include <liquid/ofdmtxrx.h>
+//#include <liquid/ofdmtxrx.h>
 #include <pthread.h>
 #include <uhd/usrp/multi_usrp.hpp>
 #include "CE.hpp"
