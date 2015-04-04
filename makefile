@@ -18,7 +18,7 @@ lib/read_configs.o: src/read_configs.cpp
 	g++ $(FLAGS) -c -o lib/read_configs.o src/read_configs.cpp
 
 config_CEs: src/config_CEs.cpp
-	g++ $(FLAGS) -o config_CEs src/config_CEs.cpp lib/read_configs.o -lconfig
+	g++ $(FLAGS) -o config_CEs src/config_CEs.cpp lib/read_configs.o -lconfig -lliquid
 
 lib/ECR.o: include/ECR.hpp src/ECR.cpp
 	g++ $(FLAGS) -c -o lib/ECR.o src/ECR.cpp
