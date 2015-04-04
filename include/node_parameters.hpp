@@ -45,15 +45,14 @@ struct node_parameters{
 	// RF
 	int duplex;
     float tx_freq;
-    float rx_freq;
     float tx_rate;
-    float rx_rate;
     float tx_gain_soft;
     float tx_gain;
+    float tx_delay_us;
+	float rx_freq;
+    float rx_rate;
     float rx_gain;
-    float tx_max_gain;
-    float rx_max_gain;
-
+    
     // interferer only
     int int_type;
     float period;

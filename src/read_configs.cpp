@@ -173,6 +173,9 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_float(node_config, "rx_gain", &tmpD))
 		np.rx_gain = tmpD;
 
+	if (config_setting_lookup_float(node_config, "tx_delay_us", &tmpD))
+		np.tx_delay_us = tmpD;
+
 	if (config_setting_lookup_string(node_config, "int_type", &tmpS)){
 		if(!strcmp(tmpS, "CW"))
 			np.int_type = CW;

@@ -261,7 +261,7 @@ int main(int argc, char ** argv){
 		}
 
 		if(msg_terminate)
-			printf("Terminating controller because all nodes have finished running\n");
+			printf("Terminating controller because all nodes have sent a termination message\n");
 
 		// if the controller is being terminated, send termination message to other nodes
         //FIXME: process doesn't end with ctrl+C if hasn't connected to all nodes yet

@@ -119,7 +119,6 @@ int main(int argc, char ** argv){
 	
 	// timing variables
 	float run_time = 20.0f;
-	float us_sleep = 1e6;
 	int iterations;
 
     // Default IP address of controller
@@ -134,9 +133,6 @@ int main(int argc, char ** argv){
 		}
 	}
 
-	// Set some number of iterations based on the run time and delay between iterations
-	iterations = (int) (run_time/(us_sleep*1e-6));
-	
 	// Create TCP client to controller
 	unsigned int controller_port = 4444;
 	int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
@@ -173,6 +169,9 @@ int main(int argc, char ** argv){
 	Receive_command_from_controller(&TCP_controller, &ECR, &np);
 	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
+	// Set some number of iterations based on the run time and delay between iterations
+	iterations = (int) (run_time/(np.tx_delay_us*1e-6));
+	
 	// Start ECR
 	dprintf("Starting ECR object...\n");
 	ECR.start_rx();
@@ -231,8 +230,8 @@ int main(int argc, char ** argv){
 		Receive_command_from_controller(&TCP_controller, &ECR, &np);
 		
 		// Wait (used for test purposes only)
-		usleep(us_sleep);
-
+		usleep(np.tx_delay_us);
+		
 		// if not using FDD then stop the receiver before transmitting
 		if(np.duplex != FDD){ 
 			ECR.stop_rx();
