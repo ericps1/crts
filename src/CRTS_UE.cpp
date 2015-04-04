@@ -119,7 +119,7 @@ int main(int argc, char ** argv){
 	
 	// timing variables
 	float run_time = 20.0f;
-	float us_sleep = 1e5;
+	float us_sleep = 1e6;
 	int iterations;
 
     // Default IP address of controller
@@ -209,7 +209,9 @@ int main(int argc, char ** argv){
 	// Define a buffer for receiving and a temporary message for sending
 	int recv_buffer_len = 8192*2;
 	char recv_buffer[recv_buffer_len];
-	char message[] = "Test Message";	
+	char message[40]; 
+	strcpy(message, "Test Message from "); 
+	strcat(message, np.CRTS_IP);	
 	
 	// initialize sig_terminate flag and check return from socket call
 	sig_terminate = 0;

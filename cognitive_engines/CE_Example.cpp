@@ -27,7 +27,7 @@ void CE_Example::execute(void * _args){
 	// type cast custom members void pointer to custom member struct
 	struct CE_Example_members * cm = (struct CE_Example_members*) custom_members;	
 
-	printf("The example metric is now %f\n", cm->example_ce_metric);
+	//printf("The example metric is now %f\n", cm->example_ce_metric);
 	cm->example_ce_metric += 1.0;
 }
 
