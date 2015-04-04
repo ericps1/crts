@@ -21,6 +21,8 @@ at Virginia Tech.
 	$ make
 	$ make setup_env
 
+	NOTE: do no run the last command as sudo
+	
 	The last command sets up an environment variable for the CRTS path and allows
 	the user to launch CRTS_UE as sudo without a password. This is important for
 	the automatic operation so that the user doesn't need to enter his/her 
