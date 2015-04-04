@@ -185,6 +185,51 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
         }
 	}
 
+	if (config_setting_lookup_string(node_config, "tx_crc", &tmpS)){
+
+        // In case CRC isn't found, set to unkown
+        np.tx_crc = LIQUID_CRC_UNKNOWN;
+
+        // Iterate through every liquid CRC
+        // and if the string matches, then assign that CRC.
+        // See liquid soruce: src/fec/src/crc.c
+        // for definition of crc_scheme_str
+        for (int k = 0; k<LIQUID_CRC_NUM_SCHEMES; k++){
+            if(!strcmp(tmpS, crc_scheme_str[k][0]))
+                np.tx_crc = k;
+        }
+	}
+
+	if (config_setting_lookup_string(node_config, "tx_fec0", &tmpS)){
+
+        // In case FEC isn't found, set to unkown
+        np.tx_fec0 = LIQUID_FEC_UNKNOWN;
+
+        // Iterate through every liquid FEC
+        // and if the string matches, then assign that FEC.
+        // See liquid soruce: src/fec/src/fec.c
+        // for definition of fec_scheme_str
+        for (int k = 0; k<LIQUID_FEC_NUM_SCHEMES; k++){
+            if(!strcmp(tmpS, fec_scheme_str[k][0]))
+                np.tx_fec0 = k;
+        }
+	}
+
+	if (config_setting_lookup_string(node_config, "tx_fec1", &tmpS)){
+
+        // In case FEC isn't found, set to unkown
+        np.tx_fec1 = LIQUID_FEC_UNKNOWN;
+
+        // Iterate through every liquid FEC
+        // and if the string matches, then assign that FEC.
+        // See liquid soruce: src/fec/src/fec.c
+        // for definition of fec_scheme_str
+        for (int k = 0; k<LIQUID_FEC_NUM_SCHEMES; k++){
+            if(!strcmp(tmpS, fec_scheme_str[k][0]))
+                np.tx_fec1 = k;
+        }
+	}
+
 	if (config_setting_lookup_string(node_config, "int_type", &tmpS)){
 		if(!strcmp(tmpS, "CW"))
 			np.int_type = CW;
