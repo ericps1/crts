@@ -176,6 +176,7 @@ int main(int argc, char ** argv){
 	dprintf("Starting ECR object...\n");
 	ECR.start_rx();
     ECR.start_tx();
+	ECR.start_ce();
 
 	// Port to be used by CRTS server and client
 	int port = 4444;

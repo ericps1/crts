@@ -50,7 +50,8 @@ public:
 
 	// cognitive engine methods
 	void set_ce(char * ce); // method to set CE to custom defined subclass
-    void set_ce_timeout_ms(float new_timeout_ms);
+    void start_ce();
+	void set_ce_timeout_ms(float new_timeout_ms);
 	float get_ce_timeout_ms();
 
 	// cognitive engine objects

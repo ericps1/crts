@@ -1,16 +1,16 @@
-#include<stdio.h>
-//#include<iostream>
-//#include<fstream>
-#include<net/if.h>
-#include<linux/if_tun.h>
-#include<math.h>
-#include<complex>
-#include<liquid/liquid.h>
-#include<pthread.h>
-#include"ECR.hpp"
-#include"TUN.hpp"
-#include<iostream>
-#include<fstream>
+#include <stdio.h>
+#include <net/if.h>
+#include <linux/if_tun.h>
+#include <math.h>
+#include <complex>
+#include <liquid/liquid.h>
+#include <pthread.h>
+#include "ECR.hpp"
+#include "TUN.hpp"
+#include <iostream>
+#include <fstream>
+#include <errno.h>
+#include <sys/time.h>
 
 #define DEBUG 0
 #if DEBUG == 1
@@ -165,6 +165,11 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
 	if(!strcmp(ce, "CE_AMC"))
 		CE = new CE_AMC();
 //EDIT END FLAG
+}
+
+void ExtensibleCognitiveRadio::start_ce(){
+	// signal condition for the ce to start listening for events of interest
+	pthread_cond_signal(&CE_execute_sig);
 }
 
 void ExtensibleCognitiveRadio::set_ce_timeout_ms(float new_timeout_ms){
@@ -766,18 +771,45 @@ void * ECR_tx_worker(void * _arg)
 
 // main loop of CE
 void * ECR_ce_worker(void *_arg){
-    //printf("CE thread has begun\n");
-	ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *) _arg; 
-    // Infinite loop
+    ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *) _arg; 
+    
+	struct timeval time_now;
+	double timeout_time_ns;
+	double timeout_time_spart;
+	double timeout_time_nspart;
+	struct timespec timeout_time;
+
+	// wait for signal to start ce execution
+	// the first signal should be sent by start_ce()
+	// every signal thereafter will be triggered by
+	// some event the ce is interested in
+
+	pthread_mutex_lock(&ECR->CE_mutex);
+	pthread_cond_wait(&ECR->CE_execute_sig, &ECR->CE_mutex);
+	pthread_mutex_unlock(&ECR->CE_mutex);
+
+	// Infinite loop
     while (true){
-        // Wait for signal from receiver
+
+		// Get current time of day
+		gettimeofday(&time_now, NULL);
+
+        // Calculate timeout time in nanoseconds
+		timeout_time_ns = time_now.tv_usec*1e3+time_now.tv_sec*1e9+ECR->ce_timeout_ms*1e6;
+		// Convert timeout time to s and ns parts
+		timeout_time_nspart = modf(timeout_time_ns/1e9, &timeout_time_spart);
+		// Put timeout time into timespec struct
+		timeout_time.tv_sec = timeout_time_spart;
+		timeout_time.tv_nsec = timeout_time_nspart;
+		
+		// Wait for signal from receiver
 		pthread_mutex_lock(&ECR->CE_mutex);
-		pthread_cond_wait(&ECR->CE_execute_sig, &ECR->CE_mutex);
+		if(ETIMEDOUT == pthread_cond_timedwait(&ECR->CE_execute_sig, &ECR->CE_mutex, &timeout_time))
+			ECR->CE_metrics.CE_event = ce_timeout;
+		
 		// execute CE
-		//printf("Executing CE\n");
 		ECR->CE->execute((void*)ECR);
-    	ECR->CE_metrics.CE_event = ce_timeout;
-		pthread_mutex_unlock(&ECR->CE_mutex);
+    	pthread_mutex_unlock(&ECR->CE_mutex);
     }
     printf("ce_worker exiting thread\n");
     pthread_exit(NULL);
@@ -826,18 +858,6 @@ void ExtensibleCognitiveRadio::log_metrics(ExtensibleCognitiveRadio * ECR){
 
 	//fclose(file);
     log_file.close();
-}
-
-// specific implementation of cognitive engine (will be moved to external file in the future)
-void CE_execute_1(void * _arg){
-	//printf("Executing CE\n");
-	ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *)_arg;
-	
-	// Modify modulation based on EVM
-	if (!ECR->CE_metrics.payload_valid){
-		//printf("Payload was invalid (%i) decreasing modulation order\n", ECR->CE_metrics.payload_valid);
-		ECR->decrease_tx_mod_order();
-	}
 }
 
 

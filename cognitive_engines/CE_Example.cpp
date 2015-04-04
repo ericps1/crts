@@ -27,8 +27,8 @@ void CE_Example::execute(void * _args){
 	// type cast custom members void pointer to custom member struct
 	struct CE_Example_members * cm = (struct CE_Example_members*) custom_members;	
 
-	if(ECR->CE_metrics.CE_event = ce_timeout) printf("CE execution was triggered by a timeout\n");
-	else if(ECR->CE_metrics.CE_event = ce_phy_event) printf("CE execution was triggered by a physical layer event\n");
+	if(ECR->CE_metrics.CE_event == ce_timeout) printf("CE execution was triggered by a timeout\n");
+	else if(ECR->CE_metrics.CE_event == ce_phy_event) printf("CE execution was triggered by a physical layer event\n");
 	
 	//printf("The example metric is now %f\n", cm->example_ce_metric);
 	cm->example_ce_metric += 1.0;
