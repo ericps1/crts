@@ -124,7 +124,7 @@ int main(int argc, char ** argv){
 	signal(SIGTERM, terminate);
 	
 	float run_time = 20.0f;
-	float us_sleep = 1e5;
+	float us_sleep = 1e2;
 	int iterations;
 
     // Default IP address of controller
@@ -187,7 +187,7 @@ int main(int argc, char ** argv){
 
 	// Create dumby frame to be transmitted
 	//unsigned char header[8] = {};
-	unsigned int payload_len = 256;
+	unsigned int payload_len = 64;
 	unsigned char payload[payload_len];
 	for(unsigned int i=0; i<payload_len; i++) payload[i] = i;
 
