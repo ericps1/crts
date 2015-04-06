@@ -8,5 +8,6 @@ post_process_logs
 
 # Ignore VIM swap files
 *.swp
+*.swo
 
 
