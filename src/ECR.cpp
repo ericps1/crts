@@ -1,18 +1,16 @@
-#include<stdio.h>
-//#include<iostream>
-//#include<fstream>
-#include<net/if.h>
-#include<linux/if_tun.h>
-#include<math.h>
-#include<complex>
-#include<liquid/liquid.h>
-#include<pthread.h>
-#include"ECR.hpp"
-#include"TUN.hpp"
-#include<iostream>
-#include<fstream>
-#include<errno.h>
-#include<sys/time.h>
+#include <stdio.h>
+#include <net/if.h>
+#include <linux/if_tun.h>
+#include <math.h>
+#include <complex>
+#include <liquid/liquid.h>
+#include <pthread.h>
+#include "ECR.hpp"
+#include "TUN.hpp"
+#include <iostream>
+#include <fstream>
+#include <errno.h>
+#include <sys/time.h>
 
 #define DEBUG 0
 #if DEBUG == 1
@@ -22,10 +20,10 @@
 #endif
 
 // Constructor
-ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_execute function*/){
+ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
 
-    // Set initial timeout value for executing CE
-    timeout_length_ms = 1000;
+	// Set initial timeout value for executing CE
+	ce_timeout_ms = 1000;
 
 	// set internal properties
     M = 64;
@@ -35,6 +33,9 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_exec
 
     // Initialize header to all zeros
     memset(tx_header, 0, sizeof(tx_header));
+
+	// enable physical layer events for ce
+	ce_phy_events = true;
     
     // create frame generator
     ofdmflexframegenprops_init_default(&fgprops);
@@ -56,6 +57,21 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_exec
     usrp_tx = uhd::usrp::multi_usrp::make(dev_addr);
     usrp_rx = uhd::usrp::multi_usrp::make(dev_addr);
 	
+	// Create TAP interface
+	printf("Creating tun interface\n");
+    char tun_name[IFNAMSIZ];
+    strcpy(tun_name, "tun0");
+    tunfd = tun_alloc(tun_name, IFF_TUN);
+
+	//if(ioctl(tunfd, TUNSETPERSIST,1)<0){
+	//	printf("Error enabling TUN to persist\n");
+	//	exit(1);
+	//}
+
+	printf("Bringing up tun interface\n");
+	system("ip link set dev tun0 up");
+	usleep(1e6);
+
 	// create and start rx thread
 	dprintf("Starting rx thread...\n");
     rx_running = false;             // receiver is not running initially
@@ -65,12 +81,11 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_exec
     pthread_create(&rx_process,   NULL, ECR_rx_worker, (void*)this);
 	
     // create and start tx thread
-    //tx_running = false; // transmitter is not running initially
-    //tx_thread_running = true; // transmitter thread IS running initially
+    tx_running = false; // transmitter is not running initially
+    tx_thread_running = true; // transmitter thread IS running initially
     pthread_mutex_init(&tx_mutex, NULL); // transmitter mutex
     pthread_cond_init(&tx_cond, NULL); // transmitter condition
-    //pthread_create(&tx_process, NULL, ECR_tx_worker, (void*)this);
-	
+    pthread_create(&tx_process, NULL, ECR_tx_worker, (void*)this);	
 	
 	// Start CE thread
     dprintf("Starting CE thread...\n");
@@ -78,18 +93,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_exec
 	pthread_cond_init(&CE_execute_sig, NULL);
 	pthread_create(&CE_process, NULL, ECR_ce_worker, (void*)this);
 	
-
-    // Create TUN interface
-    /*char tun_name[IFNAMSIZ];
-    strcpy(tun_name, "tun1");
-    tun_fd = tun_alloc(tun_name, IFF_TUN);
-	*/
-    // Create TAP interface
-    //char tap_name[IFNAMSIZ];
-    //strcpy(tap_name, "tap44");
-    //tapfd = tun_alloc(tap_name, IFF_TAP);
-
-	// initialize default tx values
+    // initialize default tx values
 	dprintf("Initializing USRP settings...\n");
     set_tx_freq(460.0e6f);
     set_tx_rate(500e3);
@@ -105,13 +109,16 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(/*string with name of CE_exec
     reset_tx();
     reset_rx();
 
-	
 }
 
 // Destructor
 ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 
-    dprintf("waiting for process to finish...\n");
+    // undo modifications to network interface
+	system("route del -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
+	system("ip link set dev tun0 down");
+	
+	dprintf("waiting for process to finish...\n");
 
     // ensure reciever thread is not running
     if (rx_running) stop_rx();
@@ -131,10 +138,6 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
     dprintf("destructor destroying condition...\n");
     pthread_cond_destroy(&rx_cond);
     
-    // TODO: output debugging file
-    //if (debug_enabled)
-    //ofdmflexframesync_debug_print(fs, "ofdmtxrx_framesync_debug.m");
-
     dprintf("destructor destroying other objects...\n");
     // destroy framing objects
     ofdmflexframegen_destroy(fg);
@@ -152,6 +155,10 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 
 }
 
+///////////////////////////////////////////////////////////////////////
+// Cognitive engine methods
+///////////////////////////////////////////////////////////////////////
+
 void ExtensibleCognitiveRadio::set_ce(char *ce){
 //EDIT START FLAG
 	if(!strcmp(ce, "CE_DSA"))
@@ -163,21 +170,30 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
 //EDIT END FLAG
 }
 
+void ExtensibleCognitiveRadio::start_ce(){
+	// signal condition for the ce to start listening for events of interest
+	pthread_cond_signal(&CE_execute_sig);
+}
+
+void ExtensibleCognitiveRadio::set_ce_timeout_ms(float new_timeout_ms){
+	ce_timeout_ms = new_timeout_ms;
+}
+
+float ExtensibleCognitiveRadio::get_ce_timeout_ms(){
+	return ce_timeout_ms;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Network methods
+///////////////////////////////////////////////////////////////////////
+
+// set the ip address for the virtual network interface
 void ExtensibleCognitiveRadio::set_ip(char *ip){
-	char command[40];
+	char command[50];
 	sprintf(command, "ip addr add %s/24 dev tun0", ip);
+	printf("%s\n", command);
 	system(command);
-	//system("route add default gw 10.0.0.1 tun0");
-	system("ip link set dev tun0 up");
-}
-
-void ExtensibleCognitiveRadio::set_timeout_length_ms(float new_timeout_length_ms){
-    //printf("timout_length_ms set to %f", new_timeout_length_ms);
-    timeout_length_ms = new_timeout_length_ms;
-}
-
-float ExtensibleCognitiveRadio::get_timeout_length_ms(){
-    return timeout_length_ms ;
+	system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -286,7 +302,7 @@ void ExtensibleCognitiveRadio::increase_tx_mod_order()
 	}
 }
 
-// set ECRC scheme
+// set CRC scheme
 void ExtensibleCognitiveRadio::set_tx_crc(int crc_scheme){
 	pthread_mutex_lock(&tx_mutex);
     fgprops.check = crc_scheme;
@@ -359,12 +375,9 @@ void ExtensibleCognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
 // set header data (must have length 8)
 void ExtensibleCognitiveRadio::set_header(unsigned char * _header)
 {
-	pthread_mutex_lock(&tx_mutex);
-    int i;
-    for (i=0; i<8; i++)
-    {
+    pthread_mutex_lock(&tx_mutex);
+    for(int i=0; i<8; i++)
         tx_header[i] = _header[i];
-    }
 	pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -628,11 +641,7 @@ int rxCallback(unsigned char * _header,
 	framesyncstats_s _stats,
 	void * _userdata)
 {
-    // print payload
-	//for (unsigned int i=0; i<_payload_len; i++)
-	//	printf("%c\n", _payload[i]);
-	
-	// typecast user argument as ECR object
+    // typecast user argument as ECR object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio*)_userdata;
 		
     // if using PHY layer ARQ
@@ -641,7 +650,7 @@ int rxCallback(unsigned char * _header,
     //	if (*_header == ACK || *_header == NACK) ECR->arq.update();
 
     // Store metrics and signal CE thread if using PHY layer metrics
-    if (ECR->PHY_metrics){
+    if (ECR->ce_phy_events){
 		ECR->CE_metrics.header_valid = _header_valid;
         int j;
         for (j=0; j<8; j++)
@@ -653,8 +662,8 @@ int rxCallback(unsigned char * _header,
 		ECR->CE_metrics.time_spec = ECR->metadata_rx.time_spec;
 
 		// Signal CE thread
-		//printf("Signaling CE thread to execute CE\n");
 		pthread_mutex_lock(&ECR->CE_mutex);
+		ECR->CE_metrics.CE_event = ce_phy_event;		// set event type to phy once mutex is locked
 		pthread_cond_signal(&ECR->CE_execute_sig);
 		pthread_mutex_unlock(&ECR->CE_mutex);
 
@@ -667,12 +676,29 @@ int rxCallback(unsigned char * _header,
 		if(ECR->log_metrics_flag)
 			ECR->log_metrics(ECR);
     }
-    // Pass payload to tun interface
-    //int nwrite = cwrite(ECR->tun_fd, (char*)_payload, (int)_payload_len);
-    //if(nwrite != (int)_payload_len) 
-	//	printf("Number of bytes written to TUN interface not equal to payload length\n"); 
 
-    // Transmit acknowledgement if using PHY ARQ
+	// print payload
+	dprintf("\nReceived Payload:\n");
+	for (unsigned int i=0; i<_payload_len; i++)
+		dprintf("%c", _payload[i]);
+	dprintf("\n");
+
+	char payload[_payload_len];
+	for(int i=0; i<_payload_len; i++)
+		payload[i] = _payload[i];
+
+	int nwrite = 0;
+	if(_payload_valid){
+		// Pass payload to tun interface
+    	dprintf("Passing payload to tun interface\n");
+		nwrite = cwrite(ECR->tunfd, payload, (int)_payload_len);
+		if(nwrite != (int)_payload_len) 
+			printf("Number of bytes written to TUN interface not equal to payload length\n"); 
+	}
+
+	usleep(1e5);
+	
+	// Transmit acknowledgement if using PHY ARQ
     /*unsigned char *ACK;
     pthread_mutex_lock(&(ECR->tx_mutex));
     ECR->transmit_packet(ACK,
@@ -698,18 +724,14 @@ void * ECR_tx_worker(void * _arg)
     unsigned char buffer[buffer_len];
     unsigned char *payload;
     unsigned int payload_len;
-    //unsigned char header[1];
     int nread;
 
     while (ECR->tx_thread_running) {
-		// wait for signal to start; lock mutex
-		//pthread_mutex_lock(&(ECR->tx_mutex));
-		// this function unlocks the mutex and waits for the condition;
-		// once the condition is set, the mutex is again locked
+		// wait for signal to start 
 		pthread_cond_wait(&(ECR->tx_cond), &(ECR->tx_mutex));
 		// unlock the mutex
-		//printf("tx_worker unlocking mutex\n");
-		//pthread_mutex_unlock(&(ECR->tx_mutex));
+		pthread_mutex_unlock(&(ECR->tx_mutex));
+		
 		// condition given; check state: run or exit
 		if (!ECR->tx_running) {
 	    	printf("tx_worker finished\n");
@@ -717,29 +739,31 @@ void * ECR_tx_worker(void * _arg)
 		}
 		// run transmitter
 		while (ECR->tx_running) {
-	    	// grab data from TAP interface
-	    	nread = read(ECR->tun_fd, buffer, sizeof(buffer));
+	    	memset(buffer, 0, buffer_len);
+			
+			// grab data from TUN interface
+	    	dprintf("Reading from tun interface\n");
+			nread = cread(ECR->tunfd, (char*)buffer, buffer_len);
 	    	if (nread < 0) {
-				perror("Reading from interface");
-				close(ECR->tun_fd);
+				printf("Error reading from interface");
+				close(ECR->tunfd);
 				exit(1);
 	    	}
 			
-
-	    	// set header (needs to be modified)
-	    	//header[1] = 1;
-
 	    	// resize to packet length if necessary
 	    	payload = buffer;
 	    	payload_len = nread;
 	 
 	    	// transmit packet
-	    	pthread_mutex_lock(&(ECR->tx_mutex));
-	    	ECR->transmit_packet(ECR->tx_header,
+			dprintf("Buffer read from tun interface:\n");
+			for(int i=0; i<buffer_len; i++)
+				dprintf("%c", buffer[i]);
+			dprintf("\n");
+
+			dprintf("Transmitting packet\n");	
+			ECR->transmit_packet(ECR->tx_header,
 				payload,
 				payload_len);
-			pthread_mutex_unlock(&(ECR->tx_mutex));
-			
         } // while tx_running
         printf("tx_worker finished running\n");
     } // while true
@@ -748,61 +772,46 @@ void * ECR_tx_worker(void * _arg)
     pthread_exit(NULL);
 }
 
-// start cognitive engine execution
-void ExtensibleCognitiveRadio::start_ce()
-{
-    // signal condition 
-    // tell ce worker to start listening for more signals,
-    // each signal will tell ce worker to execute the CE.
-    pthread_cond_signal(&CE_execute_sig);
-}
-
 // main loop of CE
 void * ECR_ce_worker(void *_arg){
-    //printf("CE thread has begun\n");
-	ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *) _arg; 
-
-    struct timeval time_now;
-    double timeout_time_ns;
-    double timeout_time_spart;
-    double timeout_time_nspart;
-    struct timespec timeout_time;
+    ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *) _arg; 
     
-    // wait for signal to start ce execution
-    // The first signal should be sent by start_ce()
-    // every signal therafter should be sent when a frame
-    // is received
-    pthread_mutex_lock(&ECR->CE_mutex);
-    pthread_cond_wait(&ECR->CE_execute_sig, &ECR->CE_mutex);
-    pthread_mutex_unlock(&ECR->CE_mutex);
+	struct timeval time_now;
+	double timeout_time_ns;
+	double timeout_time_spart;
+	double timeout_time_nspart;
+	struct timespec timeout_time;
 
-    // Infinite loop
+	// wait for signal to start ce execution
+	// the first signal should be sent by start_ce()
+	// every signal thereafter will be triggered by
+	// some event the ce is interested in
+
+	pthread_mutex_lock(&ECR->CE_mutex);
+	pthread_cond_wait(&ECR->CE_execute_sig, &ECR->CE_mutex);
+	pthread_mutex_unlock(&ECR->CE_mutex);
+
+	// Infinite loop
     while (true){
 
-        // Get current time
-        gettimeofday(&time_now,NULL);
+		// Get current time of day
+		gettimeofday(&time_now, NULL);
 
         // Calculate timeout time in nanoseconds
-        timeout_time_ns = time_now.tv_usec*1e3+time_now.tv_sec*1e9+ECR->timeout_length_ms*1e6;
-        // Convert timeout time to s and ns parts
-        timeout_time_nspart = modf(timeout_time_ns/1e9, &timeout_time_spart);
-        // Put timout time into timespec struct
-        timeout_time.tv_sec = timeout_time_spart;
-        timeout_time.tv_nsec = timeout_time_nspart;
-
-        // Wait for signal from receiver or timeout, whichever is first
+		timeout_time_ns = time_now.tv_usec*1e3+time_now.tv_sec*1e9+ECR->ce_timeout_ms*1e6;
+		// Convert timeout time to s and ns parts
+		timeout_time_nspart = modf(timeout_time_ns/1e9, &timeout_time_spart);
+		// Put timeout time into timespec struct
+		timeout_time.tv_sec = timeout_time_spart;
+		timeout_time.tv_nsec = timeout_time_nspart;
+		
+		// Wait for signal from receiver
 		pthread_mutex_lock(&ECR->CE_mutex);
-		if (ETIMEDOUT == pthread_cond_timedwait(&ECR->CE_execute_sig, &ECR->CE_mutex, &timeout_time))
-        {
-            ECR->timed_out = true;
-        }
-        else
-        {
-            ECR->timed_out = false;
-        }
-        // execute CE 
-		//printf("Executing CE\n");
-        ECR->CE->execute((void*)ECR);
+		if(ETIMEDOUT == pthread_cond_timedwait(&ECR->CE_execute_sig, &ECR->CE_mutex, &timeout_time))
+			ECR->CE_metrics.CE_event = ce_timeout;
+		
+		// execute CE
+		ECR->CE->execute((void*)ECR);
     	pthread_mutex_unlock(&ECR->CE_mutex);
     }
     printf("ce_worker exiting thread\n");
@@ -859,26 +868,5 @@ void ExtensibleCognitiveRadio::log_metrics(ExtensibleCognitiveRadio * ECR){
 	//fclose(file);
     log_file.close();
 }
-
-// specific implementation of cognitive engine (will be moved to external file in the future)
-void CE_execute_1(void * _arg){
-	//printf("Executing CE\n");
-	ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *)_arg;
-	
-	// Modify modulation based on EVM
-	if (!ECR->CE_metrics.payload_valid){
-		//printf("Payload was invalid (%i) decreasing modulation order\n", ECR->CE_metrics.payload_valid);
-		ECR->decrease_tx_mod_order();
-	}
-}
-
-
-
-
-
-
-
-
-
 
 

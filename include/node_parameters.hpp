@@ -5,8 +5,7 @@
 #include<liquid/liquid.h>
 
 enum type{
-    BS = 0,			// basestation node type
-    UE,				// user equipment node type
+    CR = 0,				// user equipment node type
     interferer		// interferer node type
 };
 
@@ -34,25 +33,25 @@ struct node_parameters{
     int type;
     char CORNET_IP[20];
     char CRTS_IP[20];
-    char CE[30];
+    char TARGET_IP[20];
+	char CE[30];
     int layers;
     int traffic;
 	int print_metrics;
 	int log_metrics;
 	char log_file[30];
-    float ce_timeout_length_ms;
+    float ce_timeout_ms;
 
 	// RF
 	int duplex;
     float tx_freq;
-    float rx_freq;
     float tx_rate;
-    float rx_rate;
     float tx_gain_soft;
     float tx_gain;
+    float tx_delay_us;
+	float rx_freq;
+    float rx_rate;
     float rx_gain;
-    float tx_max_gain;
-    float rx_max_gain;
     int tx_modulation;
     int tx_crc;
     int tx_fec0;

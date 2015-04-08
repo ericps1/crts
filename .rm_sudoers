@@ -1,0 +1,11 @@
+#!/bin/sh
+if [ -z "$1" ]; then
+	echo "Starting up visudo with this script as first parameter"
+	export EDITOR=$0
+	export ORIGIN_USER=$USER
+	sudo -E visudo
+else
+	echo "Changing sudoers"
+	echo "$ORIGIN_USER"
+	sed -i "/$ORIGIN_USER/{/CRTS_CR/d}" $1
+fi

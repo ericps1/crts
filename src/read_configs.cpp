@@ -108,14 +108,17 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	//printf("Read node %i config\n", node);
 
 	// read CORNET IP address for the node
+	if (config_setting_lookup_string(node_config, "TARGET_IP", &tmpS))
+		strcpy(np.TARGET_IP, tmpS);
+
+	// read CORNET IP address for the node
 	if (config_setting_lookup_string(node_config, "CORNET_IP", &tmpS))
 		strcpy(np.CORNET_IP, tmpS);
 
 	// read type of node
 	if (config_setting_lookup_string(node_config, "type", &tmpS)){
 		//printf("\nNode type: %s\n", tmpS);
-		if (!strcmp(tmpS,"BS")) np.type = BS;
-		else if (!strcmp(tmpS, "UE")) np.type = UE;
+		if (!strcmp(tmpS, "CR")) np.type = CR;
 		else if (!strcmp(tmpS, "interferer")) np.type = interferer;
 	}
 
@@ -140,8 +143,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_string(node_config, "log_file", &tmpS))
 		strcpy(np.log_file, tmpS);
 
-	if (config_setting_lookup_float(node_config, "ce_timeout_length_ms", &tmpD))
-		np.ce_timeout_length_ms = tmpD;
+	if (config_setting_lookup_float(node_config, "ce_timeout_ms", &tmpD))
+		np.ce_timeout_ms = tmpD;
 
 	if (config_setting_lookup_string(node_config, "duplex", &tmpS)){
 		if(!strcmp(tmpS, "FDD")) np.duplex = FDD;
@@ -229,6 +232,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
                 np.tx_fec1 = k;
         }
 	}
+	if (config_setting_lookup_float(node_config, "tx_delay_us", &tmpD))
+		np.tx_delay_us = tmpD;
 
 	if (config_setting_lookup_string(node_config, "int_type", &tmpS)){
 		if(!strcmp(tmpS, "CW"))
@@ -259,19 +264,19 @@ void print_node_parameters(struct node_parameters * np){
 		printf("------------------------------------------------\n");
 		printf("General:\n");
 	char node_type[15];
-	if(np->type == UE) strcpy(node_type, "UE");
-	else if(np->type == BS) strcpy(node_type, "BS");
+	if(np->type == CR) strcpy(node_type, "CR");
 	else if(np->type == interferer) strcpy(node_type, "Interferer");
 		printf("	Node type:                 %-s\n", node_type);
 		printf("	CORNET IP:                 %-s\n", np->CORNET_IP);
 	if(np->type != interferer){
 		printf("	CRTS IP:                   %-s\n", np->CRTS_IP);
+		printf("	Target IP:                 %-s\n", np->TARGET_IP);
 		printf("	Cognitive Engine:          %-s\n", np->CE);
 	}
-	if(np->type == UE)
+	if(np->type == CR)
 		printf("	Traffic type:              %-i\n", np->traffic);
 		printf("	Log file:                  %-s\n", np->log_file);
-		printf("	CE timeout:                %-.2f\n", np->ce_timeout_length_ms);
+		printf("	CE timeout:                %-.2f\n", np->ce_timeout_ms);
 		printf("RF:\n");
 	if(np->type != interferer){
 		char duplex[4] = "FDD";

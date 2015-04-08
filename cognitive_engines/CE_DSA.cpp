@@ -46,7 +46,7 @@ void CE_DSA::execute(void * _args){
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 
     // If we recieved a frame but the payload is invalid
-    if(!ECR->timed_out && ECR->CE_metrics.header_valid)
+    if((ECR->CE_metrics.CE_event != ce_timeout) && ECR->CE_metrics.header_valid)
     {
         //std::cout<<"Header Valid."<<std::endl;
         cm->cons_invalid_headers = 0;
@@ -60,9 +60,9 @@ void CE_DSA::execute(void * _args){
     float current_rx_freq = ECR->get_rx_freq();
     // Check if packets received from other node are very poor 
     // or not being received
-    if (cm->cons_invalid_headers>cm->invalid_headers_thresh|| ECR->timed_out)
+    if (cm->cons_invalid_headers>cm->invalid_headers_thresh || ECR->CE_metrics.CE_event == ce_timeout)
     {
-        if (ECR->timed_out)
+        if (ECR->CE_metrics.CE_event == ce_timeout)
             std::cout<<"Timed out without receiving any frames."<<std::endl;
         if (cm->cons_invalid_headers > cm->invalid_headers_thresh)
             std::cout<<"Received "<<cm->cons_invalid_headers<<" consecutive invalid headers."<<std::endl;
@@ -104,7 +104,7 @@ void CE_DSA::execute(void * _args){
     // If we recieved a valid header and the first byte 
     // is set to true (signalling that the frequency is 
     // specified in the header)
-    if(!ECR->timed_out && ECR->CE_metrics.header_valid && 'f' == (char) ECR->CE_metrics.header[0])
+    if(ECR->CE_metrics.CE_event == ce_timeout && ECR->CE_metrics.header_valid && 'f' == (char) ECR->CE_metrics.header[0])
     {
         // Then set tx freq to that specified by 
         // packet received from other node

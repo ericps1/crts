@@ -1,5 +1,5 @@
 # Ignore executables
-CRTS_UE
+CRTS_CR
 CRTS_controller
 CRTS_interferer
 TUN
@@ -8,5 +8,6 @@ post_process_logs
 
 # Ignore VIM swap files
 *.swp
+*.swo
 
 

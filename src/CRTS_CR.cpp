@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <linux/if_tun.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -17,7 +18,7 @@
 #include "ECR.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
-
+#include "TUN.hpp"
 
 #define DEBUG 0
 #if DEBUG == 1
@@ -52,10 +53,10 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 		print_node_parameters(np);
 
 		// set cognitive radio parameters
-		//ECR->set_ip(np->ECRTS_IP);
+		ECR->set_ip(np->CRTS_IP);
 		ECR->print_metrics_flag = np->print_metrics;
 		ECR->log_metrics_flag = np->log_metrics;
-        ECR->set_timeout_length_ms(np->ce_timeout_length_ms);
+		ECR->set_ce_timeout_ms(np->ce_timeout_ms);
 		strcpy(ECR->log_file, np->log_file);
 		ECR->set_tx_freq(np->tx_freq);
 		ECR->set_rx_freq(np->rx_freq);
@@ -64,14 +65,12 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 		ECR->set_tx_gain_soft(np->tx_gain_soft);
 		ECR->set_tx_gain_uhd(np->tx_gain);
 		ECR->set_rx_gain_uhd(np->rx_gain);
-		ECR->max_gain_tx = np->tx_max_gain;
-		ECR->max_gain_rx = np->rx_max_gain;
 		ECR->set_tx_modulation(np->tx_modulation);
 		ECR->set_tx_crc(np->tx_crc);
 		ECR->set_tx_fec0(np->tx_fec0);
 		ECR->set_tx_fec1(np->tx_fec1);
-		ECR->PHY_metrics = true;
 		ECR->set_ce(np->CE);		
+
 		// open log file to delete any current contents
 		if (ECR->log_metrics_flag){
 			//FILE * file;
@@ -97,18 +96,17 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 		printf("Received termination command from controller\n");
 		exit(1);
 	}
-	
 }
 
 void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
 
-void help_ECRTS_UE() {
-    printf("ECRTS_UE -- Start a cognitive radio UE node. Only needs to be run explicitly when using ECRTS_controller with -m option.\n");
-    printf("        -- This program must be run from the main ECRTS directory.\n");
+void help_CRTS_CR() {
+    printf("CRTS_CR -- Start a cognitive radio node. Only needs to be run explicitly when using CRTS_controller with -m option.\n");
+    printf("        -- This program must be run from the main CRTS directory.\n");
     printf(" -h : Help.\n");
     printf(" -t : Run Time - Length of time this node will run. In seconds.\n");
     printf("      Default: 20.0 s\n");
-    printf(" -a : IP Address of node running ECRTS_controller.\n");
+    printf(" -a : IP Address of node running CRTS_controller.\n");
 }
 
 void terminate(int signum){
@@ -123,8 +121,8 @@ int main(int argc, char ** argv){
 	signal(SIGQUIT, terminate);
 	signal(SIGTERM, terminate);
 	
+	// timing variables
 	float run_time = 20.0f;
-	float us_sleep = 1e2;
 	int iterations;
 
     // Default IP address of controller
@@ -133,14 +131,12 @@ int main(int argc, char ** argv){
 	int d;
 	while((d = getopt(argc, argv, "ht:a:")) != EOF){
 		switch(d){
-		case 'h': help_ECRTS_UE();               return 0;
+		case 'h': help_CRTS_CR();               return 0;
 		case 't': run_time = atof(optarg);      break;
 		case 'a': controller_ipaddr = optarg;   break;
 		}
 	}
 
-	iterations = (int) (run_time/(us_sleep*1e-6));
-	//printf("Iterations %i\n", iterations);
 	// Create TCP client to controller
 	unsigned int controller_port = 4444;
 	int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
@@ -164,85 +160,114 @@ int main(int argc, char ** argv){
 	}
 	dprintf("Connected to server\n");
 	
-	// Quiet UHD output and fix buffer issue
+	// Quiet UHD output
 	uhd::msg::register_handler(&uhd_quiet);
 	
 	// Create ECR object
 	dprintf("Creating ECR object...\n");
 	ExtensibleCognitiveRadio ECR;
 	
-	// Create node parameters struct
+	// Create node parameters struct and read scenario info from controller
 	struct node_parameters np;
-		
-	// Read scenario info from controller
 	dprintf("Receiving command from controller...\n");
 	Receive_command_from_controller(&TCP_controller, &ECR, &np);
 	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
+	// Set some number of iterations based on the run time and delay between iterations
+	iterations = (int) (run_time/(np.tx_delay_us*1e-6));
+	
 	// Start ECR
 	dprintf("Starting ECR object...\n");
 	ECR.start_rx();
-    //ECR.start_tx();
+    ECR.start_tx();
 	ECR.start_ce();
 
-	// Create dumby frame to be transmitted
-	//unsigned char header[8] = {};
-	unsigned int payload_len = 64;
-	unsigned char payload[payload_len];
-	for(unsigned int i=0; i<payload_len; i++) payload[i] = i;
+	// Port to be used by CRTS server and client
+	int port = 4444;
 
-	// Loop
+	// Define address structure for CRTS socket server used to receive network traffic
+	struct sockaddr_in CRTS_server_addr;
+	memset(&CRTS_server_addr, 0, sizeof(CRTS_server_addr));
+	CRTS_server_addr.sin_family = AF_INET;
+	CRTS_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	CRTS_server_addr.sin_port = htons(port);
+	socklen_t clientlen = sizeof(CRTS_server_addr);
+	int CRTS_server_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+	// Define address structure for CRTS socket client used to send network traffic
+	struct sockaddr_in CRTS_client_addr;
+	memset(&CRTS_client_addr, 0, sizeof(CRTS_client_addr));
+	CRTS_client_addr.sin_family = AF_INET;
+	CRTS_client_addr.sin_addr.s_addr = inet_addr(np.TARGET_IP);
+	CRTS_client_addr.sin_port = htons(port);
+	socklen_t serverlen = sizeof(CRTS_client_addr);
+	int CRTS_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+	// Bind CRTS server socket
+	bind(CRTS_server_sock, (sockaddr*)&CRTS_server_addr, clientlen);
+
+	// set CRTS sockets to non-blocking
+	fcntl(CRTS_client_sock, F_SETFL, O_NONBLOCK);
+	fcntl(CRTS_server_sock, F_SETFL, O_NONBLOCK);
+	
+	// Define a buffer for receiving and a temporary message for sending
+	int recv_buffer_len = 8192*2;
+	char recv_buffer[recv_buffer_len];
+	char message[40]; 
+	strcpy(message, "Test Message from "); 
+	strcat(message, np.CRTS_IP);	
+	
+	// initialize sig_terminate flag and check return from socket call
 	sig_terminate = 0;
+	if(CRTS_client_sock<0){
+		printf("CRTS failed to create client socket\n");
+		sig_terminate = 1;
+	}
+	if(CRTS_server_sock<0){
+		printf("CRTS failed to create server socket\n");
+		sig_terminate = 1;
+	}
+
+	// main loop
 	for(int i=0; i<iterations; i++){
 		// Listen for any updates from the controller (non-blocking)
-		//printf("Listening to controller for command\n");
+		dprintf("Listening to controller for command\n");
 		Receive_command_from_controller(&TCP_controller, &ECR, &np);
 
-		// Create TCP client to AP
-		/*const int TCP_AP = socket(AF_INET, SOCK_STREAM, 0);
-		if (TCP_AP < 0)
-		{
-			printf("ERROR: Receiver Failed to Create Client Socket\n");
-			exit(EXIT_FAILURE);
-		}
-		// Parameters for connecting to server
-		struct sockaddr_in AP_addr;
-		memset(&AP_addr, 0, sizeof(AP_addr));
-		AP_addr.sin_family = AF_INET;
-		AP_addr.sin_port = htons(AP_port);
-		AP_addr.sin_addr.s_addr = inet_addr(AP_ipaddr);
-		// Attempt to connect client socket to server
-		int connect_status = connect(TCP_AP, (struct sockaddr*)&AP_addr, sizeof(AP_addr));
-		if (connect_status){
-			printf("Failed to Connect to server.\n");
-			exit(EXIT_FAILURE);
-		}*/
-
 		// Wait (used for test purposes only)
-		usleep(us_sleep);
+		usleep(np.tx_delay_us);
 
+		// if not using FDD then stop the receiver before transmitting
+		if(np.duplex != FDD){ 
+			ECR.stop_rx();
+			usleep(1e3);
+		}
 		// Generate data according to traffic parameter
-		// for now there's no difference
+		// Burst is not yet implemented
 		switch (np.traffic){
 		case burst:
-			ECR.transmit_packet(ECR.tx_header, payload, payload_len);
+			// TODO generate data according to some probabilistic model (probably simple Poisson process)
+			break;
 		case stream:
-			if(np.duplex != FDD){ 
-				ECR.stop_rx();
-				usleep(1e3);
-			}
-			
-			ECR.transmit_packet(ECR.tx_header, payload, payload_len);
-			
-			if(np.duplex != FDD) ECR.start_rx();
+			dprintf("Sending UDP packet using CRTS client socket\n");
+			int send_return = sendto(CRTS_client_sock, message, strlen(message), 0, (struct sockaddr*)&CRTS_client_addr, sizeof(CRTS_client_addr));	
+			if(send_return < 0) printf("Failed to send message\n");
+			break;
 		}
-		
-		// Send data via ECR
-		/*int nwrite = write(TCP_AP, (void*)buffer, nbytes);
-		if (nwrite != nbytes){
-			printf("Failed to Connect to server.\n");
-			exit(EXIT_FAILURE);
-		}*/
+		// restart receiver if it was stopped earlier
+		if(np.duplex != FDD) ECR.start_rx();
+			
+		// read all available data from the UDP socket
+		int recv_len =0;
+		dprintf("CRTS: Reading from CRTS server socket\n");
+		recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0, (struct sockaddr *)&CRTS_server_addr, &clientlen);
+		// print out received messages
+		if(recv_len > 0){
+			printf("\nCRTS_CR received message:\n");
+			for(int j=0; j<recv_len; j++)
+				printf("%c", recv_buffer[j]);
+			printf("\n");
+		}
 
 		// Either reach end of scenario and tell controller or receive end of scenario message from controller
 		if(sig_terminate) break;
@@ -253,3 +278,4 @@ int main(int argc, char ** argv){
 	char term_message = 't';
 	write(TCP_controller, &term_message, 1);
 }
+

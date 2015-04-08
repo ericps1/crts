@@ -82,7 +82,7 @@ int cwrite(int fd, char *buf, int n){
   int nwrite;
 
   if((nwrite=write(fd, buf, n)) < 0){
-    perror("Writing data");
+    printf("Error writing data");
     exit(1);
   }
   return nwrite;

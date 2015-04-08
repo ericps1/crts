@@ -81,7 +81,7 @@ int main(int argc, char ** argv){
 	signal(SIGTERM, terminate);
 	//signal(SIGPIPE, terminate);
 		
-		int manual_execution = 0;
+	int manual_execution = 0;
 
     // Use current username as default username for ssh
     char ssh_uname[100];
@@ -189,18 +189,15 @@ int main(int argc, char ** argv){
 				strcat(command, " 'sleep 1 && ");
 				strcat(command, " cd ");
 				strcat(command, crts_dir);
-				strcat(command, " && ./");
+				//strcat(command, " && ./");
 			
 				// add appropriate executable
 				switch (np[j].type){
-				case BS: 
-					strcat(command, "CRTS_AP");
-					break;
-				case UE:
-					strcat(command, "CRTS_UE");
+				case CR:
+					strcat(command, " && sudo ./CRTS_CR");
 					break;
 				case interferer:
-					strcat(command, "CRTS_interferer");
+					strcat(command, " && ./CRTS_interferer");
 					break;
 				}
 		
@@ -259,7 +256,10 @@ int main(int argc, char ** argv){
 		while((!sig_terminate) && (!msg_terminate)){
 			msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
 		}
-		
+
+		if(msg_terminate)
+			printf("Terminating controller because all nodes have sent a termination message\n");
+
 		// if the controller is being terminated, send termination message to other nodes
         //FIXME: process doesn't end with ctrl+C if hasn't connected to all nodes yet
 		if(sig_terminate){
