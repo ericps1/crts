@@ -5,12 +5,13 @@
 #include <complex>
 #include <liquid/liquid.h>
 #include <pthread.h>
-#include "ECR.hpp"
-#include "TUN.hpp"
 #include <iostream>
 #include <fstream>
 #include <errno.h>
 #include <sys/time.h>
+#include "ECR.hpp"
+#include "TUN.hpp"
+#include "pt_sleep.hpp"
 
 #define DEBUG 0
 #if DEBUG == 1
@@ -70,7 +71,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
 
 	printf("Bringing up tun interface\n");
 	system("ip link set dev tun0 up");
-	usleep(1e6);
+	pt_sleep_us(1e6);
 
 	// create and start rx thread
 	dprintf("Starting rx thread...\n");
@@ -490,7 +491,7 @@ void ExtensibleCognitiveRadio::set_rx_subcarriers(unsigned int _M)
 {
     // stop rx, destroy frame sync, set subcarriers, recreate frame sync
 	stop_rx();
-	usleep(1.0);
+	pt_sleep_us(1.0);
 	ofdmflexframesync_destroy(fs);
 	M = _M;
 	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
@@ -502,7 +503,7 @@ void ExtensibleCognitiveRadio::set_rx_subcarrier_alloc(char *_p)
 {
     // destroy frame gen, set cp length, recreate frame gen
 	stop_rx();
-	usleep(1.0);
+	pt_sleep_us(1.0);
 	ofdmflexframesync_destroy(fs);
 	memcpy(p, _p, M);
 	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
@@ -514,7 +515,7 @@ void ExtensibleCognitiveRadio::set_rx_cp_len(unsigned int _cp_len)
 {
 	// destroy frame gen, set cp length, recreate frame gen
 	stop_rx();
-	usleep(1.0);
+	pt_sleep_us(1.0);
 	ofdmflexframesync_destroy(fs);
 	cp_len = _cp_len;
 	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
@@ -526,7 +527,7 @@ void ExtensibleCognitiveRadio::set_rx_taper_len(unsigned int _taper_len)
 {
     // destroy frame gen, set cp length, recreate frame gen
 	stop_rx();
-	usleep(1.0);
+	pt_sleep_us(1.0);
 	ofdmflexframesync_destroy(fs);
 	taper_len = _taper_len;
 	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
@@ -696,7 +697,7 @@ int rxCallback(unsigned char * _header,
 			printf("Number of bytes written to TUN interface not equal to payload length\n"); 
 	}
 
-	usleep(1e5);
+	pt_sleep_us(1e5);
 	
 	// Transmit acknowledgement if using PHY ARQ
     /*unsigned char *ACK;

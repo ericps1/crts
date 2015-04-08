@@ -19,6 +19,7 @@
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
 #include "TUN.hpp"
+#include "pt_sleep.hpp"
 
 #define DEBUG 0
 #if DEBUG == 1
@@ -113,6 +114,7 @@ void terminate(int signum){
 	printf("\nSending termination message to controller\n");
 	sig_terminate = 1;
 }
+
 
 int main(int argc, char ** argv){
 	
@@ -235,12 +237,12 @@ int main(int argc, char ** argv){
 		Receive_command_from_controller(&TCP_controller, &ECR, &np);
 
 		// Wait (used for test purposes only)
-		usleep(np.tx_delay_us);
+		pt_sleep_us(np.tx_delay_us);
 
 		// if not using FDD then stop the receiver before transmitting
 		if(np.duplex != FDD){ 
 			ECR.stop_rx();
-			usleep(1e3);
+            pt_sleep_us(1e3);
 		}
 		// Generate data according to traffic parameter
 		// Burst is not yet implemented

@@ -1,5 +1,5 @@
 FLAGS = -I include -Wall -fPIC -g
-LIBS = lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig
+LIBS = lib/pt_sleep.o lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
 # Used to define the path upon install
 CRTS_PATH = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
@@ -8,8 +8,11 @@ CRTS_PATH = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 CEs = src/CE.cpp cognitive_engines/CE_DSA.cpp cognitive_engines/CE_Example.cpp cognitive_engines/CE_AMC.cpp
 #EDIT END FLAG
 
-all: lib/TUN.o TUN lib/read_configs.o config_CEs lib/ECR.o CRTS_CR lib/interferer.o CRTS_interferer CRTS_controller logs/post_process_logs
+all: lib/pt_sleep.o lib/TUN.o TUN lib/read_configs.o config_CEs lib/ECR.o CRTS_CR lib/interferer.o CRTS_interferer CRTS_controller logs/post_process_logs
 #CRTS_test
+
+lib/pt_sleep.o: src/pt_sleep.cpp
+	g++ $(FLAGS) -c -o lib/pt_sleep.o src/pt_sleep.cpp
 
 lib/TUN.o: src/TUN.cpp
 	g++ $(FLAGS) -c -o lib/TUN.o src/TUN.cpp
@@ -30,7 +33,7 @@ lib/ECR.o: include/ECR.hpp src/ECR.cpp
 #	g++ $(FLAGS) -o CR_test test/CR_test.cpp lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc 
 
 CRTS_CR: include/ECR.hpp src/TUN.cpp src/ECR.cpp src/CRTS_CR.cpp $(CEs)
-	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp src/read_configs.cpp lib/TUN.o lib/ECR.o -lliquid -luhd -lpthread -lm -lc -lconfig $(CEs)
+	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp src/read_configs.cpp lib/pt_sleep.o lib/TUN.o lib/ECR.o -lliquid -luhd -lpthread -lm -lc -lconfig $(CEs)
 
 lib/interferer.o: src/interferer.cpp
 	g++ $(FLAGS) -c -o lib/interferer.o src/interferer.cpp
