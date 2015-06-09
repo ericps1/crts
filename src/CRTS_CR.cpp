@@ -19,7 +19,7 @@
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
 #include "TUN.hpp"
-#include "pt_sleep.hpp"
+//#include "pt_sleep.hpp"
 
 #define DEBUG 0
 #if DEBUG == 1
@@ -175,9 +175,6 @@ int main(int argc, char ** argv){
 	Receive_command_from_controller(&TCP_controller, &ECR, &np);
 	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
-	// Set some number of iterations based on the run time and delay between iterations
-	iterations = (int) (run_time/(np.tx_delay_us*1e-6));
-	
 	// Start ECR
 	dprintf("Starting ECR object...\n");
 	ECR.start_rx();
@@ -230,6 +227,9 @@ int main(int argc, char ** argv){
 		sig_terminate = 1;
 	}
 
+	// Set some number of iterations based on the run time and delay between iterations
+	iterations = (int) (run_time/(np.tx_delay_us*1e-6));
+	
 	// main loop
 	for(int i=0; i<iterations; i++){
 		// Listen for any updates from the controller (non-blocking)
@@ -237,12 +237,12 @@ int main(int argc, char ** argv){
 		Receive_command_from_controller(&TCP_controller, &ECR, &np);
 
 		// Wait (used for test purposes only)
-		pt_sleep_us(np.tx_delay_us);
+        usleep(np.tx_delay_us);
 
 		// if not using FDD then stop the receiver before transmitting
 		if(np.duplex != FDD){ 
 			ECR.stop_rx();
-            pt_sleep_us(1e3);
+            usleep(1e3);
 		}
 		// Generate data according to traffic parameter
 		// Burst is not yet implemented
