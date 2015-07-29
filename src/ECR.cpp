@@ -166,6 +166,8 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
 		CE = new CE_DSA();
 	if(!strcmp(ce, "CE_Example"))
 		CE = new CE_Example();
+	if(!strcmp(ce, "CE_FEC"))
+		CE = new CE_FEC();
 	if(!strcmp(ce, "CE_AMC"))
 		CE = new CE_AMC();
 //EDIT END FLAG
