@@ -27,6 +27,13 @@ public:
 	virtual void execute(void * _args);
 	void * custom_members;
 };
+class CE_FEC : public Cognitive_Engine {
+public:
+	CE_FEC();
+	~CE_FEC();
+	virtual void execute(void * _args);
+	void * custom_members;
+};
 class CE_AMC : public Cognitive_Engine {
 public:
 	CE_AMC();
