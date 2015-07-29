@@ -199,7 +199,7 @@ int main(int argc, char ** argv){
 	CRTS_client_addr.sin_family = AF_INET;
 	CRTS_client_addr.sin_addr.s_addr = inet_addr(np.TARGET_IP);
 	CRTS_client_addr.sin_port = htons(port);
-	socklen_t serverlen = sizeof(CRTS_client_addr);
+	//socklen_t serverlen = sizeof(CRTS_client_addr);
 	int CRTS_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 	// Bind CRTS server socket
