@@ -9,7 +9,7 @@ public:
 	~Interferer();
 
 	// Interference parameters
-	int int_type;
+	int interference_type;
 	float tx_gain_soft;                  // soft transmit gain (linear)
 	float tx_gain;
 	float tx_freq;
