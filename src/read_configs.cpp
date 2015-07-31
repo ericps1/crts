@@ -236,17 +236,17 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_float(node_config, "tx_delay_us", &tmpD))
 		np.tx_delay_us = tmpD;
 
-	if (config_setting_lookup_string(node_config, "int_type", &tmpS)){
+	if (config_setting_lookup_string(node_config, "interference_type", &tmpS)){
 		if(!strcmp(tmpS, "CW"))
-			np.int_type = CW;
+			np.interference_type = CW;
 		if(!strcmp(tmpS, "AWGN")) 
-			np.int_type = AWGN;
+			np.interference_type = AWGN;
 		if(!strcmp(tmpS, "GMSK"))
-			np.int_type = GMSK;
+			np.interference_type = GMSK;
 		if(!strcmp(tmpS, "RRC")) 
-			np.int_type = RRC;
+			np.interference_type = RRC;
 		if(!strcmp(tmpS, "OFDM")) 
-			np.int_type = OFDM;
+			np.interference_type = OFDM;
 	}
 	
 	if (config_setting_lookup_float(node_config, "period", &tmpD))
@@ -300,15 +300,15 @@ void print_node_parameters(struct node_parameters * np){
 	if(np->type != interferer)
 		printf("	Receive gain:              %-.2f\n", np->rx_gain);
 	if(np->type == interferer){
-		char int_type[5] = "NONE";
-		switch(np->int_type){
-			case (CW): strcpy(int_type, "CW"); break;
-			case (AWGN): strcpy(int_type, "AWGN"); break;
-			case (GMSK): strcpy(int_type, "GMSK"); break;
-			case (RRC): strcpy(int_type, "RRC"); break;
-			case (OFDM): strcpy(int_type, "OFDM"); break;
+		char interference_type[5] = "NONE";
+		switch(np->interference_type){
+			case (CW): strcpy(interference_type, "CW"); break;
+			case (AWGN): strcpy(interference_type, "AWGN"); break;
+			case (GMSK): strcpy(interference_type, "GMSK"); break;
+			case (RRC): strcpy(interference_type, "RRC"); break;
+			case (OFDM): strcpy(interference_type, "OFDM"); break;
 		}
-		printf("	Interference type:         %-s\n", int_type);
+		printf("	Interference type:         %-s\n", interference_type);
 		printf("	Interference period:	   %-.2f\n", np->period);
 		printf("	Interference duty cycle:   %-.2f\n", np->duty_cycle);
 	}
