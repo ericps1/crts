@@ -348,7 +348,6 @@ void TransmitInterference(
 //  FUNCTION:  Perform Duty Cycle ON
 // ========================================================================
 void PerformDutyCycle_On( Interferer interfererObj,
-                          unsigned int iterationCount, 
                           node_parameters np,
                           unsigned int num_samples_for_on_cycle)
   {
@@ -537,13 +536,8 @@ int main(int argc, char ** argv)
   //printf("samples on: %i\n", samps_on);
   //printf("samples off: %i\n", samples_off);
 
-  // allocate memory for RRC
-
-  // allocate memory for OFDM 
-  
-
   // ================================================================
-  // Main Service Loop 
+  // BEGIN: Main Service Loop 
   // ================================================================
   sig_terminate = 0;
 
@@ -551,7 +545,6 @@ int main(int argc, char ** argv)
     {
     Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
     PerformDutyCycle_On(interfererObj,
-                        i, 
                         np, 
                         num_samples_on); 
     PerformDutyCycle_Off(interfererObj,
@@ -562,6 +555,9 @@ int main(int argc, char ** argv)
       break;
       }
     } // end main "for" interation loop 
+  // ================================================================
+  // END: Main Service Loop 
+  // ================================================================
 
   printf("Sending termination message to controller\n");
   char term_message = 't';
