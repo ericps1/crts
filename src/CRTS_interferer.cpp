@@ -23,7 +23,7 @@
 
 // global variables
 int sig_terminate;
-
+float currentTxFreq; 
 
 // ========================================================================
 //  FUNCTION:  Receive_command_from_controller
@@ -62,7 +62,9 @@ void Receive_command_from_controller(int *TCP_controller,
       memcpy(np ,&command_buffer[1], sizeof(node_parameters));
       print_node_parameters(np);
       // set interferer parameters
-      inter->usrp_tx->set_tx_freq(np->tx_freq);
+      currentTxFreq = np->tx_freq; 
+      printf("setting initial freq to:  [%f]", currentTxFreq); 
+      inter->usrp_tx->set_tx_freq(currentTxFreq);
       inter->usrp_tx->set_tx_rate(np->tx_rate);
       inter->tx_rate = np->tx_rate;
       inter->usrp_tx->set_tx_gain(np->tx_gain);
@@ -318,20 +320,32 @@ void BuildOFDMTransmission()
 void TransmitInterference(
   Interferer interfererObj, 
   std::vector<std::complex<float> > & tx_buffer,
-  int samps_to_transmit
+  int samplesInBuffer
   )
   {
   int tx_samp_count = 0;//samps_to_transmit;	
   int usrp_samps = USRP_BUFFER_LENGTH; 
 
-  while(tx_samp_count < samps_to_transmit)
+  while(tx_samp_count < samplesInBuffer) 
     {
     // modifications for the last group of samples generated
-    if(samps_to_transmit-tx_samp_count <= USRP_BUFFER_LENGTH)
+    if(samplesInBuffer - tx_samp_count <= USRP_BUFFER_LENGTH)
       {
-      usrp_samps = samps_to_transmit-tx_samp_count;
+      usrp_samps = samplesInBuffer - tx_samp_count;
       }
-		
+
+    
+
+    if (interfererObj.interference_type == (CW_SWEEP))
+      {
+	  currentTxFreq += .25e6; 
+      if (currentTxFreq > 490000000)
+        {
+	    currentTxFreq = 470000000; 
+        }
+      interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
+      }
+
     interfererObj.usrp_tx->get_device()->send(&tx_buffer[tx_samp_count], 
                                               usrp_samps,
                                               interfererObj.metadata_tx,
@@ -356,93 +370,63 @@ void TransmitInterference(
 // ========================================================================
 void PerformDutyCycle_On( Interferer interfererObj,
                           node_parameters np,
-                          unsigned int num_samples_for_on_cycle)
+                          float time_onCycle)
   {
   std::vector<std::complex<float> > tx_buffer(TX_BUFFER_LENGTH);
-
-  printf(" --> Starting Interferer On Cycle\n");
-
   unsigned int samplesInBuffer = 0; 
   unsigned int randomFlag = (np.interference_type == (AWGN)) ? 1 : 0; 
+  timer onTimer = timer_create(); 
+  timer_tic(onTimer); 
 
-  switch(np.interference_type)
+  while (timer_toc(onTimer) < time_onCycle)
     {
-    case(CW):
-    case(CW_SWEEP): 
-    case(AWGN):
+    switch(np.interference_type)
+      {
+      case(CW):
+      case(CW_SWEEP): 
+      case(AWGN):
         FillBufferForTransmission(randomFlag,
                                   tx_buffer); 
         samplesInBuffer = tx_buffer.size(); 
 	break;
 
-    case(GMSK):
-      while (samplesInBuffer < tx_buffer.size())
-        { 
-        samplesInBuffer += BuildGMSKTransmission(tx_buffer,
-                                                 samplesInBuffer); 
-        }
+      case(GMSK):
+        while (samplesInBuffer < tx_buffer.size())
+          { 
+          samplesInBuffer += BuildGMSKTransmission(tx_buffer,
+                                                   samplesInBuffer); 
+          }
       break; 
-    case(RRC):
-      while (samplesInBuffer < tx_buffer.size())
-	 {
-         samplesInBuffer += BuildRRCTransmission(tx_buffer,
-                                                 samplesInBuffer); 
-         }
-       break; 
+      case(RRC):
+        while (samplesInBuffer < tx_buffer.size())
+	   {
+           samplesInBuffer += BuildRRCTransmission(tx_buffer,
+                                                   samplesInBuffer); 
+           }
+         break; 
 	  //        case(OFDM):
 	  //          BuildOFDMTransmission(); 
 	  //          break; 
-     }// interference type switch
-			
-  TransmitInterference(interfererObj, tx_buffer, samplesInBuffer); 
-  }
+      }// interference type switch
 
+    TransmitInterference(interfererObj, tx_buffer, samplesInBuffer); 
+    }
+  }
 
 
 // ========================================================================
 //  FUNCTION:  Perform Duty Cycle OFF
 // ========================================================================
-void PerformDutyCycle_Off(Interferer interfererObj,
-                          node_parameters np, 
-                          unsigned int num_samples_for_off_cycle)
+
+void PerformDutyCycle_Off(float time_offCycle)
   {
-  unsigned int off_sample_counter;
-  unsigned int numUsrpSamples;
-  unsigned int samplesRemaining; 
-
-  printf(" --> Starting Interferer Off Cycle\n");
-  off_sample_counter = 0;	
-  numUsrpSamples = USRP_BUFFER_LENGTH; 
-  std::vector<std::complex<float> > 
-      usrp_buffer_off(USRP_BUFFER_LENGTH); 
-
-  while(off_sample_counter < num_samples_for_off_cycle)
+  timer offTimer = timer_create(); 
+  timer_tic(offTimer); 
+  while (timer_toc(offTimer) < time_offCycle)
       {
-
-      // modifications for the last group of samples generated
-      samplesRemaining = num_samples_for_off_cycle - off_sample_counter; 
-      if(samplesRemaining < numUsrpSamples)
-        {
-        numUsrpSamples = samplesRemaining; 
-	}
-
-      interfererObj.usrp_tx->get_device()->send(&usrp_buffer_off[0], 
-                                                numUsrpSamples,
-                                                interfererObj.metadata_tx,
-                                                uhd::io_type_t::COMPLEX_FLOAT32,
-				                uhd::device::SEND_MODE_FULL_BUFF
-                                                //TODO: Should we set a timeout here?
-			                        );
-				
-      // update number of tx samples remaining
-      off_sample_counter += numUsrpSamples; 
-      if (sig_terminate) 
-        {
-        break;
-        }
-      } // end while samples off loop
+	  usleep(100); 
+      }
   }
-
 
 
 // ==========================================================================
@@ -526,21 +510,14 @@ int main(int argc, char ** argv)
       interfererObj.duty_cycle = 1.0; 
       break;
     }
-  unsigned int num_samples_total = 
-    (int)(interfererObj.period_duration * interfererObj.tx_rate);
-  unsigned int num_samples_on    = 
-    (int)(num_samples_total * interfererObj.duty_cycle); 
-  unsigned int num_samples_off   = 
-    (int)(num_samples_total * (1.0 - interfererObj.duty_cycle));
 
-  //printf("duty cycle: %f\n", inter.duty_cycle);
-  //printf("samples on: %i\n", samps_on);
-  //printf("samples off: %i\n", samples_off);
 
   // ================================================================
   // BEGIN: Main Service Loop 
   // ================================================================
   sig_terminate = 0;
+  float time_onCycle = (interfererObj.period_duration * interfererObj.duty_cycle); 
+  float time_offCycle = (interfererObj.period_duration * (1 - interfererObj.duty_cycle)); 
 
   timer t0 = timer_create(); 
   timer_tic(t0); 
@@ -551,12 +528,14 @@ int main(int argc, char ** argv)
       {
       break;
       }
+    printf("time:  %f", timer_toc(t0)); 
+    printf(" --> Starting Interferer ON Cycle \n");
     PerformDutyCycle_On(interfererObj,
                         np, 
-                        num_samples_on); 
-    PerformDutyCycle_Off(interfererObj,
-                         np,  
-                         num_samples_off); 
+                        time_onCycle); 
+    printf("time:  %f", timer_toc(t0)); 
+    printf(" --> Starting Interferer OFF Cycle \n");
+    PerformDutyCycle_Off(time_offCycle); 
     if (sig_terminate) 
       {
       break;

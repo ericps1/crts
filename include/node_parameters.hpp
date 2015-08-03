@@ -62,6 +62,8 @@ struct node_parameters{
     int   interference_type;
     float period_duration;
     float duty_cycle;
+    float tx_freq_min;
+    float tx_freq_max; 
 };
 
 #endif
