@@ -21,7 +21,7 @@ int read_scenario_master_file(char scenario_list[30][60])
 	
 	// Read the file. If there is an error, report it and exit.
 	if (!config_read_file(&cfg, "master_scenario_file.cfg")){
-		printf("Error reading master scenario file\n");
+		printf("Error reading master scenario file on line %i\n", config_error_line(&cfg));
 		exit(1);
 	}
 	
@@ -51,7 +51,8 @@ struct scenario_parameters read_scenario_parameters(char * scenario_file)
 
 	// Read the file. If there is an error, report it and exit.
 	if (!config_read_file(&cfg, scenario)){
-		printf("Error reading %s\n", scenario);
+		printf("Error reading %s on line %i\n", scenario, config_error_line(&cfg));
+        printf("%s\n", config_error_text(&cfg));
 		config_destroy(&cfg);
 		exit(1);
 	}
@@ -82,7 +83,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	// Read the file. If there is an error, report it and exit.
 	if (!config_read_file(&cfg, scenario))
 	{
-		printf("Error reading config file\n");
+		printf("Error reading config file on line %i\n", config_error_line(&cfg));
 		config_destroy(&cfg);
 		exit(1);
 	}
