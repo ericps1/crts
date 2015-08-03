@@ -249,8 +249,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 			np.interference_type = OFDM;
 	}
 	
-	if (config_setting_lookup_float(node_config, "period", &tmpD))
-		np.period = tmpD;
+	if (config_setting_lookup_float(node_config, "period_duration", &tmpD))
+		np.period_duration = tmpD;
 
 	if (config_setting_lookup_float(node_config, "duty_cycle", &tmpD))
 		np.duty_cycle = tmpD;
@@ -309,7 +309,7 @@ void print_node_parameters(struct node_parameters * np){
 			case (OFDM): strcpy(interference_type, "OFDM"); break;
 		}
 		printf("	Interference type:         %-s\n", interference_type);
-		printf("	Interference period:	   %-.2f\n", np->period);
+		printf("	Interference period_duration:	   %-.2f\n", np->period_duration);
 		printf("	Interference duty cycle:   %-.2f\n", np->duty_cycle);
 	}
 		printf("------------------------------------------------\n");
