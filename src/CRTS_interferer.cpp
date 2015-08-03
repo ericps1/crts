@@ -168,6 +168,8 @@ unsigned int BuildGMSKTransmission(
                         LIQUID_FEC_NONE, 
                         LIQUID_FEC_NONE);
   
+  unsigned int frameLen = gmskframegen_getframelen(gmsk_fg); 
+
   int frame_complete = 0;
   unsigned int bufferIndex = samplesInBuffer; 
   while(!frame_complete)
@@ -178,7 +180,7 @@ unsigned int BuildGMSKTransmission(
     bufferIndex += GMSK_K_VALUE; 
     }
 
-  return gmskframegen_getframelen(gmsk_fg); 
+  return frameLen; 
   }
 
 // ========================================================================
