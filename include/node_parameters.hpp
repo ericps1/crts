@@ -60,7 +60,7 @@ struct node_parameters{
 
     // interferer only
     int   interference_type;
-    float period;
+    float period_duration;
     float duty_cycle;
 };
 

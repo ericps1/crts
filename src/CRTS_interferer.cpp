@@ -62,11 +62,11 @@ void Receive_command_from_controller(int *TCP_controller,
       print_node_parameters(np);
       // set interferer parameters
       inter->usrp_tx->set_tx_freq(np->tx_freq);
-      inter->usrp_tx->set_tx_rate(4*np->tx_rate);
+      inter->usrp_tx->set_tx_rate(np->tx_rate);
       inter->tx_rate = np->tx_rate;
       inter->usrp_tx->set_tx_gain(np->tx_gain);
       inter->interference_type = np->interference_type;
-      inter->period = np->period;
+      inter->period_duration = np->period_duration;
       inter->duty_cycle = np->duty_cycle;
       break;
 
@@ -517,7 +517,7 @@ int main(int argc, char ** argv)
   Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
   fcntl(TCP_controller, F_SETFL, O_NONBLOCK);
 
-  int iterations = (int)(run_time/interfererObj.period);
+  int iterations = (int)(run_time/interfererObj.period_duration);
   
   // for some interference types, transmit all of the time
   // by setting duty_cycle = 1.0
@@ -528,7 +528,7 @@ int main(int argc, char ** argv)
       break;
     }
   unsigned int num_samples_total = 
-    (int)(interfererObj.period * 4 * interfererObj.tx_rate);
+    (int)(interfererObj.period_duration * interfererObj.tx_rate);
   unsigned int num_samples_on    = 
     (int)(num_samples_total * interfererObj.duty_cycle); 
   unsigned int num_samples_off   = 
