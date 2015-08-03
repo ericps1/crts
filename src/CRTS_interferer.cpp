@@ -19,6 +19,7 @@
 #include "interferer.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
+#include "timer.h"
 
 // global variables
 int sig_terminate;
@@ -139,6 +140,8 @@ unsigned int BuildGMSKTransmission(
     std::vector<std::complex<float> > &tx_buffer,
     unsigned int samplesInBuffer)
   {
+
+  printf(" --> Build GMSK Transmission\n");
   // allocate memory for GMSK 
   gmskframegen gmsk_fg; 
   gmsk_fg = gmskframegen_create();
@@ -169,6 +172,7 @@ unsigned int BuildGMSKTransmission(
                         LIQUID_FEC_NONE);
   
   unsigned int frameLen = gmskframegen_getframelen(gmsk_fg); 
+  printf(" --> after frame assembled ... frame length = [%d]", frameLen); 
 
   int frame_complete = 0;
   unsigned int bufferIndex = samplesInBuffer; 
@@ -178,6 +182,7 @@ unsigned int BuildGMSKTransmission(
       gmskframegen_write_samples(gmsk_fg, 
                                  &tx_buffer[bufferIndex]);
     bufferIndex += GMSK_K_VALUE; 
+    printf("GMSK Buffer Index:  [%d]", bufferIndex); 
     }
 
   return frameLen; 
@@ -353,13 +358,11 @@ void PerformDutyCycle_On( Interferer interfererObj,
                           node_parameters np,
                           unsigned int num_samples_for_on_cycle)
   {
-  std::vector<std::complex<float> > tx_buffer(num_samples_for_on_cycle);
-  unsigned int samplesInBuffer; 
-  unsigned int samples_to_transmit; 
+  std::vector<std::complex<float> > tx_buffer(TX_BUFFER_LENGTH);
 
   printf(" --> Starting Interferer On Cycle\n");
 
-  samplesInBuffer = 0; 
+  unsigned int samplesInBuffer = 0; 
   unsigned int randomFlag = (np.interference_type == (AWGN)) ? 1 : 0; 
 
   switch(np.interference_type)
@@ -370,7 +373,6 @@ void PerformDutyCycle_On( Interferer interfererObj,
         FillBufferForTransmission(randomFlag,
                                   tx_buffer); 
         samplesInBuffer = tx_buffer.size(); 
-        samples_to_transmit = samplesInBuffer; 
 	break;
 
     case(GMSK):
@@ -379,7 +381,6 @@ void PerformDutyCycle_On( Interferer interfererObj,
         samplesInBuffer += BuildGMSKTransmission(tx_buffer,
                                                  samplesInBuffer); 
         }
-      samples_to_transmit = samplesInBuffer; 
       break; 
     case(RRC):
       while (samplesInBuffer < tx_buffer.size())
@@ -393,7 +394,7 @@ void PerformDutyCycle_On( Interferer interfererObj,
 	  //          break; 
      }// interference type switch
 			
-  TransmitInterference(interfererObj, tx_buffer, samples_to_transmit); 
+  TransmitInterference(interfererObj, tx_buffer, samplesInBuffer); 
   }
 
 
@@ -517,8 +518,6 @@ int main(int argc, char ** argv)
   Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
   fcntl(TCP_controller, F_SETFL, O_NONBLOCK);
 
-  int iterations = (int)(run_time/interfererObj.period_duration);
-  
   // for some interference types, transmit all of the time
   // by setting duty_cycle = 1.0
   switch(np.interference_type)
@@ -543,9 +542,15 @@ int main(int argc, char ** argv)
   // ================================================================
   sig_terminate = 0;
 
-  for(int i=0; i<iterations; i++)
+  timer t0 = timer_create(); 
+  timer_tic(t0); 
+  while (timer_toc(t0) < run_time)
     {
     Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
+    if (sig_terminate) 
+      {
+      break;
+      }
     PerformDutyCycle_On(interfererObj,
                         np, 
                         num_samples_on); 
