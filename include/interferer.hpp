@@ -16,6 +16,8 @@ public:
 	float tx_rate;
 	float duty_cycle;
 	float period_duration;
+        float tx_freq_min;
+        float tx_freq_max;
 
     // RF objects and properties
     uhd::usrp::multi_usrp::sptr usrp_tx;

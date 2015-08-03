@@ -239,6 +239,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_string(node_config, "interference_type", &tmpS)){
 		if(!strcmp(tmpS, "CW"))
 			np.interference_type = CW;
+		if(!strcmp(tmpS, "CW_SWEEP"))
+			np.interference_type = CW_SWEEP;
 		if(!strcmp(tmpS, "AWGN")) 
 			np.interference_type = AWGN;
 		if(!strcmp(tmpS, "GMSK"))
@@ -254,6 +256,14 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 
 	if (config_setting_lookup_float(node_config, "duty_cycle", &tmpD))
 		np.duty_cycle = tmpD;
+
+	if (config_setting_lookup_float(node_config, "tx_freq_min", &tmpD))
+		np.tx_freq_min = tmpD;
+
+	if (config_setting_lookup_float(node_config, "tx_freq_max", &tmpD))
+		np.tx_freq_max = tmpD;
+
+
 
 	return np;
 }
@@ -303,6 +313,7 @@ void print_node_parameters(struct node_parameters * np){
 		char interference_type[5] = "NONE";
 		switch(np->interference_type){
 			case (CW): strcpy(interference_type, "CW"); break;
+			case (CW_SWEEP): strcpy(interference_type, "CW_SWEEP"); break;
 			case (AWGN): strcpy(interference_type, "AWGN"); break;
 			case (GMSK): strcpy(interference_type, "GMSK"); break;
 			case (RRC): strcpy(interference_type, "RRC"); break;
@@ -311,6 +322,8 @@ void print_node_parameters(struct node_parameters * np){
 		printf("	Interference type:         %-s\n", interference_type);
 		printf("	Interference period_duration:	   %-.2f\n", np->period_duration);
 		printf("	Interference duty cycle:   %-.2f\n", np->duty_cycle);
+		printf("	Interference tx freq min:   %-.2e\n", np->tx_freq_min);
+		printf("	Interference tx freq max::   %-.2e\n", np->tx_freq_max);
 	}
 		printf("------------------------------------------------\n");
 }
