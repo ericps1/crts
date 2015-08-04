@@ -24,6 +24,9 @@
 // global variables
 int sig_terminate;
 float currentTxFreq; 
+float freqIncrement; 
+int   freqCoeff; 
+int   freqWidth; 
 
 // ========================================================================
 //  FUNCTION:  Receive_command_from_controller
@@ -63,14 +66,19 @@ void Receive_command_from_controller(int *TCP_controller,
       print_node_parameters(np);
       // set interferer parameters
       currentTxFreq = np->tx_freq; 
-      printf("setting initial freq to:  [%f]", currentTxFreq); 
+      freqIncrement = +2.5e5; 
+      freqCoeff = +1; 
       inter->usrp_tx->set_tx_freq(currentTxFreq);
       inter->usrp_tx->set_tx_rate(np->tx_rate);
       inter->tx_rate = np->tx_rate;
       inter->usrp_tx->set_tx_gain(np->tx_gain);
       inter->interference_type = np->interference_type;
+      inter->tx_freq_hop_type = np->tx_freq_hop_type;
       inter->period_duration = np->period_duration;
       inter->duty_cycle = np->duty_cycle;
+      inter->tx_freq_min = np->tx_freq_min; 
+      inter->tx_freq_max = np->tx_freq_max; 
+      freqWidth = floor(np->tx_freq_max - np->tx_freq_min); 
       break;
 
     case 't': // terminate program
@@ -334,17 +342,26 @@ void TransmitInterference(
       usrp_samps = samplesInBuffer - tx_samp_count;
       }
 
-    
-
-    if (interfererObj.interference_type == (CW_SWEEP))
-      {
-	  currentTxFreq += .25e6; 
-      if (currentTxFreq > 490000000)
-        {
-	    currentTxFreq = 470000000; 
-        }
-      interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
-      }
+    // ======================================================
+    //  Modify Freq, if appropriate
+    // ======================================================
+    switch (interfererObj.tx_freq_hop_type)
+	{
+        case (SWEEP):
+          currentTxFreq += (freqIncrement * freqCoeff); 
+          if ((currentTxFreq > interfererObj.tx_freq_max) ||
+	      (currentTxFreq < interfererObj.tx_freq_min))
+            {
+            freqCoeff = freqCoeff * -1;  
+            currentTxFreq = currentTxFreq + (2 * freqIncrement * freqCoeff); 
+            }
+          interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
+          break; 
+        case (RANDOM):
+          currentTxFreq = rand() % freqWidth + interfererObj.tx_freq_min;
+          interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
+          break;
+	}
 
     interfererObj.usrp_tx->get_device()->send(&tx_buffer[tx_samp_count], 
                                               usrp_samps,
@@ -383,7 +400,6 @@ void PerformDutyCycle_On( Interferer interfererObj,
     switch(np.interference_type)
       {
       case(CW):
-      case(CW_SWEEP): 
       case(AWGN):
         FillBufferForTransmission(randomFlag,
                                   tx_buffer); 
@@ -504,9 +520,10 @@ int main(int argc, char ** argv)
 
   // for some interference types, transmit all of the time
   // by setting duty_cycle = 1.0
-  switch(np.interference_type)
+  switch(np.tx_freq_hop_type)
     {  
-    case (CW_SWEEP):
+    case (SWEEP):
+    case (RANDOM):
       interfererObj.duty_cycle = 1.0; 
       break;
     }

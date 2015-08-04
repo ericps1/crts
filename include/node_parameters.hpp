@@ -21,13 +21,20 @@ enum traffic{
 };
 
 enum interference_type{
-    CW= 0,      // continuous-wave interference
-    AWGN,	// additive white gaussian noise interference
-    GMSK,	// gaussian minimum-shift keying inteference
-    RRC,	// root-raised cosine interference (as in WCDMA)
-    OFDM,	// orthogonal frequency division multiplexing interference
-    CW_SWEEP    // sweeps through frequencies between min and max 
+    CW= 0,       // continuous-wave interference
+    AWGN,  	 // additive white gaussian noise interference
+    GMSK,	 // gaussian minimum-shift keying inteference
+    RRC,	 // root-raised cosine interference (as in WCDMA)
+    OFDM	 // orthogonal frequency division multiplexing interference
 };
+
+
+enum tx_freq_hop_type{
+    NONE = 0, 
+    SWEEP,
+    RANDOM
+};
+
 
 struct node_parameters{
 	// general
@@ -62,6 +69,7 @@ struct node_parameters{
     int   interference_type;
     float period_duration;
     float duty_cycle;
+    int   tx_freq_hop_type; 
     float tx_freq_min;
     float tx_freq_max; 
 };
