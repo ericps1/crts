@@ -147,14 +147,23 @@ void FillBufferForTransmission(
 //  FUNCTION:  Build GMSK Transmission
 // ========================================================================
 unsigned int BuildGMSKTransmission(
-    std::vector<std::complex<float> > &tx_buffer,
-    unsigned int samplesInBuffer)
+  std::vector<std::complex<float> > &tx_buffer)
   {
 
-  printf(" --> Build GMSK Transmission\n");
+  std::vector<std::complex<float> > tempBuffer; 
+
   // allocate memory for GMSK 
   gmskframegen gmsk_fg; 
   gmsk_fg = gmskframegen_create();
+
+  // half-band resampler
+  resamp2_crcf interp = resamp2_crcf_create(7,0.0f,40.0f);
+
+  double tx_resamp_rate = 2; 
+
+  // add arbitrary resampling component
+  resamp_crcf resamp = resamp_crcf_create(tx_resamp_rate,7,0.4f,60.0f,64);
+  resamp_crcf_setrate(resamp, tx_resamp_rate);
 
   // header and payload for frame generators
   unsigned char header[INTERFERER_HEADER_LENGTH]; 
@@ -182,20 +191,51 @@ unsigned int BuildGMSKTransmission(
                         LIQUID_FEC_NONE);
   
   unsigned int frameLen = gmskframegen_getframelen(gmsk_fg); 
-  printf(" --> after frame assembled ... frame length = [%d]", frameLen); 
 
+  tempBuffer.resize(frameLen + 1); 
   int frame_complete = 0;
-  unsigned int bufferIndex = samplesInBuffer; 
-  while(!frame_complete)
+
+  unsigned int k = 2; 
+  std::complex<float> buffer[k];
+  std::complex<float> buffer_interp[2*k]; 
+  std::complex<float> buffer_resamp[8*k];
+  std::vector<std::complex<float> > buff(5000); 
+  unsigned int tx_buffer_samples = 0; 
+
+  // generate frame
+  while (!frame_complete) 
     {
-    frame_complete = 
-      gmskframegen_write_samples(gmsk_fg, 
-                                 &tx_buffer[bufferIndex]);
-    bufferIndex += GMSK_K_VALUE; 
-    printf("GMSK Buffer Index:  [%d]", bufferIndex); 
+    // generate k samples
+    frame_complete = gmskframegen_write_samples(gmsk_fg, buffer);
+
+    // interpolate by 2
+    for (unsigned int j=0; j<k; j++)
+      {
+      resamp2_crcf_interp_execute(interp, buffer[j], &buffer_interp[2*j]);
+      }
+
+    // resample
+    unsigned int nw;
+    unsigned int n=0;
+    for (unsigned int j=0; j<2*k; j++) 
+      {
+      resamp_crcf_execute(resamp, buffer_interp[j], &buffer_resamp[n], &nw);
+      n += nw;
+      }
+
+    // push onto buffer
+    for (unsigned int j=0; j<n; j++)
+      {
+        buff[tx_buffer_samples++] = buffer_resamp[j]; 
+      }
     }
 
-  return frameLen; 
+    for (unsigned int j = 0; j < tx_buffer_samples; j++)
+       {
+       tx_buffer[j] = buff[j]; 
+       }
+
+  return tx_buffer_samples; 
   }
 
 // ========================================================================
@@ -407,12 +447,9 @@ void PerformDutyCycle_On( Interferer interfererObj,
 	break;
 
       case(GMSK):
-        while (samplesInBuffer < tx_buffer.size())
-          { 
-          samplesInBuffer += BuildGMSKTransmission(tx_buffer,
-                                                   samplesInBuffer); 
-          }
-      break; 
+        samplesInBuffer = BuildGMSKTransmission(tx_buffer); 
+        break; 
+
       case(RRC):
         while (samplesInBuffer < tx_buffer.size())
 	   {
