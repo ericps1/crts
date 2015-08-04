@@ -239,8 +239,6 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_string(node_config, "interference_type", &tmpS)){
 		if(!strcmp(tmpS, "CW"))
 			np.interference_type = CW;
-		if(!strcmp(tmpS, "CW_SWEEP"))
-			np.interference_type = CW_SWEEP;
 		if(!strcmp(tmpS, "AWGN")) 
 			np.interference_type = AWGN;
 		if(!strcmp(tmpS, "GMSK"))
@@ -249,6 +247,15 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 			np.interference_type = RRC;
 		if(!strcmp(tmpS, "OFDM")) 
 			np.interference_type = OFDM;
+	}
+	
+	if (config_setting_lookup_string(node_config, "tx_freq_hop_type", &tmpS)){
+		if(!strcmp(tmpS, "NONE"))
+		    np.tx_freq_hop_type = NONE;
+		if(!strcmp(tmpS, "SWEEP")) 
+		    np.tx_freq_hop_type = SWEEP;
+		if(!strcmp(tmpS, "RANDOM"))
+		    np.tx_freq_hop_type = RANDOM;
 	}
 	
 	if (config_setting_lookup_float(node_config, "period_duration", &tmpD))
@@ -311,15 +318,23 @@ void print_node_parameters(struct node_parameters * np){
 		printf("	Receive gain:              %-.2f\n", np->rx_gain);
 	if(np->type == interferer){
 		char interference_type[5] = "NONE";
-		switch(np->interference_type){
-			case (CW): strcpy(interference_type, "CW"); break;
-			case (CW_SWEEP): strcpy(interference_type, "CW_SWEEP"); break;
-			case (AWGN): strcpy(interference_type, "AWGN"); break;
-			case (GMSK): strcpy(interference_type, "GMSK"); break;
-			case (RRC): strcpy(interference_type, "RRC"); break;
-			case (OFDM): strcpy(interference_type, "OFDM"); break;
-		}
+                char tx_freq_hop_type[6] = "NONE"; 
+		switch(np->interference_type)
+                  {
+		  case (CW): strcpy(interference_type, "CW"); break;
+		  case (AWGN): strcpy(interference_type, "AWGN"); break;
+		  case (GMSK): strcpy(interference_type, "GMSK"); break;
+		  case (RRC): strcpy(interference_type, "RRC"); break;
+		  case (OFDM): strcpy(interference_type, "OFDM"); break;
+		  }
+                switch(np->tx_freq_hop_type)
+                  {
+		  case (NONE): strcpy(tx_freq_hop_type, "NONE"); break;
+		  case (SWEEP): strcpy(tx_freq_hop_type, "SWEEP"); break;
+		  case (RANDOM): strcpy(tx_freq_hop_type, "RANDOM"); break;
+		  }
 		printf("	Interference type:         %-s\n", interference_type);
+		printf("	Tx freq hop type:          %-s\n", tx_freq_hop_type);
 		printf("	Interference period_duration:	   %-.2f\n", np->period_duration);
 		printf("	Interference duty cycle:   %-.2f\n", np->duty_cycle);
 		printf("	Interference tx freq min:   %-.2e\n", np->tx_freq_min);
