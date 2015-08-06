@@ -264,11 +264,25 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_float(node_config, "duty_cycle", &tmpD))
 		np.duty_cycle = tmpD;
 
+	if (config_setting_lookup_float(node_config, "dwell_time", &tmpD))
+		np.dwell_time = tmpD;
+
 	if (config_setting_lookup_float(node_config, "tx_freq_min", &tmpD))
 		np.tx_freq_min = tmpD;
 
 	if (config_setting_lookup_float(node_config, "tx_freq_max", &tmpD))
 		np.tx_freq_max = tmpD;
+
+	if (config_setting_lookup_float(node_config, 
+                                        "gmsk_header_length", 
+                                        &tmpD))
+		np.gmsk_header_length = tmpD;
+
+	if (config_setting_lookup_float(node_config, "gmsk_payload_length", &tmpD))
+		np.gmsk_payload_length = tmpD;
+
+	if (config_setting_lookup_float(node_config, "gmsk_bandwidth", &tmpD))
+		np.gmsk_bandwidth = tmpD;
 
 
 
@@ -333,14 +347,18 @@ void print_node_parameters(struct node_parameters * np){
 		  case (SWEEP): strcpy(tx_freq_hop_type, "SWEEP"); break;
 		  case (RANDOM): strcpy(tx_freq_hop_type, "RANDOM"); break;
 		  }
-		printf("	Interference type:         %-s\n", interference_type);
-		printf("	Tx freq hop type:          %-s\n", tx_freq_hop_type);
-		printf("	Interference period_duration:	   %-.2f\n", np->period_duration);
-		printf("	Interference duty cycle:   %-.2f\n", np->duty_cycle);
-		printf("	Interference tx freq min:   %-.2e\n", np->tx_freq_min);
-		printf("	Interference tx freq max::   %-.2e\n", np->tx_freq_max);
+	printf("	Interference type:                 %-s\n", interference_type);
+	printf("	Tx freq hop type:                  %-s\n", tx_freq_hop_type);
+	printf("	Interference period_duration:	   %-.2f\n", np->period_duration);
+	printf("	Interference duty cycle:           %-.2f\n", np->duty_cycle);
+	printf("	Interference dwell time:           %-.2f\n", np->dwell_time);
+	printf("	Interference tx freq min:          %-.2e\n", np->tx_freq_min);
+	printf("	Interference tx freq max:          %-.2e\n", np->tx_freq_max);
+	printf("	GMSK header length:                %-.2d\n", np->gmsk_header_length);
+	printf("	GMSK payload length:               %-.2d\n", np->gmsk_payload_length);
+	printf("	GMSK bandwidth:                    %-.2e\n", np->gmsk_bandwidth);
 	}
-		printf("------------------------------------------------\n");
+	printf("------------------------------------------------\n");
 }
 
 
