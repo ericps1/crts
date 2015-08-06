@@ -76,6 +76,7 @@ void Receive_command_from_controller(int *TCP_controller,
       inter->tx_freq_hop_type = np->tx_freq_hop_type;
       inter->period_duration = np->period_duration;
       inter->duty_cycle = np->duty_cycle;
+      inter->dwell_time = np->dwell_time; 
       inter->tx_freq_min = np->tx_freq_min; 
       inter->tx_freq_max = np->tx_freq_max; 
       freqWidth = floor(np->tx_freq_max - np->tx_freq_min); 
@@ -145,38 +146,99 @@ void FillBufferForTransmission(
 
 // ========================================================================
 //  FUNCTION:  Build GMSK Transmission
+// 
+//  Based upon liquid-usrp gmskframe_tx.cc
 // ========================================================================
 unsigned int BuildGMSKTransmission(
-  std::vector<std::complex<float> > &tx_buffer)
+  std::vector<std::complex<float> > &tx_buffer,
+  Interferer InterfererObj)
   {
-
+  printf("--> BuildGMSKTransmission"); 
   std::vector<std::complex<float> > tempBuffer; 
 
-  // allocate memory for GMSK 
+  // Allocate and set GMSK Variable defaults
+  float gmskMinBandwidth = 0.25f * (DAC_RATE / 256.0); 
+  float gmskMaxBandwidth = 0.25f * (DAC_RATE / 4.0); 
+  float gmskBandWidth = 100e3;        // [Hz]
+  float gmskTxGainDb = -3.0f;         // Software Gain -3dB by default 
+  unsigned int gmskHeaderLength = INTERFERER_HEADER_LENGTH; 
+  unsigned int gmskPayloadLength = INTERFERER_PAYLOAD_LENGTH; 
+  crc_scheme gmskCrcScheme = LIQUID_CRC_16; 
+  modulation_scheme gmskModulationScheme = LIQUID_MODEM_QPSK;
+  fec_scheme gmskFecSchemeInner = LIQUID_FEC_NONE; 
+  fec_scheme gmskFecSchemeOuter = LIQUID_FEC_HAMMING74; 
+
+  // allocate memory for GMSK Frame Generator 
   gmskframegen gmsk_fg; 
   gmsk_fg = gmskframegen_create();
 
+  // Update any exposed values from node parameters
+  gmskHeaderLength  = InterfererObj.gmsk_header_length; 
+  gmskPayloadLength = InterfererObj.gmsk_payload_length;  
+  gmskBandWidth = InterfererObj.gmsk_bandwidth; 
+  gmskTxGainDb = InterfererObj.tx_gain_soft; 
+
+  printf("Before asserts"); 
+  // assert values for GMSK transmission 
+  if (gmskBandWidth > gmskMaxBandwidth) 
+    {
+    fprintf(stderr,"error: Interferer GMSK maximum bandwidth exceeded (%8.4f MHz)\n", gmskMaxBandwidth*1e-6);
+    return 1;
+    } 
+  else if (gmskBandWidth < gmskMinBandwidth) 
+    {
+    fprintf(stderr,"error: Interferer GMSK minimum bandwidth exceeded (%8.4f kHz)\n", gmskMinBandwidth*1e-3);
+    return 1;
+    }
+  else if (gmskPayloadLength > (1<<16)) 
+    {
+    fprintf(stderr,"error: Interferer GMSK maximum payload length exceeded: %u > %u\n", gmskPayloadLength, 1<<16);
+    return 1;
+    } 
+  else if (gmskFecSchemeInner == LIQUID_FEC_UNKNOWN || 
+           gmskFecSchemeOuter == LIQUID_FEC_UNKNOWN) 
+    {
+    fprintf(stderr,"error: unsupported FEC scheme\n");
+    return 1;
+    } 
+  else if (gmskModulationScheme == LIQUID_MODEM_UNKNOWN) 
+    {
+    fprintf(stderr,"error: unsupported modulation scheme\n");
+    return 0;
+    }
+
+  // calculate tx rate
+  double tx_rate = 4.0 * gmskBandWidth; 
+  printf("tx rate %e", tx_rate); 
+  unsigned int interp_rate = (unsigned int)(DAC_RATE / tx_rate); 
+  interp_rate = (interp_rate >> 2) << 2; 
+  interp_rate += 4; 
+  double usrp_tx_rate = DAC_RATE / (double)interp_rate; 
+  InterfererObj.usrp_tx->set_tx_rate(usrp_tx_rate);
+  usrp_tx_rate = InterfererObj.usrp_tx->get_tx_rate(); 
+
+  double tx_resamp_rate = usrp_tx_rate / tx_rate; 
+
   // half-band resampler
   resamp2_crcf interp = resamp2_crcf_create(7,0.0f,40.0f);
-
-  double tx_resamp_rate = 2; 
 
   // add arbitrary resampling component
   resamp_crcf resamp = resamp_crcf_create(tx_resamp_rate,7,0.4f,60.0f,64);
   resamp_crcf_setrate(resamp, tx_resamp_rate);
 
   // header and payload for frame generators
-  unsigned char header[INTERFERER_HEADER_LENGTH]; 
-  unsigned char payload[INTERFERER_PAYLOAD_LENGTH];
+  unsigned char header[gmskHeaderLength]; 
+  unsigned char payload[gmskPayloadLength];
 	
+  printf("before generate data");
   // generate a random header
-  for(int j = 0; j < INTERFERER_HEADER_LENGTH; j++)
+  for(unsigned int j = 0; j < gmskHeaderLength; j++)
     {
     header[j] = rand() & 0xff;
     }
 
   // generate a random payload
-  for(int j=0; j < INTERFERER_PAYLOAD_LENGTH; j++)
+  for(unsigned int j=0; j < gmskPayloadLength; j++)
     {
     payload[j] = rand() & 0xff;
     }
@@ -185,22 +247,31 @@ unsigned int BuildGMSKTransmission(
   gmskframegen_assemble(gmsk_fg, 
                         header, 
                         payload, 
-                        INTERFERER_PAYLOAD_LENGTH, 
-                        LIQUID_CRC_NONE, 
-                        LIQUID_FEC_NONE, 
-                        LIQUID_FEC_NONE);
+                        gmskPayloadLength, 
+			gmskCrcScheme, 
+			gmskFecSchemeInner, 
+			gmskFecSchemeOuter); 
   
   unsigned int frameLen = gmskframegen_getframelen(gmsk_fg); 
+
+  printf("header length: %d \n", gmskHeaderLength); 
+  printf("payload length: %d \n", gmskPayloadLength); 
+  printf("bandwidth: %f /n", gmskBandWidth); 
+  printf("frame length:  %d \n", frameLen); 
 
   tempBuffer.resize(frameLen + 1); 
   int frame_complete = 0;
 
+  // set up framing buffers 
   unsigned int k = 2; 
   std::complex<float> buffer[k];
   std::complex<float> buffer_interp[2*k]; 
   std::complex<float> buffer_resamp[8*k];
   std::vector<std::complex<float> > buff(5000); 
   unsigned int tx_buffer_samples = 0; 
+
+  // calculate soft gain
+  float g = powf(10.0f, gmskTxGainDb/20.0f); 
 
   // generate frame
   while (!frame_complete) 
@@ -226,7 +297,7 @@ unsigned int BuildGMSKTransmission(
     // push onto buffer
     for (unsigned int j=0; j<n; j++)
       {
-        buff[tx_buffer_samples++] = buffer_resamp[j]; 
+        buff[tx_buffer_samples++] = g * buffer_resamp[j]; 
       }
     }
 
@@ -235,6 +306,7 @@ unsigned int BuildGMSKTransmission(
        tx_buffer[j] = buff[j]; 
        }
 
+  printf ("tx_buffer_samples:  %d", tx_buffer_samples); 
   return tx_buffer_samples; 
   }
 
@@ -382,27 +454,6 @@ void TransmitInterference(
       usrp_samps = samplesInBuffer - tx_samp_count;
       }
 
-    // ======================================================
-    //  Modify Freq, if appropriate
-    // ======================================================
-    switch (interfererObj.tx_freq_hop_type)
-	{
-        case (SWEEP):
-          currentTxFreq += (freqIncrement * freqCoeff); 
-          if ((currentTxFreq > interfererObj.tx_freq_max) ||
-	      (currentTxFreq < interfererObj.tx_freq_min))
-            {
-            freqCoeff = freqCoeff * -1;  
-            currentTxFreq = currentTxFreq + (2 * freqIncrement * freqCoeff); 
-            }
-          interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
-          break; 
-        case (RANDOM):
-          currentTxFreq = rand() % freqWidth + interfererObj.tx_freq_min;
-          interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
-          break;
-	}
-
     interfererObj.usrp_tx->get_device()->send(&tx_buffer[tx_samp_count], 
                                               usrp_samps,
                                               interfererObj.metadata_tx,
@@ -423,20 +474,56 @@ void TransmitInterference(
 
 
 // ========================================================================
+//  FUNCTION:  Set Tx Freq for Frequency Hopping 
+// ========================================================================
+void ChangeFrequency(Interferer interfererObj)
+  {
+  switch (interfererObj.tx_freq_hop_type)
+    {
+    case (SWEEP):
+      currentTxFreq += (freqIncrement * freqCoeff); 
+      if ((currentTxFreq > interfererObj.tx_freq_max) ||
+          (currentTxFreq < interfererObj.tx_freq_min))
+        {
+        freqCoeff = freqCoeff * -1;  
+        currentTxFreq = currentTxFreq + (2 * freqIncrement * freqCoeff); 
+        }
+      interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
+      break; 
+    case (RANDOM):
+      currentTxFreq = rand() % freqWidth + interfererObj.tx_freq_min;
+      interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
+      break;
+    }
+  }
+
+
+// ========================================================================
 //  FUNCTION:  Perform Duty Cycle ON
 // ========================================================================
 void PerformDutyCycle_On( Interferer interfererObj,
                           node_parameters np,
                           float time_onCycle)
   {
+  printf("In PerformDutyCycle_On"); 
   std::vector<std::complex<float> > tx_buffer(TX_BUFFER_LENGTH);
   unsigned int samplesInBuffer = 0; 
   unsigned int randomFlag = (np.interference_type == (AWGN)) ? 1 : 0; 
   timer onTimer = timer_create(); 
+  timer dwellTimer = timer_create(); 
   timer_tic(onTimer); 
+  timer_tic(dwellTimer); 
 
   while (timer_toc(onTimer) < time_onCycle)
     {
+    // determine if we need to freq hop 
+    if ((np.tx_freq_hop_type != (NONE)) && 
+        (timer_toc(dwellTimer) >= interfererObj.dwell_time))
+      {
+      ChangeFrequency(interfererObj); 
+      } 
+
+    // Generate One Frame of Data to Transmit 
     switch(np.interference_type)
       {
       case(CW):
@@ -447,7 +534,8 @@ void PerformDutyCycle_On( Interferer interfererObj,
 	break;
 
       case(GMSK):
-        samplesInBuffer = BuildGMSKTransmission(tx_buffer); 
+	  samplesInBuffer = BuildGMSKTransmission(tx_buffer,
+                                                  interfererObj); 
         break; 
 
       case(RRC):
@@ -492,7 +580,7 @@ void PerformDutyCycle_Off(float time_offCycle)
 
 int main(int argc, char ** argv)
   {
-
+  printf("starting MAIN"); 
   // register signal handlers
   signal(SIGINT, terminate);
   signal(SIGQUIT, terminate);
@@ -538,7 +626,7 @@ int main(int argc, char ** argv)
     printf("Failed to Connect to server.\n");
     exit(EXIT_FAILURE);
     }
-  printf("Connected to server\n");
+  printf("gmk Connected to server\n");
 	
   uhd::msg::register_handler(&uhd_quiet);
 
@@ -566,6 +654,7 @@ int main(int argc, char ** argv)
     }
 
 
+  printf("starting main service loop"); 
   // ================================================================
   // BEGIN: Main Service Loop 
   // ================================================================

@@ -69,9 +69,17 @@ struct node_parameters{
     int   interference_type;
     float period_duration;
     float duty_cycle;
+    float dwell_time; 
     int   tx_freq_hop_type; 
     float tx_freq_min;
     float tx_freq_max; 
+
+    // gmsk interferer properties 
+    unsigned int gmsk_header_length;
+    unsigned int gmsk_payload_length; 
+    float gmsk_bandwidth; // note tx_rate is ignored and calcualted from 
+                          // gmsk_bandwidth (default = 4.0f * bandwidth)
+
 };
 
 #endif
