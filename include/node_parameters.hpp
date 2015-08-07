@@ -66,19 +66,25 @@ struct node_parameters{
     int tx_fec1;
 
     // interferer only
-    int   interference_type;
-    float period_duration;
-    float duty_cycle;
-    float dwell_time; 
-    int   tx_freq_hop_type; 
-    float tx_freq_min;
-    float tx_freq_max; 
+    int   interference_type;          // see ENUM list above 
+    float period_duration;            // seconds for a single period
+    float duty_cycle;                 // percent of period that interference 
+                                      // is ON.  expressed as a float 
+                                      // between 0.0 and 1.0
 
+    // interferer freq hop parameters
+    int   tx_freq_hop_type;            // NONE | SWEEP | RANDOM
+    float tx_freq_hop_min;             // center frequency minimum
+    float tx_freq_hop_max;             // center frequency maximum
+    float tx_freq_hop_dwell_time;      // seconds at a given freq
+    float tx_freq_hop_increment;       // for SWEEP, increment hop amount     
+    
     // gmsk interferer properties 
     unsigned int gmsk_header_length;
     unsigned int gmsk_payload_length; 
-    float gmsk_bandwidth; // note tx_rate is ignored and calcualted from 
-                          // gmsk_bandwidth (default = 4.0f * bandwidth)
+    float        gmsk_bandwidth;       // note tx_rate is ignored and 
+                                       // calcualted from gmsk_bandwidth 
+                                       // (default = 4.0f * bandwidth)
 
 };
 

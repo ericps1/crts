@@ -68,18 +68,32 @@ void Receive_command_from_controller(int *TCP_controller,
       currentTxFreq = np->tx_freq; 
       freqIncrement = +2.5e5; 
       freqCoeff = +1; 
+
       inter->usrp_tx->set_tx_freq(currentTxFreq);
       inter->usrp_tx->set_tx_rate(np->tx_rate);
       inter->tx_rate = np->tx_rate;
       inter->usrp_tx->set_tx_gain(np->tx_gain);
       inter->interference_type = np->interference_type;
-      inter->tx_freq_hop_type = np->tx_freq_hop_type;
       inter->period_duration = np->period_duration;
       inter->duty_cycle = np->duty_cycle;
-      inter->dwell_time = np->dwell_time; 
-      inter->tx_freq_min = np->tx_freq_min; 
-      inter->tx_freq_max = np->tx_freq_max; 
-      freqWidth = floor(np->tx_freq_max - np->tx_freq_min); 
+
+      // set freq hopping parameters
+      inter->tx_freq_hop_type       = np->tx_freq_hop_type;
+      inter->tx_freq_hop_min        = np->tx_freq_hop_min; 
+      inter->tx_freq_hop_max        = np->tx_freq_hop_max; 
+      inter->tx_freq_hop_dwell_time = np->tx_freq_hop_dwell_time; 
+      inter->tx_freq_hop_increment  = np->tx_freq_hop_increment;
+      if (inter->tx_freq_hop_increment > 0.0)
+	  {
+          freqIncrement = inter->tx_freq_hop_increment; 
+	  }
+      freqWidth = floor(np->tx_freq_hop_max - np->tx_freq_hop_min); 
+
+      // set gmsk parameters 
+      inter->gmsk_header_length = np->gmsk_header_length; 
+      inter->gmsk_payload_length = np->gmsk_payload_length; 
+      inter->gmsk_bandwidth = np->gmsk_bandwidth; 
+
       break;
 
     case 't': // terminate program
@@ -153,7 +167,9 @@ unsigned int BuildGMSKTransmission(
   std::vector<std::complex<float> > &tx_buffer,
   Interferer InterfererObj)
   {
-  printf("--> BuildGMSKTransmission"); 
+      // printf("\n"); 
+      // printf("============================================== \n"); 
+      // printf("--> BuildGMSKTransmission \n"); 
   std::vector<std::complex<float> > tempBuffer; 
 
   // Allocate and set GMSK Variable defaults
@@ -178,7 +194,6 @@ unsigned int BuildGMSKTransmission(
   gmskBandWidth = InterfererObj.gmsk_bandwidth; 
   gmskTxGainDb = InterfererObj.tx_gain_soft; 
 
-  printf("Before asserts"); 
   // assert values for GMSK transmission 
   if (gmskBandWidth > gmskMaxBandwidth) 
     {
@@ -209,7 +224,7 @@ unsigned int BuildGMSKTransmission(
 
   // calculate tx rate
   double tx_rate = 4.0 * gmskBandWidth; 
-  printf("tx rate %e", tx_rate); 
+  //  printf("tx rate %e \n", tx_rate); 
   unsigned int interp_rate = (unsigned int)(DAC_RATE / tx_rate); 
   interp_rate = (interp_rate >> 2) << 2; 
   interp_rate += 4; 
@@ -218,6 +233,7 @@ unsigned int BuildGMSKTransmission(
   usrp_tx_rate = InterfererObj.usrp_tx->get_tx_rate(); 
 
   double tx_resamp_rate = usrp_tx_rate / tx_rate; 
+  // printf("resample rate for arbitrary resampler: %f \n", tx_resamp_rate); 
 
   // half-band resampler
   resamp2_crcf interp = resamp2_crcf_create(7,0.0f,40.0f);
@@ -230,7 +246,6 @@ unsigned int BuildGMSKTransmission(
   unsigned char header[gmskHeaderLength]; 
   unsigned char payload[gmskPayloadLength];
 	
-  printf("before generate data");
   // generate a random header
   for(unsigned int j = 0; j < gmskHeaderLength; j++)
     {
@@ -254,10 +269,10 @@ unsigned int BuildGMSKTransmission(
   
   unsigned int frameLen = gmskframegen_getframelen(gmsk_fg); 
 
-  printf("header length: %d \n", gmskHeaderLength); 
-  printf("payload length: %d \n", gmskPayloadLength); 
-  printf("bandwidth: %f /n", gmskBandWidth); 
-  printf("frame length:  %d \n", frameLen); 
+  //  printf("header length:   %d \n", gmskHeaderLength); 
+  //  printf("payload length:  %d \n", gmskPayloadLength); 
+  //  printf("bandwidth:       %-.2e \n", gmskBandWidth); 
+  //  printf("frame length:    %d \n", frameLen); 
 
   tempBuffer.resize(frameLen + 1); 
   int frame_complete = 0;
@@ -267,7 +282,7 @@ unsigned int BuildGMSKTransmission(
   std::complex<float> buffer[k];
   std::complex<float> buffer_interp[2*k]; 
   std::complex<float> buffer_resamp[8*k];
-  std::vector<std::complex<float> > buff(5000); 
+  //  std::vector<std::complex<float> > buff(5000); 
   unsigned int tx_buffer_samples = 0; 
 
   // calculate soft gain
@@ -294,19 +309,21 @@ unsigned int BuildGMSKTransmission(
       n += nw;
       }
 
-    // push onto buffer
+    // push onto buffer with software gain
     for (unsigned int j=0; j<n; j++)
       {
-        buff[tx_buffer_samples++] = g * buffer_resamp[j]; 
+        tx_buffer[tx_buffer_samples++] = g * buffer_resamp[j]; 
       }
     }
 
-    for (unsigned int j = 0; j < tx_buffer_samples; j++)
-       {
-       tx_buffer[j] = buff[j]; 
-       }
+  //    for (unsigned int j = 0; j < tx_buffer_samples; j++)
+  //     {
+  //     tx_buffer[j] = buff[j]; 
+  //      }
 
-  printf ("tx_buffer_samples:  %d", tx_buffer_samples); 
+  //  printf("frame interpolated and resampled \n"); 
+  //  printf("final buffer length for frame:  %d \n", tx_buffer_samples); 
+  //  printf("============================================== \n"); 
   return tx_buffer_samples; 
   }
 
@@ -453,7 +470,6 @@ void TransmitInterference(
       {
       usrp_samps = samplesInBuffer - tx_samp_count;
       }
-
     interfererObj.usrp_tx->get_device()->send(&tx_buffer[tx_samp_count], 
                                               usrp_samps,
                                               interfererObj.metadata_tx,
@@ -482,8 +498,8 @@ void ChangeFrequency(Interferer interfererObj)
     {
     case (SWEEP):
       currentTxFreq += (freqIncrement * freqCoeff); 
-      if ((currentTxFreq > interfererObj.tx_freq_max) ||
-          (currentTxFreq < interfererObj.tx_freq_min))
+      if ((currentTxFreq > interfererObj.tx_freq_hop_max) ||
+          (currentTxFreq < interfererObj.tx_freq_hop_min))
         {
         freqCoeff = freqCoeff * -1;  
         currentTxFreq = currentTxFreq + (2 * freqIncrement * freqCoeff); 
@@ -491,7 +507,7 @@ void ChangeFrequency(Interferer interfererObj)
       interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
       break; 
     case (RANDOM):
-      currentTxFreq = rand() % freqWidth + interfererObj.tx_freq_min;
+      currentTxFreq = rand() % freqWidth + interfererObj.tx_freq_hop_min;
       interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
       break;
     }
@@ -505,7 +521,6 @@ void PerformDutyCycle_On( Interferer interfererObj,
                           node_parameters np,
                           float time_onCycle)
   {
-  printf("In PerformDutyCycle_On"); 
   std::vector<std::complex<float> > tx_buffer(TX_BUFFER_LENGTH);
   unsigned int samplesInBuffer = 0; 
   unsigned int randomFlag = (np.interference_type == (AWGN)) ? 1 : 0; 
@@ -518,9 +533,11 @@ void PerformDutyCycle_On( Interferer interfererObj,
     {
     // determine if we need to freq hop 
     if ((np.tx_freq_hop_type != (NONE)) && 
-        (timer_toc(dwellTimer) >= interfererObj.dwell_time))
+        (timer_toc(dwellTimer) >= interfererObj.tx_freq_hop_dwell_time))
       {
       ChangeFrequency(interfererObj); 
+      usleep(100); 
+      timer_tic(dwellTimer); 
       } 
 
     // Generate One Frame of Data to Transmit 
@@ -550,8 +567,19 @@ void PerformDutyCycle_On( Interferer interfererObj,
 	  //          break; 
       }// interference type switch
 
+    if (sig_terminate) 
+      {
+      break;
+      }
     TransmitInterference(interfererObj, tx_buffer, samplesInBuffer); 
+    if (sig_terminate) 
+      {
+      break;
+      }
+
     }
+  timer_destroy(onTimer); 
+  timer_destroy(dwellTimer); 
   }
 
 
@@ -566,7 +594,12 @@ void PerformDutyCycle_Off(float time_offCycle)
   while (timer_toc(offTimer) < time_offCycle)
       {
 	  usleep(100); 
+      if (sig_terminate) 
+        {
+        break;
+        }
       }
+  timer_destroy(offTimer); 
   }
 
 
@@ -580,7 +613,6 @@ void PerformDutyCycle_Off(float time_offCycle)
 
 int main(int argc, char ** argv)
   {
-  printf("starting MAIN"); 
   // register signal handlers
   signal(SIGINT, terminate);
   signal(SIGQUIT, terminate);
@@ -654,7 +686,6 @@ int main(int argc, char ** argv)
     }
 
 
-  printf("starting main service loop"); 
   // ================================================================
   // BEGIN: Main Service Loop 
   // ================================================================
@@ -671,13 +702,9 @@ int main(int argc, char ** argv)
       {
       break;
       }
-    printf("time:  %f", timer_toc(t0)); 
-    printf(" --> Starting Interferer ON Cycle \n");
     PerformDutyCycle_On(interfererObj,
                         np, 
                         time_onCycle); 
-    printf("time:  %f", timer_toc(t0)); 
-    printf(" --> Starting Interferer OFF Cycle \n");
     PerformDutyCycle_Off(time_offCycle); 
     if (sig_terminate) 
       {
