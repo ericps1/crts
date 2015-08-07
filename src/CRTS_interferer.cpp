@@ -167,9 +167,9 @@ unsigned int BuildGMSKTransmission(
   std::vector<std::complex<float> > &tx_buffer,
   Interferer InterfererObj)
   {
-      // printf("\n"); 
-      // printf("============================================== \n"); 
-      // printf("--> BuildGMSKTransmission \n"); 
+       printf("\n"); 
+       printf("============================================== \n"); 
+       printf("--> BuildGMSKTransmission \n"); 
   std::vector<std::complex<float> > tempBuffer; 
 
   // Allocate and set GMSK Variable defaults
@@ -224,7 +224,7 @@ unsigned int BuildGMSKTransmission(
 
   // calculate tx rate
   double tx_rate = 4.0 * gmskBandWidth; 
-  //  printf("tx rate %e \n", tx_rate); 
+    printf("tx rate %e \n", tx_rate); 
   unsigned int interp_rate = (unsigned int)(DAC_RATE / tx_rate); 
   interp_rate = (interp_rate >> 2) << 2; 
   interp_rate += 4; 
@@ -233,7 +233,7 @@ unsigned int BuildGMSKTransmission(
   usrp_tx_rate = InterfererObj.usrp_tx->get_tx_rate(); 
 
   double tx_resamp_rate = usrp_tx_rate / tx_rate; 
-  // printf("resample rate for arbitrary resampler: %f \n", tx_resamp_rate); 
+   printf("resample rate for arbitrary resampler: %f \n", tx_resamp_rate); 
 
   // half-band resampler
   resamp2_crcf interp = resamp2_crcf_create(7,0.0f,40.0f);
@@ -269,10 +269,10 @@ unsigned int BuildGMSKTransmission(
   
   unsigned int frameLen = gmskframegen_getframelen(gmsk_fg); 
 
-  //  printf("header length:   %d \n", gmskHeaderLength); 
-  //  printf("payload length:  %d \n", gmskPayloadLength); 
-  //  printf("bandwidth:       %-.2e \n", gmskBandWidth); 
-  //  printf("frame length:    %d \n", frameLen); 
+    printf("header length:   %d \n", gmskHeaderLength); 
+    printf("payload length:  %d \n", gmskPayloadLength); 
+    printf("bandwidth:       %-.2e \n", gmskBandWidth); 
+    printf("frame length:    %d \n", frameLen); 
 
   tempBuffer.resize(frameLen + 1); 
   int frame_complete = 0;
@@ -321,9 +321,9 @@ unsigned int BuildGMSKTransmission(
   //     tx_buffer[j] = buff[j]; 
   //      }
 
-  //  printf("frame interpolated and resampled \n"); 
-  //  printf("final buffer length for frame:  %d \n", tx_buffer_samples); 
-  //  printf("============================================== \n"); 
+    printf("frame interpolated and resampled \n"); 
+    printf("final buffer length for frame:  %d \n", tx_buffer_samples); 
+    printf("============================================== \n"); 
   return tx_buffer_samples; 
   }
 
