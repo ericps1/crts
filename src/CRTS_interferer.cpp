@@ -65,7 +65,11 @@ void Receive_command_from_controller(int *TCP_controller,
       memcpy(np ,&command_buffer[1], sizeof(node_parameters));
       print_node_parameters(np);
       // set interferer parameters
-      currentTxFreq = np->tx_freq; 
+      currentTxFreq = np->tx_freq;
+      if (np->tx_freq_hop_type == (ALTERNATING))
+        {
+        currentTxFreq = np->tx_freq_hop_min; 
+        }
       freqIncrement = +2.5e5; 
       freqCoeff = +1; 
 
@@ -494,8 +498,21 @@ void TransmitInterference(
 // ========================================================================
 void ChangeFrequency(Interferer interfererObj)
   {
+  printf("--> Change Frequency \n"); 
+  printf("    was:  %-.2e \n", currentTxFreq); 
+  
   switch (interfererObj.tx_freq_hop_type)
     {
+    case (ALTERNATING):
+      if (currentTxFreq == interfererObj.tx_freq_hop_max) 
+	{
+        currentTxFreq = interfererObj.tx_freq_hop_min; 
+	}
+      else
+	{
+        currentTxFreq = interfererObj.tx_freq_hop_max; 
+	}
+      break;
     case (SWEEP):
       currentTxFreq += (freqIncrement * freqCoeff); 
       if ((currentTxFreq > interfererObj.tx_freq_hop_max) ||
@@ -504,13 +521,13 @@ void ChangeFrequency(Interferer interfererObj)
         freqCoeff = freqCoeff * -1;  
         currentTxFreq = currentTxFreq + (2 * freqIncrement * freqCoeff); 
         }
-      interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
       break; 
     case (RANDOM):
       currentTxFreq = rand() % freqWidth + interfererObj.tx_freq_hop_min;
-      interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
       break;
     }
+  interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
+  printf("    is:   %-.2e \n", currentTxFreq); 
   }
 
 
@@ -521,6 +538,7 @@ void PerformDutyCycle_On( Interferer interfererObj,
                           node_parameters np,
                           float time_onCycle)
   {
+  printf("--> Top of Duty Cycle ON \n"); 
   std::vector<std::complex<float> > tx_buffer(TX_BUFFER_LENGTH);
   unsigned int samplesInBuffer = 0; 
   unsigned int randomFlag = (np.interference_type == (AWGN)) ? 1 : 0; 
@@ -531,10 +549,12 @@ void PerformDutyCycle_On( Interferer interfererObj,
 
   while (timer_toc(onTimer) < time_onCycle)
     {
+	printf("dwell time:  %f \n", timer_toc(dwellTimer)); 
     // determine if we need to freq hop 
     if ((np.tx_freq_hop_type != (NONE)) && 
         (timer_toc(dwellTimer) >= interfererObj.tx_freq_hop_dwell_time))
       {
+	  printf("change freq \n"); 
       ChangeFrequency(interfererObj); 
       usleep(100); 
       timer_tic(dwellTimer); 
@@ -679,6 +699,7 @@ int main(int argc, char ** argv)
   // by setting duty_cycle = 1.0
   switch(np.tx_freq_hop_type)
     {  
+    case (ALTERNATING):
     case (SWEEP):
     case (RANDOM):
       interfererObj.duty_cycle = 1.0; 
