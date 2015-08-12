@@ -171,6 +171,8 @@ int main(int argc, char ** argv){
 
 		// loop through nodes in scenario
 		for (int j = 0; j < sp.num_nodes; j++){
+            char node_id[10];
+            snprintf(node_id, 10, "%d", j + 1);
 
 			// read in node settings
 			memset(&np[j], 0, sizeof(struct node_parameters));
@@ -212,10 +214,15 @@ int main(int argc, char ** argv){
 				strcat(command, serv_ip_addr);
 
                 // set command to continue program after shell is closed
-				strcat(command, " 2>&1 &'&");
+				strcat(command, " 2>&1 &'");
+                strcat(command, " > ");
+                strcat(command, crts_dir);
+                strcat(command, "/node");
+                strcat(command, node_id);
+                strcat(command, ".SYSOUT &");
 				ssh_return = system(command);
-				//printf("Command executed: %s\n", command);
-				//printf("Return value: %i\n", ssh_return);
+				printf("Command executed: %s\n", command);
+				printf("Return value: %i\n", ssh_return);
 			}
 
 			if(ssh_return != 0){

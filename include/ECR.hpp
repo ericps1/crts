@@ -150,6 +150,7 @@ public:
 	ofdmflexframesync fs;           // frame synchronizer object
     uhd::usrp::multi_usrp::sptr usrp_rx;
     uhd::rx_metadata_t metadata_rx;
+    unsigned int num_written;
 
 	// receiver threading objects
     pthread_t rx_process;           // receive thread
