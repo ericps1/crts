@@ -39,18 +39,29 @@ void CE_FEC::execute(void * _args){
         {
             printf("sending change packet????????????????????\n");
             unsigned char header[8] = {(unsigned char) 'f', 0, 0, 0, 0, 0, 0, 0};
-            ECR->set_header(header);
+            ECR->transmit_packet(header, NULL, 0);
         }
-        else
+        if(cm->num_received % 5 == 0)
         {
             unsigned char header[8] = {(unsigned char) 'p', 0, 0, 0, 0, 0, 0, 0};
-            ECR->set_header(header);
+            unsigned char payload[50];
+            for(unsigned int i = 0; i < 50; i++)
+                payload[i] = 'b';
+            ECR->transmit_packet(header, payload, 50);
         }
+       // else
+        //{
+          //  unsigned char header[8] = {(unsigned char) 'p', 0, 0, 0, 0, 0, 0, 0};
+       // }
 
         if('f' == (char)ECR->CE_metrics.header[0])
         {
             printf("resetting fec!!!!!!!!!!!!!!!!!!!!!!\n");
             ECR->set_tx_fec1(LIQUID_FEC_REP3);
+        }
+        if('p' == (char)ECR->CE_metrics.header[0])
+        {
+            printf("got p payload of length %u\n", ECR->CE_metrics.payload_len);
         }
     }	
 }
