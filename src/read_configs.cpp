@@ -264,6 +264,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
           {
 	  if(!strcmp(tmpS, "NONE"))
 	    np.tx_freq_hop_type = NONE;
+	  if(!strcmp(tmpS, "ALTERNATING"))
+	    np.tx_freq_hop_type = ALTERNATING;
 	  if(!strcmp(tmpS, "SWEEP")) 
 	    np.tx_freq_hop_type = SWEEP;
 	  if(!strcmp(tmpS, "RANDOM"))
@@ -393,6 +395,7 @@ void print_node_parameters(struct node_parameters * np)
     switch(np->tx_freq_hop_type)
       {
       case (NONE): strcpy(tx_freq_hop_type, "NONE"); break;
+      case (ALTERNATING): strcpy(tx_freq_hop_type, "ALTERNATING"); break;
       case (SWEEP): strcpy(tx_freq_hop_type, "SWEEP"); break;
       case (RANDOM): strcpy(tx_freq_hop_type, "RANDOM"); break;
       }
