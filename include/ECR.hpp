@@ -12,18 +12,26 @@
 
 enum CE_event_types{
 	ce_timeout = 0,	// event is triggered by a timer
-	ce_phy_event	// event is triggered by the reception of a physical layer frame
+	ce_phy_event,	// event is triggered by the reception of a physical layer frame
+};
+
+enum CE_frame_types{
+    ce_frame_data = 0,
+    ce_frame_control
 };
 
 // metric struct
 struct metric_s{
 	// Flag for metric type
 	int CE_event;
+    int CE_frame;
 
 	// PHY
 	int header_valid;
 	unsigned char header[8];
+    unsigned char* payload;
 	int payload_valid;
+    unsigned int payload_len;
 	framesyncstats_s stats; // stats used by ofdmtxrx object (RSSI, EVM)
 	uhd::time_spec_t time_spec;
 
@@ -142,6 +150,7 @@ public:
 	ofdmflexframesync fs;           // frame synchronizer object
     uhd::usrp::multi_usrp::sptr usrp_rx;
     uhd::rx_metadata_t metadata_rx;
+    unsigned int num_written;
 
 	// receiver threading objects
     pthread_t rx_process;           // receive thread

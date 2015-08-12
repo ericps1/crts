@@ -199,7 +199,7 @@ int main(int argc, char ** argv){
 	CRTS_client_addr.sin_family = AF_INET;
 	CRTS_client_addr.sin_addr.s_addr = inet_addr(np.TARGET_IP);
 	CRTS_client_addr.sin_port = htons(port);
-	socklen_t serverlen = sizeof(CRTS_client_addr);
+	//socklen_t serverlen = sizeof(CRTS_client_addr);
 	int CRTS_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 	// Bind CRTS server socket
@@ -229,6 +229,7 @@ int main(int argc, char ** argv){
 
 	// Set some number of iterations based on the run time and delay between iterations
 	iterations = (int) (run_time/(np.tx_delay_us*1e-6));
+    printf("iterations: %d\n", iterations);
 	
 	// main loop
 	for(int i=0; i<iterations; i++){
