@@ -35,11 +35,11 @@ lib/ECR.o: include/ECR.hpp src/ECR.cpp
 CRTS_CR: include/ECR.hpp src/TUN.cpp src/ECR.cpp src/CRTS_CR.cpp $(CEs)
 	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp src/read_configs.cpp lib/pt_sleep.o lib/TUN.o lib/ECR.o -lliquid -luhd -lpthread -lm -lc -lconfig $(CEs)
 
-lib/interferer.o: src/interferer.cpp
+lib/interferer.o: src/interferer.cpp 
 	g++ $(FLAGS) -c -o lib/interferer.o src/interferer.cpp
 
-CRTS_interferer: src/CRTS_interferer.cpp
-	g++ $(FLAGS) -o CRTS_interferer src/CRTS_interferer.cpp lib/interferer.o lib/read_configs.o -luhd -lc -lconfig -lliquid
+CRTS_interferer: src/CRTS_interferer.cpp 
+	g++ $(FLAGS) -o CRTS_interferer src/CRTS_interferer.cpp src/timer.cc lib/interferer.o lib/read_configs.o -luhd -lc -lconfig -lliquid
 
 CRTS_controller: include/node_parameters.hpp src/CRTS_controller.cpp src/read_configs.cpp
 	g++ $(FLAGS) -o CRTS_controller src/CRTS_controller.cpp lib/read_configs.o -lconfig -lliquid
