@@ -229,6 +229,7 @@ int main(int argc, char ** argv){
 
 	// Set some number of iterations based on the run time and delay between iterations
 	iterations = (int) (run_time/(np.tx_delay_us*1e-6));
+    printf("iterations: %d\n", iterations);
 	
 	// main loop
 	for(int i=0; i<iterations; i++){

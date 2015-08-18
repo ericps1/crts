@@ -168,6 +168,8 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
 		CE = new CE_Example();
 	if(!strcmp(ce, "CE_FEC"))
 		CE = new CE_FEC();
+	if(!strcmp(ce, "CE_Hopper"))
+		CE = new CE_Hopper();
 	if(!strcmp(ce, "CE_AMC"))
 		CE = new CE_AMC();
 //EDIT END FLAG
@@ -663,10 +665,25 @@ int rxCallback(unsigned char * _header,
 		ECR->CE_metrics.payload_valid = _payload_valid;
 		ECR->CE_metrics.stats = _stats;
 		ECR->CE_metrics.time_spec = ECR->metadata_rx.time_spec;
+        ECR->CE_metrics.payload_len = _payload_len;
+        ECR->CE_metrics.payload = new unsigned char[_payload_len];
+        unsigned int k;
+        for(k = 0; k < _payload_len; k++)
+        {
+            ECR->CE_metrics.payload[k] = _payload[k];
+        }
 
 		// Signal CE thread
 		pthread_mutex_lock(&ECR->CE_mutex);
 		ECR->CE_metrics.CE_event = ce_phy_event;		// set event type to phy once mutex is locked
+        if('d' == _header[0])
+        {
+            ECR->CE_metrics.CE_frame = ce_frame_data;
+        }
+        else
+        {
+            ECR->CE_metrics.CE_frame = ce_frame_control;
+        }
 		pthread_cond_signal(&ECR->CE_execute_sig);
 		pthread_mutex_unlock(&ECR->CE_mutex);
 
@@ -687,16 +704,21 @@ int rxCallback(unsigned char * _header,
 	dprintf("\n");
 
 	char payload[_payload_len];
-	for(int i=0; i<_payload_len; i++)
+	for(unsigned int i=0; i<_payload_len; i++)
 		payload[i] = _payload[i];
 
 	int nwrite = 0;
 	if(_payload_valid){
-		// Pass payload to tun interface
-    	dprintf("Passing payload to tun interface\n");
-		nwrite = cwrite(ECR->tunfd, payload, (int)_payload_len);
-		if(nwrite != (int)_payload_len) 
-			printf("Number of bytes written to TUN interface not equal to payload length\n"); 
+        if('d' == _header[0])
+        {
+            // Pass payload to tun interface
+            dprintf("Passing payload to tun interface\n");
+            nwrite = cwrite(ECR->tunfd, payload, (int)_payload_len);
+            if(nwrite != (int)_payload_len) 
+                printf("Number of bytes written to TUN interface not equal to payload length\n"); 
+            else
+                ECR->num_written++;
+        }
 	}
 
 	usleep(1e5);
@@ -764,6 +786,8 @@ void * ECR_tx_worker(void * _arg)
 			dprintf("\n");
 
 			dprintf("Transmitting packet\n");	
+            unsigned char header[8] = {(unsigned char) 'd', 0, 0, 0, 0, 0, 0, 0};
+            ECR->set_header(header);
 			ECR->transmit_packet(ECR->tx_header,
 				payload,
 				payload_len);
@@ -815,6 +839,7 @@ void * ECR_ce_worker(void *_arg){
 		
 		// execute CE
 		ECR->CE->execute((void*)ECR);
+        delete ECR->CE_metrics.payload;
     	pthread_mutex_unlock(&ECR->CE_mutex);
     }
     printf("ce_worker exiting thread\n");
