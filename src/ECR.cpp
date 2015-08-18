@@ -839,7 +839,6 @@ void * ECR_ce_worker(void *_arg){
 		
 		// execute CE
 		ECR->CE->execute((void*)ECR);
-        delete ECR->CE_metrics.payload;
     	pthread_mutex_unlock(&ECR->CE_mutex);
     }
     printf("ce_worker exiting thread\n");

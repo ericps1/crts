@@ -83,7 +83,7 @@ void CE_Hopper::execute(void * _args){
             }
             else if(current == cm->freq4)
             {
-                ECR->set_rx_freq(cm->freq4);
+                ECR->set_rx_freq(cm->freq3);
                 printf("rx on 3\n");
                 header[0] = 3;
             }
