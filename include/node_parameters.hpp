@@ -31,6 +31,7 @@ enum interference_type{
 
 enum tx_freq_hop_type{
     NONE = 0, 
+    ALTERNATING,
     SWEEP,
     RANDOM
 };
@@ -73,11 +74,11 @@ struct node_parameters{
                                       // between 0.0 and 1.0
 
     // interferer freq hop parameters
-    int   tx_freq_hop_type;            // NONE | SWEEP | RANDOM
+    int   tx_freq_hop_type;            // NONE | ALTERNATING | SWEEP | RANDOM
     float tx_freq_hop_min;             // center frequency minimum
     float tx_freq_hop_max;             // center frequency maximum
     float tx_freq_hop_dwell_time;      // seconds at a given freq
-    float tx_freq_hop_increment;       // for SWEEP, increment hop amount     
+    float tx_freq_hop_increment;       // for SWEEP, increment hop amount 
     
     // gmsk interferer properties 
     unsigned int gmsk_header_length;
