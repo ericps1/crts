@@ -32,6 +32,7 @@ struct metric_s{
     unsigned char* payload;
 	int payload_valid;
     unsigned int payload_len;
+    unsigned int packet_id;
 	framesyncstats_s stats; // stats used by ofdmtxrx object (RSSI, EVM)
 	uhd::time_spec_t time_spec;
 
@@ -123,6 +124,8 @@ public:
     unsigned char tx_header[8];        // header container (must have length 8)
 	uhd::usrp::multi_usrp::sptr usrp_tx;
     uhd::tx_metadata_t metadata_tx;
+
+    unsigned int packet_id;
 
     // transmitter threading objects
     pthread_t tx_process;
