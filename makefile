@@ -26,14 +26,14 @@ lib/read_configs.o: src/read_configs.cpp
 config_CEs: src/config_CEs.cpp
 	g++ $(FLAGS) -o config_CEs src/config_CEs.cpp lib/read_configs.o -lconfig -lliquid
 
-lib/ECR.o: include/ECR.hpp src/ECR.cpp
+lib/ECR.o: include/ECR.hpp src/ECR.cpp 
 	g++ $(FLAGS) -c -o lib/ECR.o src/ECR.cpp
 
 #CR_test: include/CR.hpp src/TUN.cpp src/CR.cpp test/CR_test.cpp
 #	g++ $(FLAGS) -o CR_test test/CR_test.cpp lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc 
 
-CRTS_CR: include/ECR.hpp src/TUN.cpp src/ECR.cpp src/CRTS_CR.cpp $(CEs)
-	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp src/read_configs.cpp lib/pt_sleep.o lib/TUN.o lib/ECR.o -lliquid -luhd -lpthread -lm -lc -lconfig $(CEs)
+CRTS_CR: include/ECR.hpp src/TUN.cpp src/ECR.cpp src/CRTS_CR.cpp  $(CEs)
+	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp src/read_configs.cpp src/timer.cc lib/pt_sleep.o lib/TUN.o lib/ECR.o -lliquid -luhd -lpthread -lm -lc -lconfig $(CEs)
 
 lib/interferer.o: src/interferer.cpp 
 	g++ $(FLAGS) -c -o lib/interferer.o src/interferer.cpp

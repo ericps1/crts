@@ -93,6 +93,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     dprintf("Starting CE thread...\n");
 	pthread_mutex_init(&CE_mutex, NULL);
 	pthread_cond_init(&CE_execute_sig, NULL);
+    
 	pthread_create(&CE_process, NULL, ECR_ce_worker, (void*)this);
 	
     // initialize default tx values
@@ -723,7 +724,7 @@ int rxCallback(unsigned char * _header,
         }
 	}
 
-	usleep(1e5);
+	//usleep(1e5);
 	
 	// Transmit acknowledgement if using PHY ARQ
     /*unsigned char *ACK;
