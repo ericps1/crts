@@ -82,6 +82,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     pthread_create(&rx_process,   NULL, ECR_rx_worker, (void*)this);
 	
     // create and start tx thread
+    packet_id = 0;
     tx_running = false; // transmitter is not running initially
     tx_thread_running = true; // transmitter thread IS running initially
     pthread_mutex_init(&tx_mutex, NULL); // transmitter mutex
@@ -667,6 +668,7 @@ int rxCallback(unsigned char * _header,
 		ECR->CE_metrics.time_spec = ECR->metadata_rx.time_spec;
         ECR->CE_metrics.payload_len = _payload_len;
         ECR->CE_metrics.payload = new unsigned char[_payload_len];
+        ECR->CE_metrics.packet_id = (_header[1] << 8 | _header[2]);
         unsigned int k;
         for(k = 0; k < _payload_len; k++)
         {
@@ -787,6 +789,9 @@ void * ECR_tx_worker(void * _arg)
 
 			dprintf("Transmitting packet\n");	
             unsigned char header[8] = {(unsigned char) 'd', 0, 0, 0, 0, 0, 0, 0};
+            header[1] = (ECR->packet_id >> 8) & 0xff;
+            header[2] = (ECR->packet_id) & 0xff;
+            ECR->packet_id++;
             ECR->set_header(header);
 			ECR->transmit_packet(ECR->tx_header,
 				payload,
@@ -848,7 +853,7 @@ void * ECR_ce_worker(void *_arg){
 
 void ExtensibleCognitiveRadio::print_metrics(ExtensibleCognitiveRadio * ECR){
 	printf("\n---------------------------------------------------------\n");
-	printf("Received Packet Metrics:      Received Packet Parameters:\n");
+	printf("Received Packet %u metrics:      Received Packet Parameters:\n", ECR->CE_metrics.packet_id);
 	printf("---------------------------------------------------------\n");
 	printf("Header Valid:     %-6i      Modulation Scheme:   %s\n", 
 		ECR->CE_metrics.header_valid, modulation_types[ECR->CE_metrics.stats.mod_scheme].name);
