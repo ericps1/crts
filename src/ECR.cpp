@@ -82,6 +82,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     pthread_create(&rx_process,   NULL, ECR_rx_worker, (void*)this);
 	
     // create and start tx thread
+    packet_id = 0;
     tx_running = false; // transmitter is not running initially
     tx_thread_running = true; // transmitter thread IS running initially
     pthread_mutex_init(&tx_mutex, NULL); // transmitter mutex
@@ -92,6 +93,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     dprintf("Starting CE thread...\n");
 	pthread_mutex_init(&CE_mutex, NULL);
 	pthread_cond_init(&CE_execute_sig, NULL);
+    
 	pthread_create(&CE_process, NULL, ECR_ce_worker, (void*)this);
 	
     // initialize default tx values
@@ -166,6 +168,10 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
 		CE = new CE_DSA();
 	if(!strcmp(ce, "CE_Example"))
 		CE = new CE_Example();
+	if(!strcmp(ce, "CE_FEC"))
+		CE = new CE_FEC();
+	if(!strcmp(ce, "CE_Hopper"))
+		CE = new CE_Hopper();
 	if(!strcmp(ce, "CE_AMC"))
 		CE = new CE_AMC();
 //EDIT END FLAG
@@ -661,10 +667,26 @@ int rxCallback(unsigned char * _header,
 		ECR->CE_metrics.payload_valid = _payload_valid;
 		ECR->CE_metrics.stats = _stats;
 		ECR->CE_metrics.time_spec = ECR->metadata_rx.time_spec;
+        ECR->CE_metrics.payload_len = _payload_len;
+        ECR->CE_metrics.payload = new unsigned char[_payload_len];
+        ECR->CE_metrics.packet_id = (_header[1] << 8 | _header[2]);
+        unsigned int k;
+        for(k = 0; k < _payload_len; k++)
+        {
+            ECR->CE_metrics.payload[k] = _payload[k];
+        }
 
 		// Signal CE thread
 		pthread_mutex_lock(&ECR->CE_mutex);
 		ECR->CE_metrics.CE_event = ce_phy_event;		// set event type to phy once mutex is locked
+        if('d' == _header[0])
+        {
+            ECR->CE_metrics.CE_frame = ce_frame_data;
+        }
+        else
+        {
+            ECR->CE_metrics.CE_frame = ce_frame_control;
+        }
 		pthread_cond_signal(&ECR->CE_execute_sig);
 		pthread_mutex_unlock(&ECR->CE_mutex);
 
@@ -685,19 +707,24 @@ int rxCallback(unsigned char * _header,
 	dprintf("\n");
 
 	char payload[_payload_len];
-	for(int i=0; i<_payload_len; i++)
+	for(unsigned int i=0; i<_payload_len; i++)
 		payload[i] = _payload[i];
 
 	int nwrite = 0;
 	if(_payload_valid){
-		// Pass payload to tun interface
-    	dprintf("Passing payload to tun interface\n");
-		nwrite = cwrite(ECR->tunfd, payload, (int)_payload_len);
-		if(nwrite != (int)_payload_len) 
-			printf("Number of bytes written to TUN interface not equal to payload length\n"); 
+        if('d' == _header[0])
+        {
+            // Pass payload to tun interface
+            dprintf("Passing payload to tun interface\n");
+            nwrite = cwrite(ECR->tunfd, payload, (int)_payload_len);
+            if(nwrite != (int)_payload_len) 
+                printf("Number of bytes written to TUN interface not equal to payload length\n"); 
+            else
+                ECR->num_written++;
+        }
 	}
 
-	usleep(1e5);
+	//usleep(1e5);
 	
 	// Transmit acknowledgement if using PHY ARQ
     /*unsigned char *ACK;
@@ -762,6 +789,11 @@ void * ECR_tx_worker(void * _arg)
 			dprintf("\n");
 
 			dprintf("Transmitting packet\n");	
+            unsigned char header[8] = {(unsigned char) 'd', 0, 0, 0, 0, 0, 0, 0};
+            header[1] = (ECR->packet_id >> 8) & 0xff;
+            header[2] = (ECR->packet_id) & 0xff;
+            ECR->packet_id++;
+            ECR->set_header(header);
 			ECR->transmit_packet(ECR->tx_header,
 				payload,
 				payload_len);
@@ -822,7 +854,7 @@ void * ECR_ce_worker(void *_arg){
 
 void ExtensibleCognitiveRadio::print_metrics(ExtensibleCognitiveRadio * ECR){
 	printf("\n---------------------------------------------------------\n");
-	printf("Received Packet Metrics:      Received Packet Parameters:\n");
+	printf("Received Packet %u metrics:      Received Packet Parameters:\n", ECR->CE_metrics.packet_id);
 	printf("---------------------------------------------------------\n");
 	printf("Header Valid:     %-6i      Modulation Scheme:   %s\n", 
 		ECR->CE_metrics.header_valid, modulation_types[ECR->CE_metrics.stats.mod_scheme].name);

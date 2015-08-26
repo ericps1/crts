@@ -10,4 +10,7 @@ post_process_logs
 *.swp
 *.swo
 
+# Ignore system output files
+*.SYSOUT
+
 

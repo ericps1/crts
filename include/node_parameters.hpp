@@ -5,14 +5,14 @@
 #include<liquid/liquid.h>
 
 enum type{
-    CR = 0,				// user equipment node type
+    CR = 0,		// user equipment node type
     interferer		// interferer node type
 };
 
 enum duplex{
-	FDD = 0,		// frequency division duplexing
-	TDD,			// time division duplexing (not implemented)
-	HD				// half-duplex
+    FDD = 0,		// frequency division duplexing
+    TDD,		// time division duplexing (not implemented)
+    HD			// half-duplex
 };
 
 enum traffic{
@@ -20,13 +20,22 @@ enum traffic{
     burst
 };
 
-enum int_type{
-    CW = 0,			// continuous-wave interference
-    AWGN,			// additive white gaussian noise interference
-	GMSK,			// gaussian minimum-shift keying inteference
-	RRC,			// root-raised cosine interference (as in WCDMA)
-	OFDM			// orthogonal frequency division multiplexing interference
+enum interference_type{
+    CW= 0,       // continuous-wave interference
+    AWGN,  	 // additive white gaussian noise interference
+    GMSK,	 // gaussian minimum-shift keying inteference
+    RRC,	 // root-raised cosine interference (as in WCDMA)
+    OFDM	 // orthogonal frequency division multiplexing interference
 };
+
+
+enum tx_freq_hop_type{
+    NONE = 0, 
+    ALTERNATING,
+    SWEEP,
+    RANDOM
+};
+
 
 struct node_parameters{
 	// general
@@ -34,22 +43,22 @@ struct node_parameters{
     char CORNET_IP[20];
     char CRTS_IP[20];
     char TARGET_IP[20];
-	char CE[30];
+    char CE[30];
     int layers;
     int traffic;
-	int print_metrics;
-	int log_metrics;
-	char log_file[30];
+    int print_metrics;
+    int log_metrics;
+    char log_file[30];
     float ce_timeout_ms;
 
-	// RF
-	int duplex;
+    // RF
+    int duplex;
     float tx_freq;
     float tx_rate;
     float tx_gain_soft;
     float tx_gain;
     float tx_delay_us;
-	float rx_freq;
+    float rx_freq;
     float rx_rate;
     float rx_gain;
     int tx_modulation;
@@ -58,9 +67,26 @@ struct node_parameters{
     int tx_fec1;
 
     // interferer only
-    int int_type;
-    float period;
-	float duty_cycle;
+    int   interference_type;          // see ENUM list above 
+    float period_duration;            // seconds for a single period
+    float duty_cycle;                 // percent of period that interference 
+                                      // is ON.  expressed as a float 
+                                      // between 0.0 and 1.0
+
+    // interferer freq hop parameters
+    int   tx_freq_hop_type;            // NONE | ALTERNATING | SWEEP | RANDOM
+    float tx_freq_hop_min;             // center frequency minimum
+    float tx_freq_hop_max;             // center frequency maximum
+    float tx_freq_hop_dwell_time;      // seconds at a given freq
+    float tx_freq_hop_increment;       // for SWEEP, increment hop amount 
+    
+    // gmsk interferer properties 
+    unsigned int gmsk_header_length;
+    unsigned int gmsk_payload_length; 
+    float        gmsk_bandwidth;       // note tx_rate is ignored and 
+                                       // calcualted from gmsk_bandwidth 
+                                       // (default = 4.0f * bandwidth)
+
 };
 
 #endif

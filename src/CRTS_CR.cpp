@@ -19,6 +19,7 @@
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
 #include "TUN.hpp"
+#include "timer.h"
 //#include "pt_sleep.hpp"
 
 #define DEBUG 0
@@ -199,7 +200,7 @@ int main(int argc, char ** argv){
 	CRTS_client_addr.sin_family = AF_INET;
 	CRTS_client_addr.sin_addr.s_addr = inet_addr(np.TARGET_IP);
 	CRTS_client_addr.sin_port = htons(port);
-	socklen_t serverlen = sizeof(CRTS_client_addr);
+	//socklen_t serverlen = sizeof(CRTS_client_addr);
 	int CRTS_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 	// Bind CRTS server socket
@@ -212,9 +213,11 @@ int main(int argc, char ** argv){
 	// Define a buffer for receiving and a temporary message for sending
 	int recv_buffer_len = 8192*2;
 	char recv_buffer[recv_buffer_len];
-	char message[40]; 
+	char message[1024]; 
 	strcpy(message, "Test Message from "); 
 	strcat(message, np.CRTS_IP);	
+    for(int i = 0; i < 1024; i++)
+        message[i] = rand() & 0xff;
 	
 	// initialize sig_terminate flag and check return from socket call
 	sig_terminate = 0;
@@ -229,16 +232,20 @@ int main(int argc, char ** argv){
 
 	// Set some number of iterations based on the run time and delay between iterations
 	iterations = (int) (run_time/(np.tx_delay_us*1e-6));
+    printf("iterations: %d\n", iterations);
 	
 	// main loop
+    timer t1 = timer_create();
+    timer_tic(t1);
 	for(int i=0; i<iterations; i++){
+    //while(timer_toc(t1) < run_time && continue_running)
 		// Listen for any updates from the controller (non-blocking)
 		dprintf("Listening to controller for command\n");
 		Receive_command_from_controller(&TCP_controller, &ECR, &np);
 
 		// Wait (used for test purposes only)
         usleep(np.tx_delay_us);
-
+        //usleep(1000);
 		// if not using FDD then stop the receiver before transmitting
 		if(np.duplex != FDD){ 
 			ECR.stop_rx();
@@ -252,7 +259,7 @@ int main(int argc, char ** argv){
 			break;
 		case stream:
 			dprintf("Sending UDP packet using CRTS client socket\n");
-			int send_return = sendto(CRTS_client_sock, message, strlen(message), 0, (struct sockaddr*)&CRTS_client_addr, sizeof(CRTS_client_addr));	
+			int send_return = sendto(CRTS_client_sock, message, sizeof(message), 0, (struct sockaddr*)&CRTS_client_addr, sizeof(CRTS_client_addr));	
 			if(send_return < 0) printf("Failed to send message\n");
 			break;
 		}
@@ -265,15 +272,15 @@ int main(int argc, char ** argv){
 		recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0, (struct sockaddr *)&CRTS_server_addr, &clientlen);
 		// print out received messages
 		if(recv_len > 0){
-			printf("\nCRTS_CR received message:\n");
+			dprintf("\nCRTS_CR received message:\n");
 			for(int j=0; j<recv_len; j++)
-				printf("%c", recv_buffer[j]);
-			printf("\n");
+				dprintf("%c", recv_buffer[j]);
+			dprintf("\n");
 		}
 
 		// Either reach end of scenario and tell controller or receive end of scenario message from controller
 		if(sig_terminate) break;
-		if(i == iterations-1) printf("Run time has been reached\n");
+		if(i == iterations - 1) printf("Run time has been reached\n");
 	}
 
 	printf("Sending termination message to controller\n");
