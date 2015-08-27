@@ -10,4 +10,7 @@ else
 	CRTS=$(dirname "$SCRIPT")
 	CRTS="$CRTS/CRTS_CR"
 	echo "$ORIGIN_USER ALL = NOPASSWD: $CRTS" >> $1
+	CRTS=$(dirname "$SCRIPT")
+	CRTS="$CRTS/CRTS_interferer"
+	echo "$ORIGIN_USER ALL = NOPASSWD: $CRTS" >> $1
 fi
