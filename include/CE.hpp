@@ -34,6 +34,13 @@ public:
 	virtual void execute(void * _args);
 	void * custom_members;
 };
+class CE_Hopper : public Cognitive_Engine {
+public:
+	CE_Hopper();
+	~CE_Hopper();
+	virtual void execute(void * _args);
+	void * custom_members;
+};
 class CE_AMC : public Cognitive_Engine {
 public:
 	CE_AMC();
