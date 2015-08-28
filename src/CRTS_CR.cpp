@@ -3,16 +3,16 @@
 #include <net/if.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <linux/if_tun.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <string>
-#include <time.h>
 #include <uhd/utils/msg.hpp>
-#include<iostream>
-#include<fstream>
+#include <iostream>
+#include <fstream>
 #include <errno.h>
 #include <signal.h>
 #include "ECR.hpp"
@@ -20,7 +20,6 @@
 #include "read_configs.hpp"
 #include "TUN.hpp"
 #include "timer.h"
-//#include "pt_sleep.hpp"
 
 #define DEBUG 0
 #if DEBUG == 1
@@ -30,6 +29,7 @@
 #endif
 
 int sig_terminate;
+time_t start_time_s;
 
 void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRadio *ECR, struct node_parameters *np){
 	// Listen to socket for message from controller
@@ -50,8 +50,11 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 	switch (command_buffer[0]){
 	case 's': // settings for upcoming scenario
 		printf("Received settings for scenario\n");
+		// copy start time
+		memcpy((void*)&start_time_s, &command_buffer[1], sizeof(time_t));
+		
 		// copy node_parameters
-		memcpy(np ,&command_buffer[1], sizeof(node_parameters));
+		memcpy(np ,&command_buffer[1+sizeof(time_t)], sizeof(node_parameters));
 		print_node_parameters(np);
 
 		// set cognitive radio parameters
@@ -75,17 +78,13 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 
 		// open log file to delete any current contents
 		if (ECR->log_metrics_flag){
-			//FILE * file;
-            std::ofstream log_file;
+			std::ofstream log_file;
 			char log_file_name[50];
 			strcpy(log_file_name, "./logs/");
 			strcat(log_file_name, ECR->log_file);
-			//file = fopen(log_file_name, "w");
-            // Open file for writing and clear contents
-            log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
+			log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
             if (log_file.is_open())
             {
-                //fclose(file);
                 log_file.close();
             }
             else
@@ -125,10 +124,9 @@ int main(int argc, char ** argv){
 	signal(SIGTERM, terminate);
 	
 	// timing variables
-	float run_time = 20.0f;
-	int iterations;
-
-    // Default IP address of controller
+	time_t run_time = 20;
+	
+	// Default IP address of controller
 	char * controller_ipaddr = (char*) "192.168.1.56";
 
 	int d;
@@ -200,7 +198,6 @@ int main(int argc, char ** argv){
 	CRTS_client_addr.sin_family = AF_INET;
 	CRTS_client_addr.sin_addr.s_addr = inet_addr(np.TARGET_IP);
 	CRTS_client_addr.sin_port = htons(port);
-	//socklen_t serverlen = sizeof(CRTS_client_addr);
 	int CRTS_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
 	// Bind CRTS server socket
@@ -230,22 +227,26 @@ int main(int argc, char ** argv){
 		sig_terminate = 1;
 	}
 
-	// Set some number of iterations based on the run time and delay between iterations
-	iterations = (int) (run_time/(np.tx_delay_us*1e-6));
-    printf("iterations: %d\n", iterations);
+	// Wait for the start-time before beginning the scenario
+	struct timeval tv;
+	time_t time_s;
+	time_t stop_time_s = start_time_s + run_time;
+	while(1){
+		gettimeofday(&tv, NULL);
+		time_s = tv.tv_sec;
+		if(time_s >= start_time_s) 
+			break;
+	}
 	
 	// main loop
-    timer t1 = timer_create();
-    timer_tic(t1);
-	for(int i=0; i<iterations; i++){
-    //while(timer_toc(t1) < run_time && continue_running)
+    while(time_s < stop_time_s && !sig_terminate){
 		// Listen for any updates from the controller (non-blocking)
 		dprintf("Listening to controller for command\n");
 		Receive_command_from_controller(&TCP_controller, &ECR, &np);
 
 		// Wait (used for test purposes only)
         usleep(np.tx_delay_us);
-        //usleep(1000);
+        
 		// if not using FDD then stop the receiver before transmitting
 		if(np.duplex != FDD){ 
 			ECR.stop_rx();
@@ -278,9 +279,9 @@ int main(int argc, char ** argv){
 			dprintf("\n");
 		}
 
-		// Either reach end of scenario and tell controller or receive end of scenario message from controller
-		if(sig_terminate) break;
-		if(i == iterations - 1) printf("Run time has been reached\n");
+		// Update the current time
+		gettimeofday(&tv, NULL);
+		time_s = tv.tv_sec;	
 	}
 
 	printf("Sending termination message to controller\n");
