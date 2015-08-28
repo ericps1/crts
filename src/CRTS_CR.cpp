@@ -34,7 +34,7 @@ time_t start_time_s;
 void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRadio *ECR, struct node_parameters *np){
 	// Listen to socket for message from controller
 	char command_buffer[500+sizeof(struct node_parameters)];
-	int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(struct node_parameters), 0);
+	int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(time_t)+sizeof(struct node_parameters), 0);
 	int err = errno;
 	if(rflag <= 0){
 		if ((err == EAGAIN) || (err == EWOULDBLOCK))
