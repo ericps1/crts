@@ -176,7 +176,8 @@ int main(int argc, char ** argv){
 		time_t time_s;
 		gettimeofday(&tv, NULL);
 		time_s = tv.tv_sec;
-		time_t start_time_s = time_s + 3*sp.num_nodes + 5;
+		int pad_s = manual_execution ? 15 : 5;
+		time_t start_time_s = time_s + 3*sp.num_nodes + pad_s;
 		printf("\nScenario start time: %li\n\n", start_time_s);
 		
 		// loop through nodes in scenario
