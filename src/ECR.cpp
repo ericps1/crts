@@ -854,7 +854,10 @@ void * ECR_ce_worker(void *_arg){
 
 void ExtensibleCognitiveRadio::print_metrics(ExtensibleCognitiveRadio * ECR){
 	printf("\n---------------------------------------------------------\n");
-	printf("Received Packet %u metrics:      Received Packet Parameters:\n", ECR->CE_metrics.packet_id);
+    if(ECR->CE_metrics.header_valid)
+	    printf("Received Packet %u metrics:      Received Packet Parameters:\n", ECR->CE_metrics.packet_id);
+    else
+	    printf("Received Packet ? metrics:      Received Packet Parameters:\n");
 	printf("---------------------------------------------------------\n");
 	printf("Header Valid:     %-6i      Modulation Scheme:   %s\n", 
 		ECR->CE_metrics.header_valid, modulation_types[ECR->CE_metrics.stats.mod_scheme].name);
