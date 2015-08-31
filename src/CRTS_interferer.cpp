@@ -3,6 +3,7 @@
 #include <net/if.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -23,6 +24,7 @@
 
 // global variables
 int sig_terminate;
+time_t start_time_s;
 float currentTxFreq; 
 float freqIncrement; 
 int   freqCoeff; 
@@ -39,7 +41,7 @@ void Receive_command_from_controller(int *TCP_controller,
   char command_buffer[500+sizeof(struct node_parameters)];
   int rflag = recv(*TCP_controller, 
                    command_buffer, 
-                   1+sizeof(struct node_parameters), 
+                   1+sizeof(time_t)+sizeof(struct node_parameters), 
                    0);
   int err = errno;
   if (rflag <= 0)
@@ -61,10 +63,15 @@ void Receive_command_from_controller(int *TCP_controller,
     {
     case 's': // settings for upcoming scenario
       printf("Received settings for scenario\n");
-      // copy node_parameters
-      memcpy(np ,&command_buffer[1], sizeof(node_parameters));
+      
+	  // copy start time
+      memcpy((void*)&start_time_s ,&command_buffer[1], sizeof(time_t));
+            
+	  // copy node_parameters
+      memcpy(np ,&command_buffer[1+sizeof(time_t)], sizeof(node_parameters));
       print_node_parameters(np);
-      // set interferer parameters
+      
+	  // set interferer parameters
       currentTxFreq = np->tx_freq;
       if (np->tx_freq_hop_type == (ALTERNATING))
         {
@@ -717,9 +724,18 @@ int main(int argc, char ** argv)
   float time_onCycle = (interfererObj.period_duration * interfererObj.duty_cycle); 
   float time_offCycle = (interfererObj.period_duration * (1 - interfererObj.duty_cycle)); 
 
-  timer t0 = timer_create(); 
-  timer_tic(t0); 
-  while (timer_toc(t0) < run_time)
+  // wait for start time and calculate stop time
+  struct timeval tv;
+  time_t time_s;
+  time_t stop_time_s = start_time_s + run_time;
+  while(1){
+    gettimeofday(&tv, NULL);
+    time_s = tv.tv_sec;
+    if(time_s >= start_time_s)
+	  break;
+  }
+  
+  while (time_s < stop_time_s)
     {
     Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
     if (sig_terminate) 
@@ -734,7 +750,12 @@ int main(int argc, char ** argv)
       {
       break;
       }
-    } // end main "for" interation loop 
+    
+    // update current time
+	gettimeofday(&tv, NULL);
+	time_s = tv.tv_sec;
+
+	} // end main "for" interation loop 
   // ================================================================
   // END: Main Service Loop 
   // ================================================================

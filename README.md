@@ -24,9 +24,9 @@ at Virginia Tech.
 	NOTE: do no run the last command as sudo
 	
 	The last command sets up an environment variable for the CRTS path and allows
-	the user to launch CRTS_UE as sudo without a password. This is important for
+	the user to launch CRTS_CR as sudo without a password. This is important for
 	the automatic operation so that the user doesn't need to enter his/her 
-	password for every node. Sudo is required by CRTS_UE because it creates and 
+	password for every node. Sudo is required by CRTS_CR because it creates and 
 	tears down a virtual network interface upon each run. To undo these changes
 	run:
 
@@ -38,7 +38,7 @@ Begin by opening four ssh sessions on CORNET using the following command:
 
 	$ ssh -p <node port> <username>@128.173.221.40
 
-Navigate to the crts directory. First open up the master\_scenario\_config.cfg file.
+Navigate to the crts directory. First open up the master\_scenario\_file.cfg file.
 This file simply tells the experiment controller how many tests will be performed
 and their names. Now open the default scenario configuration file,
 ./scenarios/interferer.cfg. This file defines all of the nodes that will be
@@ -73,7 +73,7 @@ In this case you need to make sure that the ips are set up correctly in the scen
 config file being used. Assuming you've launched CRTS manually, on two of the other 
 nodes run:
 
-	$ sudo ./CRTS_UE -a <controller internal ip>
+	$ sudo ./CRTS_CR -a <controller internal ip>
 
 The internal ip will be 192.168.1.<external port number -6990>. Observe that 
 the two nodes have received their operating parameters and will begin to 
@@ -92,13 +92,17 @@ can be post processed into octave scripts which will plot the behavior and
 performance of the cognitive radio throughout the experiment. On one of the
 nodes:
 
-	$ ./post_process_logs -l <binary log file name> -o <octave script name>
 	$ cd logs
+	$ ./post_process_logs -l <binary log file name> -o <octave script name>.m
 	$ octave
 	>> <octave script name>
 
 This will generate a number of plots showing what the cognitive radio was doing
-for the duration of the experiment. Some of these statistics may be more
-meaningful than others. On one of the nodes (whichever used the same frequency
+for the duration of the experiment. \<binary log file name\> should be specified in the 
+scenario configuration file (scenarios/interferer.cfg in our example) with the log_file 
+parameter. \<octave script name\> can be any convenient file name; 
+it should be appended with a .m extension for post_process_logs, but omit the extension 
+when being called from octave. Some of these statistics may be more meaningful 
+than others. On one of the nodes (whichever used the same frequency
 as the interferer) the EVM should follow the same duty cycle as the interferer.
 There may be packet errors that follow this pattern as well.

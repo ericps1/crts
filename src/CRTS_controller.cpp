@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 #include <signal.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -169,6 +170,16 @@ int main(int argc, char ** argv){
 		printf("Number of nodes: %i\n", sp.num_nodes);
 		printf("Run time: %f\n", sp.run_time);
 
+		// determine the start time for the scenario based
+		// on the current time and the number of nodes
+		struct timeval tv;
+		time_t time_s;
+		gettimeofday(&tv, NULL);
+		time_s = tv.tv_sec;
+		int pad_s = manual_execution ? 15 : 5;
+		time_t start_time_s = time_s + 3*sp.num_nodes + pad_s;
+		printf("\nScenario start time: %li\n\n", start_time_s);
+		
 		// loop through nodes in scenario
 		for (int j = 0; j < sp.num_nodes; j++){
             char node_id[10];
@@ -248,10 +259,11 @@ int main(int argc, char ** argv){
 			// set socket to non-blocking
 			fcntl(client[j], F_SETFL, O_NONBLOCK);
 
-			// send node parameters
+			// send start time and node parameters
 			printf("\nNode %i has connected. Sending its parameters...\n", j+1);
 			char msg_type = 's';
 			send(client[j], (void*)&msg_type, sizeof(char), 0);
+			send(client[j], (void*)&start_time_s, sizeof(time_t), 0);
 			send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);			
 		}
 

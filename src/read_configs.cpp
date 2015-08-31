@@ -414,7 +414,7 @@ void print_node_parameters(struct node_parameters * np)
     printf("	GMSK payload length:               %-.2d\n", np->gmsk_payload_length);
     printf("	GMSK bandwidth:                    %-.2e\n", np->gmsk_bandwidth);
     }
-  printf("------------------------------------------------\n");
+  printf("--------------------------------------------------------------\n");
   }
 
 

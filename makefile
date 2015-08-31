@@ -6,6 +6,7 @@ CRTS_PATH = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 #EDIT START FLAG
 CEs = src/CE.cpp cognitive_engines/CE_DSA.cpp cognitive_engines/CE_Example.cpp cognitive_engines/CE_FEC.cpp cognitive_engines/CE_Hopper.cpp cognitive_engines/CE_AMC.cpp
+
 #EDIT END FLAG
 
 all: lib/pt_sleep.o lib/TUN.o TUN lib/read_configs.o config_CEs lib/ECR.o CRTS_CR lib/interferer.o CRTS_interferer CRTS_controller logs/post_process_logs
