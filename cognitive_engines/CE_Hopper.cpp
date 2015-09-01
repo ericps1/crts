@@ -4,10 +4,10 @@
 // custom member struct
 struct CE_Hopper_members{
 	unsigned int num_received;
-    static const float freq1 = 834e6;
-    static const float freq2 = 838e6;
-    static const float freq3 = 842e6;
-    static const float freq4 = 846e6;
+    static const float freq1 = 770e6;
+    static const float freq2 = 774e6;
+    static const float freq3 = 870e6;
+    static const float freq4 = 874e6;
 };
 
 // custom function declarations
@@ -81,6 +81,7 @@ void CE_Hopper::execute(void * _args){
         }
         else if(ECR->CE_metrics.CE_frame == ce_frame_data && ECR->CE_metrics.payload_valid)
         {
+            std::cout << "packet " << ECR->CE_metrics.packet_id << " received" << std::endl;
             cm->num_received++;
         }
     }
