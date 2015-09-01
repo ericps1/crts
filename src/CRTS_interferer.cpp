@@ -648,9 +648,9 @@ int main(int argc, char ** argv)
   signal(SIGTERM, terminate);
 
   // set default values
-  float run_time = DEFAULT_RUN_TIME;
-  char* controller_ipaddr = (char*) DEFAULT_CONTROLLER_IP_ADDRESS;
-  TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
+  time_t run_time = DEFAULT_RUN_TIME;
+  char * controller_ipaddr = (char*) DEFAULT_CONTROLLER_IP_ADDRESS;
+  int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
 
   // validate TCP Controller 
   if (TCP_controller < 0)
@@ -735,6 +735,7 @@ int main(int argc, char ** argv)
   struct timeval tv;
   time_t time_s;
   time_t stop_time_s = start_time_s + run_time;
+  printf("runtime: %lu\n", run_time);
   while(1){
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;

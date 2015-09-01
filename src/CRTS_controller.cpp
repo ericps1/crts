@@ -232,7 +232,7 @@ int main(int argc, char ** argv){
                 strcat(command, node_id);
                 strcat(command, ".SYSOUT &");
 				ssh_return = system(command);
-				//printf("Command executed: %s\n", command);
+				printf("Command executed: %s\n", command);
 				//printf("Return value: %i\n", ssh_return);
 			}
 
