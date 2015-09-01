@@ -22,18 +22,19 @@
 #include "timer.h"
 
 // global variables
-int sig_terminate;
-float currentTxFreq; 
-float freqIncrement; 
-int   freqCoeff; 
-int   freqWidth; 
+int    sig_terminate;
+float  currentTxFreq; 
+float  freqIncrement; 
+int    freqCoeff; 
+int    freqWidth; 
+int    TCP_controller; 
 
 // ========================================================================
 //  FUNCTION:  Receive_command_from_controller
 // ========================================================================
-void Receive_command_from_controller(int *TCP_controller, 
-                                     Interferer * inter, 
-                                     struct node_parameters *np)
+static inline void Receive_command_from_controller(int *TCP_controller, 
+                                                   Interferer * inter, 
+                                                   struct node_parameters *np)
   {
   // Listen to socket for message from controller
   char command_buffer[500+sizeof(struct node_parameters)];
@@ -462,7 +463,8 @@ void BuildOFDMTransmission()
 void TransmitInterference(
   Interferer interfererObj, 
   std::vector<std::complex<float> > & tx_buffer,
-  int samplesInBuffer
+  int samplesInBuffer,
+  node_parameters  np
   )
   {
   int tx_samp_count = 0;//samps_to_transmit;	
@@ -485,6 +487,7 @@ void TransmitInterference(
 				
     // update number of tx samples remaining
     tx_samp_count += USRP_BUFFER_LENGTH;
+    Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
     if (sig_terminate) 
       {
       break;
@@ -532,7 +535,7 @@ void ChangeFrequency(Interferer interfererObj)
 //  FUNCTION:  Perform Duty Cycle ON
 // ========================================================================
 void PerformDutyCycle_On( Interferer interfererObj,
-                          node_parameters np,
+			  node_parameters np,
                           float time_onCycle)
   {
   std::vector<std::complex<float> > tx_buffer(TX_BUFFER_LENGTH);
@@ -582,11 +585,13 @@ void PerformDutyCycle_On( Interferer interfererObj,
 	  //          break; 
       }// interference type switch
 
+    Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
     if (sig_terminate) 
       {
       break;
       }
-    TransmitInterference(interfererObj, tx_buffer, samplesInBuffer); 
+    TransmitInterference(interfererObj, tx_buffer, samplesInBuffer, np); 
+    Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
     if (sig_terminate) 
       {
       break;
@@ -602,13 +607,16 @@ void PerformDutyCycle_On( Interferer interfererObj,
 //  FUNCTION:  Perform Duty Cycle OFF
 // ========================================================================
 
-void PerformDutyCycle_Off(float time_offCycle)
+void PerformDutyCycle_Off(Interferer interfererObj, 
+                          node_parameters np,
+                          float time_offCycle)
   {
   timer offTimer = timer_create(); 
   timer_tic(offTimer); 
   while (timer_toc(offTimer) < time_offCycle)
       {
-	  usleep(100); 
+      usleep(100); 
+      Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
       if (sig_terminate) 
         {
         break;
@@ -635,8 +643,8 @@ int main(int argc, char ** argv)
 
   // set default values
   float run_time = DEFAULT_RUN_TIME;
-  char * controller_ipaddr = (char*) DEFAULT_CONTROLLER_IP_ADDRESS;
-  int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
+  char* controller_ipaddr = (char*) DEFAULT_CONTROLLER_IP_ADDRESS;
+  TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
 
   // validate TCP Controller 
   if (TCP_controller < 0)
@@ -729,7 +737,9 @@ int main(int argc, char ** argv)
     PerformDutyCycle_On(interfererObj,
                         np, 
                         time_onCycle); 
-    PerformDutyCycle_Off(time_offCycle); 
+    PerformDutyCycle_Off(interfererObj,
+                         np,
+                         time_offCycle); 
     if (sig_terminate) 
       {
       break;
