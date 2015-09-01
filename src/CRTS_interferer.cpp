@@ -34,13 +34,12 @@ int    TCP_controller;
 // ========================================================================
 //  FUNCTION:  Receive_command_from_controller
 // ========================================================================
-static inline void Receive_command_from_controller(int *TCP_controller, 
-                                                   Interferer * inter, 
+static inline void Receive_command_from_controller(Interferer * inter, 
                                                    struct node_parameters *np)
   {
   // Listen to socket for message from controller
   char command_buffer[500+sizeof(struct node_parameters)];
-  int rflag = recv(*TCP_controller, 
+  int rflag = recv(TCP_controller, 
                    command_buffer, 
                    1+sizeof(time_t)+sizeof(struct node_parameters), 
                    0);
@@ -53,7 +52,7 @@ static inline void Receive_command_from_controller(int *TCP_controller,
       }
     else
       {
-      close(*TCP_controller);
+      close(TCP_controller);
       printf("Socket failure\n");
       exit(1);
       }
@@ -494,7 +493,7 @@ void TransmitInterference(
 				
     // update number of tx samples remaining
     tx_samp_count += USRP_BUFFER_LENGTH;
-    Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
+    Receive_command_from_controller(&interfererObj, &np);
     if (sig_terminate) 
       {
       break;
@@ -592,13 +591,13 @@ void PerformDutyCycle_On( Interferer interfererObj,
 	  //          break; 
       }// interference type switch
 
-    Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
+    Receive_command_from_controller(&interfererObj, &np);
     if (sig_terminate) 
       {
       break;
       }
     TransmitInterference(interfererObj, tx_buffer, samplesInBuffer, np); 
-    Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
+    Receive_command_from_controller(&interfererObj, &np);
     if (sig_terminate) 
       {
       break;
@@ -623,7 +622,7 @@ void PerformDutyCycle_Off(Interferer interfererObj,
   while (timer_toc(offTimer) < time_offCycle)
       {
       usleep(100); 
-      Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
+      Receive_command_from_controller(&interfererObj, &np);
       if (sig_terminate) 
         {
         break;
@@ -702,7 +701,7 @@ int main(int argc, char ** argv)
   interfererObj.metadata_tx.has_time_spec = false;
 
   // Read initial scenario info from controller
-  Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
+  Receive_command_from_controller(&interfererObj, &np);
   fcntl(TCP_controller, F_SETFL, O_NONBLOCK);
 
   // for some interference types, transmit all of the time
@@ -745,7 +744,7 @@ int main(int argc, char ** argv)
   
   while (time_s < stop_time_s)
     {
-    Receive_command_from_controller(&TCP_controller, &interfererObj, &np);
+    Receive_command_from_controller(&interfererObj, &np);
     if (sig_terminate) 
       {
       break;
