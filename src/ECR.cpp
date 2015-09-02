@@ -664,28 +664,43 @@ int rxCallback(unsigned char * _header,
         {
             ECR->CE_metrics.header[j] = _header[j];
         }
-		ECR->CE_metrics.payload_valid = _payload_valid;
+        ECR->CE_metrics.packet_id = (_header[1] << 8 | _header[2]);
 		ECR->CE_metrics.stats = _stats;
 		ECR->CE_metrics.time_spec = ECR->metadata_rx.time_spec;
-        ECR->CE_metrics.payload_len = _payload_len;
-        ECR->CE_metrics.payload = new unsigned char[_payload_len];
-        ECR->CE_metrics.packet_id = (_header[1] << 8 | _header[2]);
-        unsigned int k;
-        for(k = 0; k < _payload_len; k++)
+		ECR->CE_metrics.payload_valid = _payload_valid;
+        if(_payload_valid)
         {
-            ECR->CE_metrics.payload[k] = _payload[k];
+            ECR->CE_metrics.payload_len = _payload_len;
+            ECR->CE_metrics.payload = new unsigned char[_payload_len];
+            unsigned int k;
+            for(k = 0; k < _payload_len; k++)
+            {
+                ECR->CE_metrics.payload[k] = _payload[k];
+            }
+        }
+        else
+        {
+            ECR->CE_metrics.payload_len = 0;
+            ECR->CE_metrics.payload = NULL;
         }
 
 		// Signal CE thread
 		pthread_mutex_lock(&ECR->CE_mutex);
 		ECR->CE_metrics.CE_event = ce_phy_event;		// set event type to phy once mutex is locked
-        if('d' == _header[0])
+        if(_header_valid)
         {
-            ECR->CE_metrics.CE_frame = ce_frame_data;
+            if('d' == _header[0])
+            {
+                ECR->CE_metrics.CE_frame = ce_frame_data;
+            }
+            else
+            {
+                ECR->CE_metrics.CE_frame = ce_frame_control;
+            }
         }
         else
         {
-            ECR->CE_metrics.CE_frame = ce_frame_control;
+            ECR->CE_metrics.CE_frame = ce_frame_unknown;
         }
 		pthread_cond_signal(&ECR->CE_execute_sig);
 		pthread_mutex_unlock(&ECR->CE_mutex);

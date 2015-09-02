@@ -17,7 +17,8 @@ enum CE_event_types{
 
 enum CE_frame_types{
     ce_frame_data = 0,
-    ce_frame_control
+    ce_frame_control,
+    ce_frame_unknown
 };
 
 // metric struct
