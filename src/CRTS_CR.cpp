@@ -174,11 +174,6 @@ int main(int argc, char ** argv){
 	Receive_command_from_controller(&TCP_controller, &ECR, &np);
 	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
-	// Start ECR
-	dprintf("Starting ECR object...\n");
-	ECR.start_rx();
-    ECR.start_tx();
-	ECR.start_ce();
 
 	// Port to be used by CRTS server and client
 	int port = 4444;
@@ -237,6 +232,11 @@ int main(int argc, char ** argv){
 		if(time_s >= start_time_s) 
 			break;
 	}
+	// Start ECR
+	dprintf("Starting ECR object...\n");
+	ECR.start_rx();
+    ECR.start_tx();
+	ECR.start_ce();
 	
 	// main loop
     while(time_s < stop_time_s && !sig_terminate){
