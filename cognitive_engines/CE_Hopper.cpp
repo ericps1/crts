@@ -4,6 +4,7 @@
 // custom member struct
 struct CE_Hopper_members{
 	unsigned int num_received;
+    unsigned int bad_received;
     static const float freq1 = 770e6;
     static const float freq2 = 774e6;
     static const float freq3 = 870e6;
@@ -16,6 +17,7 @@ struct CE_Hopper_members{
 CE_Hopper::CE_Hopper(){
 	struct CE_Hopper_members cm;
 	cm.num_received = 0;
+    cm.bad_received = 0;
 	custom_members = malloc(sizeof(struct CE_Hopper_members));
 	memcpy(custom_members, (void *)&cm, sizeof(struct CE_Hopper_members));
 	
@@ -44,8 +46,21 @@ void CE_Hopper::execute(void * _args){
     }
     else//Timeout or data packet received
     {
-        if(ECR->CE_metrics.CE_event == ce_timeout) 
+        if(ECR->CE_metrics.CE_event == ce_timeout || 
+            !ECR->CE_metrics.header_valid ||
+            !ECR->CE_metrics.payload_valid) 
         {
+            cm->bad_received++;
+        }
+        else if(ECR->CE_metrics.CE_frame == ce_frame_data && ECR->CE_metrics.payload_valid)
+        {
+            std::cout << "packet " << ECR->CE_metrics.packet_id << " received" << std::endl;
+            cm->num_received++;
+            cm->bad_received = 0;
+        }
+        if(cm->bad_received >= 2)
+        {
+            cm->bad_received = 0;
             unsigned char header[8] = {'f', 0, 0, 0, 0, 0, 0, 0};
             unsigned char payload[100];
             float current = ECR->get_rx_freq();
@@ -78,11 +93,6 @@ void CE_Hopper::execute(void * _args){
                 printf("transmitting %f\n", cm->freq3);
             }
             ECR->transmit_packet(header, payload, 100);
-        }
-        else if(ECR->CE_metrics.CE_frame == ce_frame_data && ECR->CE_metrics.payload_valid)
-        {
-            std::cout << "packet " << ECR->CE_metrics.packet_id << " received" << std::endl;
-            cm->num_received++;
         }
     }
 }
