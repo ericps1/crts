@@ -59,7 +59,7 @@ void CE_Hopper::execute(void * _args){
             cm->num_received++;
             cm->bad_received = 0;
         }
-        if(cm->bad_received >= 2)
+        if(cm->bad_received >= 10)
         {
             ECR->stop_rx();
             SelectNewFrequency(ECR, cm);
