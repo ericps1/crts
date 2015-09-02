@@ -650,7 +650,7 @@ int main(int argc, char ** argv)
   // set default values
   time_t run_time = DEFAULT_RUN_TIME;
   char * controller_ipaddr = (char*) DEFAULT_CONTROLLER_IP_ADDRESS;
-  int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
+  TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
 
   // validate TCP Controller 
   if (TCP_controller < 0)
