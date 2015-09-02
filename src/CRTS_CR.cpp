@@ -175,11 +175,6 @@ int main(int argc, char ** argv){
 	Receive_command_from_controller(&TCP_controller, &ECR, &np);
 	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
-	// Start ECR
-	dprintf("Starting ECR object...\n");
-	ECR.start_rx();
-    ECR.start_tx();
-	ECR.start_ce();
 
 	// Port to be used by CRTS server and client
 	int port = 4444;
@@ -243,6 +238,12 @@ int main(int argc, char ** argv){
 	uhd::time_spec_t t0(0, 0, 1e6);
 	ECR.usrp_rx->set_time_now(t0, 0);
 
+	// Start ECR
+	dprintf("Starting ECR object...\n");
+	ECR.start_rx();
+    ECR.start_tx();
+	ECR.start_ce();
+	
 	// main loop
     while(time_s < stop_time_s && !sig_terminate){
 		// Listen for any updates from the controller (non-blocking)
