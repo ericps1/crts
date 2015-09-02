@@ -15,7 +15,7 @@ struct CE_Hopper_members{
 // constructor
 CE_Hopper::CE_Hopper(){
 	struct CE_Hopper_members cm;
-	cm.num_received = 0;;
+	cm.num_received = 0;
 	custom_members = malloc(sizeof(struct CE_Hopper_members));
 	memcpy(custom_members, (void *)&cm, sizeof(struct CE_Hopper_members));
 	
@@ -34,50 +34,50 @@ void CE_Hopper::execute(void * _args){
     //Received control packet, switch tx freq
     if(ECR->CE_metrics.CE_event == ce_phy_event && ECR->CE_metrics.CE_frame == ce_frame_control)
     {
-        if(ECR->CE_metrics.header[0] == 1)
+        if(ECR->CE_metrics.header[0] == 'f')
         {
-            ECR->set_tx_freq(cm->freq1);
-        }
-        else if(ECR->CE_metrics.header[0] == 2)
-        {
-            ECR->set_tx_freq(cm->freq2);
-        }
-        else if(ECR->CE_metrics.header[0] == 3)
-        {
-            ECR->set_tx_freq(cm->freq3);
-        }
-        else if(ECR->CE_metrics.header[0] == 4)
-        {
-            ECR->set_tx_freq(cm->freq4);
+            float* f_payload = (float*)ECR->CE_metrics.payload;
+            float new_freq = f_payload[0];
+            printf("received new frequency: %f\n", new_freq); 
+            ECR->set_tx_freq(new_freq);
         }
     }
     else//Timeout or data packet received
     {
         if(ECR->CE_metrics.CE_event == ce_timeout) 
         {
-            unsigned char header[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+            unsigned char header[8] = {'f', 0, 0, 0, 0, 0, 0, 0};
+            unsigned char payload[100];
             float current = ECR->get_rx_freq();
             if(current == cm->freq1)
             {
                 ECR->set_rx_freq(cm->freq2);
-                header[0] = 2;
+                float* f_payload = (float*)payload;
+                f_payload[0] = cm->freq2;
+                printf("transmitting %f\n", cm->freq2);
             }
             else if(current == cm->freq2)
             {
                 ECR->set_rx_freq(cm->freq1);
-                header[0] = 1;
+                float* f_payload = (float*)payload;
+                f_payload[0] = cm->freq1;
+                printf("transmitting %f\n", cm->freq1);
             }
             else if(current == cm->freq3)
             {
                 ECR->set_rx_freq(cm->freq4);
-                header[0] = 4;
+                float* f_payload = (float*)payload;
+                f_payload[0] = cm->freq4;
+                printf("transmitting %f\n", cm->freq4);
             }
             else if(current == cm->freq4)
             {
                 ECR->set_rx_freq(cm->freq3);
-                header[0] = 3;
+                float* f_payload = (float*)payload;
+                f_payload[0] = cm->freq3;
+                printf("transmitting %f\n", cm->freq3);
             }
-            ECR->transmit_packet(header, NULL, 0);
+            ECR->transmit_packet(header, payload, 100);
         }
         else if(ECR->CE_metrics.CE_frame == ce_frame_data && ECR->CE_metrics.payload_valid)
         {
