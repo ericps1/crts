@@ -12,6 +12,7 @@ struct CE_Hopper_members{
 };
 
 // custom function declarations
+void SelectNewFrequency(ExtensibleCognitiveRadio* ECR, struct CE_Hopper_members* cm);
 
 // constructor
 CE_Hopper::CE_Hopper(){
@@ -60,41 +61,58 @@ void CE_Hopper::execute(void * _args){
         }
         if(cm->bad_received >= 2)
         {
-            cm->bad_received = 0;
-            unsigned char header[8] = {'f', 0, 0, 0, 0, 0, 0, 0};
-            unsigned char payload[100];
-            float current = ECR->get_rx_freq();
-            if(current == cm->freq1)
-            {
-                ECR->set_rx_freq(cm->freq2);
-                float* f_payload = (float*)payload;
-                f_payload[0] = cm->freq2;
-                printf("transmitting %f\n", cm->freq2);
-            }
-            else if(current == cm->freq2)
-            {
-                ECR->set_rx_freq(cm->freq1);
-                float* f_payload = (float*)payload;
-                f_payload[0] = cm->freq1;
-                printf("transmitting %f\n", cm->freq1);
-            }
-            else if(current == cm->freq3)
-            {
-                ECR->set_rx_freq(cm->freq4);
-                float* f_payload = (float*)payload;
-                f_payload[0] = cm->freq4;
-                printf("transmitting %f\n", cm->freq4);
-            }
-            else if(current == cm->freq4)
-            {
-                ECR->set_rx_freq(cm->freq3);
-                float* f_payload = (float*)payload;
-                f_payload[0] = cm->freq3;
-                printf("transmitting %f\n", cm->freq3);
-            }
-            ECR->transmit_packet(header, payload, 100);
+            ECR->stop_rx();
+            SelectNewFrequency(ECR, cm);
+            ECR->start_rx();
         }
     }
 }
 
 // custom function definitions
+void SelectNewFrequency(ExtensibleCognitiveRadio* ECR, struct CE_Hopper_members* cm)
+{
+    // set up receive buffer
+    const size_t max_samps_per_packet = ECR->usrp_rx->get_device()->get_max_recv_samps_per_packet();
+    std::vector<std::complex<float> > buffer(max_samps_per_packet);
+    
+    ECR->usrp_rx->get_device()->recv(
+            &buffer.front(), buffer.size(), ECR->metadata_rx,
+            uhd::io_type_t::COMPLEX_FLOAT32,
+            uhd::device::RECV_MODE_ONE_PACKET
+            );
+
+    //Process samples in some way
+    cm->bad_received = 0;
+    unsigned char header[8] = {'f', 0, 0, 0, 0, 0, 0, 0};
+    unsigned char payload[100];
+    float current = ECR->get_rx_freq();
+    if(current == cm->freq1)
+    {
+        ECR->set_rx_freq(cm->freq2);
+        float* f_payload = (float*)payload;
+        f_payload[0] = cm->freq2;
+        printf("transmitting %f\n", cm->freq2);
+    }
+    else if(current == cm->freq2)
+    {
+        ECR->set_rx_freq(cm->freq1);
+        float* f_payload = (float*)payload;
+        f_payload[0] = cm->freq1;
+        printf("transmitting %f\n", cm->freq1);
+    }
+    else if(current == cm->freq3)
+    {
+        ECR->set_rx_freq(cm->freq4);
+        float* f_payload = (float*)payload;
+        f_payload[0] = cm->freq4;
+        printf("transmitting %f\n", cm->freq4);
+    }
+    else if(current == cm->freq4)
+    {
+        ECR->set_rx_freq(cm->freq3);
+        float* f_payload = (float*)payload;
+        f_payload[0] = cm->freq3;
+        printf("transmitting %f\n", cm->freq3);
+    }
+    ECR->transmit_packet(header, payload, 100);
+}
