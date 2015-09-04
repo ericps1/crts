@@ -1,5 +1,6 @@
 #include "CE.hpp"
 #include "ECR.hpp"
+#include "timer.h"
 
 // custom member struct
 struct CE_Hopper_members{
@@ -9,6 +10,7 @@ struct CE_Hopper_members{
     static const float freq2 = 774e6;
     static const float freq3 = 870e6;
     static const float freq4 = 874e6;
+    timer t1;
 };
 
 // custom function declarations
@@ -19,6 +21,8 @@ CE_Hopper::CE_Hopper(){
 	struct CE_Hopper_members cm;
 	cm.num_received = 0;
     cm.bad_received = 0;
+    cm.t1 = timer_create();
+    timer_tic(cm.t1);
 	custom_members = malloc(sizeof(struct CE_Hopper_members));
 	memcpy(custom_members, (void *)&cm, sizeof(struct CE_Hopper_members));
 	
@@ -47,23 +51,36 @@ void CE_Hopper::execute(void * _args){
     }
     else//Timeout or data packet received
     {
-        if(ECR->CE_metrics.CE_event == ce_timeout || 
-            !ECR->CE_metrics.header_valid ||
+        if( !ECR->CE_metrics.header_valid ||
             !ECR->CE_metrics.payload_valid) 
         {
             cm->bad_received++;
+            if(ECR->CE_metrics.CE_event == ce_timeout)
+                printf("timeout, %u\n", cm->bad_received);
+            else if(!ECR->CE_metrics.header_valid)
+                printf("bad header, %u\n", cm->bad_received);
+            else if(!ECR->CE_metrics.payload_valid)
+                printf("bad payload, %u\n", cm->bad_received);
         }
         else if(ECR->CE_metrics.CE_frame == ce_frame_data && ECR->CE_metrics.payload_valid)
         {
-            std::cout << "packet " << ECR->CE_metrics.packet_id << " received" << std::endl;
+            printf(".");
+            fflush(stdout);
             cm->num_received++;
             cm->bad_received = 0;
         }
-        if(cm->bad_received >= 10)
+        if(cm->bad_received >= 10 || ECR->CE_metrics.CE_event == ce_timeout)
         {
-            ECR->stop_rx();
-            SelectNewFrequency(ECR, cm);
-            ECR->start_rx();
+            if(timer_toc(cm->t1) > 5.0)
+            {
+                cm->bad_received = 0;
+                ECR->stop_rx();
+                SelectNewFrequency(ECR, cm);
+                ECR->start_rx();
+                timer_tic(cm->t1);
+            }
+            else
+                printf("have not waited long enough to retune");
         }
     }
 }
