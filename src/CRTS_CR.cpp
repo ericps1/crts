@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <string>
 #include <uhd/utils/msg.hpp>
+#include <uhd/types/time_spec.hpp>
 #include <iostream>
 #include <fstream>
 #include <errno.h>
@@ -237,7 +238,11 @@ int main(int argc, char ** argv){
 		if(time_s >= start_time_s) 
 			break;
 	}
-	
+
+	// set the USRP's timer to 0
+	uhd::time_spec_t t0(0, 0, 1e6);
+	ECR.usrp_rx->set_time_now(t0, 0);
+
 	// main loop
     while(time_s < stop_time_s && !sig_terminate){
 		// Listen for any updates from the controller (non-blocking)

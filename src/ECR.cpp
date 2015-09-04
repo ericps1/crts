@@ -698,7 +698,8 @@ int rxCallback(unsigned char * _header,
 		// Log metrics locally if required
 		if(ECR->log_metrics_flag)
 			ECR->log_metrics(ECR);
-    }
+    
+	}
 
 	// print payload
 	dprintf("\nReceived Payload:\n");
