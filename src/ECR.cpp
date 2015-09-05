@@ -11,7 +11,6 @@
 #include <sys/time.h>
 #include "ECR.hpp"
 #include "TUN.hpp"
-//#include "pt_sleep.hpp"
 
 #define DEBUG 0
 #if DEBUG == 1
@@ -27,10 +26,14 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
 	ce_timeout_ms = 1000;
 
 	// set internal properties
-    M = 64;
-    cp_len = 16;
-    taper_len = 4; 
-    p = NULL;   // subcarrier allocation (default)
+    tx_params.M = 64;
+    tx_params.cp_len = 16;
+    tx_params.taper_len = 4; 
+    tx_params.p = NULL;   // subcarrier allocation (default)
+	rx_params.M = 64;
+    rx_params.cp_len = 16;
+    rx_params.taper_len = 4; 
+    rx_params.p = NULL;   // subcarrier allocation (default)
 
     // Initialize header to all zeros
     memset(tx_header, 0, sizeof(tx_header));
@@ -39,19 +42,19 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
 	ce_phy_events = true;
     
     // create frame generator
-    ofdmflexframegenprops_init_default(&fgprops);
-    fgprops.check       = LIQUID_CRC_32;
-    fgprops.fec0        = LIQUID_FEC_HAMMING128;
-    fgprops.fec1        = LIQUID_FEC_NONE;
-    fgprops.mod_scheme      = LIQUID_MODEM_QAM4;
-    fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
+    ofdmflexframegenprops_init_default(&tx_params.fgprops);
+    tx_params.fgprops.check       = LIQUID_CRC_32;
+    tx_params.fgprops.fec0        = LIQUID_FEC_HAMMING128;
+    tx_params.fgprops.fec1        = LIQUID_FEC_NONE;
+    tx_params.fgprops.mod_scheme      = LIQUID_MODEM_QAM4;
+    fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
 
     // allocate memory for frame generator output (single OFDM symbol)
-    fgbuffer_len = M + cp_len;
+    fgbuffer_len = tx_params.M + tx_params.cp_len;
     fgbuffer = (std::complex<float>*) malloc(fgbuffer_len * sizeof(std::complex<float>));
 
     // create frame synchronizer
-    fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void *)this);
+    fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void *)this);
 
 	// create usrp objects
     uhd::device_addr_t dev_addr;
@@ -198,7 +201,6 @@ float ExtensibleCognitiveRadio::get_ce_timeout_ms(){
 void ExtensibleCognitiveRadio::set_ip(char *ip){
 	char command[50];
 	sprintf(command, "ip addr add %s/24 dev tun0", ip);
-	printf("%s\n", command);
 	system(command);
 	system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
 }
@@ -234,40 +236,41 @@ void ExtensibleCognitiveRadio::reset_tx()
 // set transmitter frequency
 void ExtensibleCognitiveRadio::set_tx_freq(float _tx_freq)
 {
-    pthread_mutex_lock(&tx_mutex);
+    tx_params.tx_freq = _tx_freq;
+	pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_freq(_tx_freq);
     pthread_mutex_unlock(&tx_mutex);
 }
 
-// get transmitter frequency
+/*// get transmitter frequency
 float ExtensibleCognitiveRadio::get_tx_freq()
 {
     pthread_mutex_lock(&tx_mutex);
     float freq = usrp_tx->get_tx_freq();
     pthread_mutex_unlock(&tx_mutex);
     return freq;
-}
+}*/
 
 // set transmitter sample rate
 void ExtensibleCognitiveRadio::set_tx_rate(float _tx_rate)
 {
-    pthread_mutex_lock(&tx_mutex);
-    usrp_tx->set_tx_rate(_tx_rate);
+    tx_params.tx_rate = _tx_rate;
+	pthread_mutex_lock(&tx_mutex);
+	usrp_tx->set_tx_rate(_tx_rate);
     pthread_mutex_unlock(&tx_mutex);
 }
 
 // set transmitter software gain
 void ExtensibleCognitiveRadio::set_tx_gain_soft(float _tx_gain_soft)
 {
-    pthread_mutex_lock(&tx_mutex);
-	tx_gain = powf(10.0f, _tx_gain_soft / 20.0f);
-    pthread_mutex_unlock(&tx_mutex);
+    tx_params.tx_gain_soft = _tx_gain_soft;
 }
 
 // set transmitter hardware (UHD) gain
 void ExtensibleCognitiveRadio::set_tx_gain_uhd(float _tx_gain_uhd)
 {
-    pthread_mutex_lock(&tx_mutex);
+    tx_params.tx_gain_uhd = _tx_gain_uhd;
+	pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_gain(_tx_gain_uhd);
     pthread_mutex_unlock(&tx_mutex);
 }
@@ -276,22 +279,21 @@ void ExtensibleCognitiveRadio::set_tx_gain_uhd(float _tx_gain_uhd)
 void ExtensibleCognitiveRadio::set_tx_modulation(int mod_scheme)
 {
     pthread_mutex_lock(&tx_mutex);
-	fgprops.mod_scheme = mod_scheme;
-    ofdmflexframegen_setprops(fg, &fgprops);
-    //printf("\nupdating frame props\n");
-    //ofdmflexframegen_print(fg);
-	pthread_mutex_unlock(&tx_mutex);
+	tx_params.fgprops.mod_scheme = mod_scheme;
+    ofdmflexframegen_setprops(fg, &tx_params.fgprops);
+    pthread_mutex_unlock(&tx_mutex);
 }
 
 // decrease modulation order
 void ExtensibleCognitiveRadio::decrease_tx_mod_order()
-{
+{	
+	unsigned int mod = tx_params.fgprops.mod_scheme;
+	
 	// Check to see if modulation order is already minimized
-	if (fgprops.mod_scheme != 1 && fgprops.mod_scheme != 9 && fgprops.mod_scheme != 17 &&
-		fgprops.mod_scheme != 25 && fgprops.mod_scheme != 32){
+	if (mod != 1 && mod != 9 && mod != 17 && mod != 25 && mod != 32){
 			pthread_mutex_lock(&tx_mutex);
-   		 	fgprops.mod_scheme--;
-    		ofdmflexframegen_setprops(fg, &fgprops);
+   		 	tx_params.fgprops.mod_scheme--;
+    		ofdmflexframegen_setprops(fg, &tx_params.fgprops);
 			pthread_mutex_unlock(&tx_mutex);
 	}
 }
@@ -299,12 +301,13 @@ void ExtensibleCognitiveRadio::decrease_tx_mod_order()
 // increase modulation order
 void ExtensibleCognitiveRadio::increase_tx_mod_order()
 {
+	unsigned int mod = tx_params.fgprops.mod_scheme;
+	
 	// check to see if modulation order is already maximized
-	if (fgprops.mod_scheme != 8 && fgprops.mod_scheme != 16 && fgprops.mod_scheme != 24 &&
-		fgprops.mod_scheme != 31 && fgprops.mod_scheme != 38){		
+	if (mod != 8 && mod != 16 && mod != 24 && mod != 31 && mod != 38){		
 			pthread_mutex_lock(&tx_mutex);
-   			fgprops.mod_scheme++;
-    		ofdmflexframegen_setprops(fg, &fgprops);
+   			tx_params.fgprops.mod_scheme++;
+    		ofdmflexframegen_setprops(fg, &tx_params.fgprops);
     		pthread_mutex_unlock(&tx_mutex);
 	}
 }
@@ -312,8 +315,8 @@ void ExtensibleCognitiveRadio::increase_tx_mod_order()
 // set CRC scheme
 void ExtensibleCognitiveRadio::set_tx_crc(int crc_scheme){
 	pthread_mutex_lock(&tx_mutex);
-    fgprops.check = crc_scheme;
-	ofdmflexframegen_setprops(fg, &fgprops);
+    tx_params.fgprops.check = crc_scheme;
+	ofdmflexframegen_setprops(fg, &tx_params.fgprops);
     pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -321,8 +324,8 @@ void ExtensibleCognitiveRadio::set_tx_crc(int crc_scheme){
 void ExtensibleCognitiveRadio::set_tx_fec0(int fec_scheme)
 {
     pthread_mutex_lock(&tx_mutex);
-    fgprops.fec0 = fec_scheme;
-    ofdmflexframegen_setprops(fg, &fgprops);
+    tx_params.fgprops.fec0 = fec_scheme;
+    ofdmflexframegen_setprops(fg, &tx_params.fgprops);
     pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -330,8 +333,8 @@ void ExtensibleCognitiveRadio::set_tx_fec0(int fec_scheme)
 void ExtensibleCognitiveRadio::set_tx_fec1(int fec_scheme)
 {
     pthread_mutex_lock(&tx_mutex);
-    fgprops.fec1 = fec_scheme;
-    ofdmflexframegen_setprops(fg, &fgprops);
+    tx_params.fgprops.fec1 = fec_scheme;
+    ofdmflexframegen_setprops(fg, &tx_params.fgprops);
     pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -341,8 +344,8 @@ void ExtensibleCognitiveRadio::set_tx_subcarriers(unsigned int _M)
     // destroy frame gen, set cp length, recreate frame gen
 	pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
-	M = _M;
-	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
+	tx_params.M = _M;
+	fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
 	pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -352,8 +355,8 @@ void ExtensibleCognitiveRadio::set_tx_subcarrier_alloc(char *_p)
     // destroy frame gen, set cp length, recreate frame gen
 	pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
-	memcpy(p, _p, M);
-	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
+	memcpy(tx_params.p, _p, tx_params.M);
+	fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
 	pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -363,8 +366,8 @@ void ExtensibleCognitiveRadio::set_tx_cp_len(unsigned int _cp_len)
     // destroy frame gen, set cp length, recreate frame gen
 	pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
-	cp_len = _cp_len;
-	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
+	tx_params.cp_len = _cp_len;
+	fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
 	pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -374,8 +377,8 @@ void ExtensibleCognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
 	// destroy frame gen, set cp length, recreate frame gen
 	pthread_mutex_lock(&tx_mutex);
 	ofdmflexframegen_destroy(fg);
-	taper_len = _taper_len;
-	fg = ofdmflexframegen_create(M, cp_len, taper_len, p, &fgprops);
+	tx_params.taper_len = _taper_len;
+	fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
 	pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -400,13 +403,20 @@ void ExtensibleCognitiveRadio::transmit_packet(unsigned char * _header,
     metadata_tx.has_time_spec  = false; // set to false to send immediately
     //TODO: flush buffers
 
-    // fector buffer to send data to device
+    // vector buffer to send data to device
     std::vector<std::complex<float> > usrp_buffer(fgbuffer_len);
 
     // assemble frame
     ofdmflexframegen_assemble(fg, _header, _payload, _payload_len);
 
-    // generate a single OFDM frame
+	float tx_gain_soft_lin = powf(10.0f, tx_params.tx_gain_soft / 20.0f);
+
+    if(log_tx_parameters_flag){
+		//printf("\nLogging transmit parameters\n\n");
+		log_tx_parameters();
+	}
+
+	// generate a single OFDM frame
     bool last_symbol=false;
     unsigned int i;
 	pthread_mutex_lock(&tx_mutex);
@@ -417,7 +427,7 @@ void ExtensibleCognitiveRadio::transmit_packet(unsigned char * _header,
 
     	// copy symbol and apply gain
     	for (i=0; i<fgbuffer_len; i++)
-        	usrp_buffer[i] = fgbuffer[i] * tx_gain;
+        	usrp_buffer[i] = fgbuffer[i] * tx_gain_soft_lin;
 	
     	// send samples to the device
     	usrp_tx->get_device()->send(
@@ -458,26 +468,28 @@ void ExtensibleCognitiveRadio::transmit_packet(unsigned char * _header,
 // set receiver frequency
 void ExtensibleCognitiveRadio::set_rx_freq(float _rx_freq)
 {
-    usrp_rx->set_rx_freq(_rx_freq);
+    rx_params.rx_freq = _rx_freq;
+	usrp_rx->set_rx_freq(_rx_freq);
 }
 
 // set receiver frequency
 float ExtensibleCognitiveRadio::get_rx_freq()
 {
-    float freq = usrp_tx->get_rx_freq();
-    return freq;
+    return rx_params.rx_freq;
 }
 
 // set receiver sample rate
 void ExtensibleCognitiveRadio::set_rx_rate(float _rx_rate)
 {
-    usrp_rx->set_rx_rate(_rx_rate);
+    rx_params.rx_rate = _rx_rate;
+	usrp_rx->set_rx_rate(_rx_rate);
 }
 
 // set receiver hardware (UHD) gain
 void ExtensibleCognitiveRadio::set_rx_gain_uhd(float _rx_gain_uhd)
 {
-    usrp_rx->set_rx_gain(_rx_gain_uhd);
+    rx_params.rx_gain_uhd = _rx_gain_uhd;
+	usrp_rx->set_rx_gain(_rx_gain_uhd);
 }
 
 // set receiver antenna
@@ -499,8 +511,8 @@ void ExtensibleCognitiveRadio::set_rx_subcarriers(unsigned int _M)
 	stop_rx();
 	usleep(1.0);
 	ofdmflexframesync_destroy(fs);
-	M = _M;
-	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
+	rx_params.M = _M;
+	fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
 	start_rx();
 }
 
@@ -511,8 +523,8 @@ void ExtensibleCognitiveRadio::set_rx_subcarrier_alloc(char *_p)
 	stop_rx();
 	usleep(1.0);
 	ofdmflexframesync_destroy(fs);
-	memcpy(p, _p, M);
-	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
+	memcpy(rx_params.p, _p, rx_params.M);
+	fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
 	start_rx();
 }
 
@@ -523,8 +535,8 @@ void ExtensibleCognitiveRadio::set_rx_cp_len(unsigned int _cp_len)
 	stop_rx();
 	usleep(1.0);
 	ofdmflexframesync_destroy(fs);
-	cp_len = _cp_len;
-	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
+	rx_params.cp_len = _cp_len;
+	fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
 	start_rx();
 }
 
@@ -535,8 +547,8 @@ void ExtensibleCognitiveRadio::set_rx_taper_len(unsigned int _taper_len)
 	stop_rx();
 	usleep(1.0);
 	ofdmflexframesync_destroy(fs);
-	taper_len = _taper_len;
-	fs = ofdmflexframesync_create(M, cp_len, taper_len, p, rxCallback, (void*)this);
+	rx_params.taper_len = _taper_len;
+	fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
 	start_rx();
 }
 
@@ -696,8 +708,8 @@ int rxCallback(unsigned char * _header,
 
 		// Pass metrics to controller if required
 		// Log metrics locally if required
-		if(ECR->log_metrics_flag)
-			ECR->log_metrics(ECR);
+		if(ECR->log_rx_metrics_flag)
+			ECR->log_rx_metrics();
     
 	}
 
@@ -790,12 +802,11 @@ void * ECR_tx_worker(void * _arg)
 			dprintf("\n");
 
 			dprintf("Transmitting packet\n");	
-            unsigned char header[8] = {(unsigned char) 'd', 0, 0, 0, 0, 0, 0, 0};
-            header[1] = (ECR->packet_id >> 8) & 0xff;
-            header[2] = (ECR->packet_id) & 0xff;
+            ECR->tx_header[0] = 'd';
+			ECR->tx_header[1] = (ECR->packet_id >> 8) & 0xff;
+			ECR->tx_header[2] = (ECR->packet_id) & 0xff;
             ECR->packet_id++;
-            ECR->set_header(header);
-			ECR->transmit_packet(ECR->tx_header,
+            ECR->transmit_packet(ECR->tx_header,
 				payload,
 				payload_len);
         } // while tx_running
@@ -811,10 +822,10 @@ void * ECR_ce_worker(void *_arg){
     ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *) _arg; 
     
 	struct timeval time_now;
-	double timeout_time_ns;
-	double timeout_time_spart;
-	double timeout_time_nspart;
-	struct timespec timeout_time;
+	double timeout_ns;
+	double timeout_spart;
+	double timeout_nspart;
+	struct timespec timeout;
 
 	// wait for signal to start ce execution
 	// the first signal should be sent by start_ce()
@@ -832,16 +843,16 @@ void * ECR_ce_worker(void *_arg){
 		gettimeofday(&time_now, NULL);
 
         // Calculate timeout time in nanoseconds
-		timeout_time_ns = time_now.tv_usec*1e3+time_now.tv_sec*1e9+ECR->ce_timeout_ms*1e6;
+		timeout_ns = (double)time_now.tv_usec*1e3 + (double)time_now.tv_sec*1e9 + ECR->ce_timeout_ms*1e6;
 		// Convert timeout time to s and ns parts
-		timeout_time_nspart = modf(timeout_time_ns/1e9, &timeout_time_spart);
-		// Put timeout time into timespec struct
-		timeout_time.tv_sec = timeout_time_spart;
-		timeout_time.tv_nsec = timeout_time_nspart;
-		
+		timeout_nspart = modf(timeout_ns/1e9, &timeout_spart);
+		// Put timeout into timespec struct
+		timeout.tv_sec = (long int)timeout_spart;
+		timeout.tv_nsec = (long int)(timeout_nspart*1e9);
+	
 		// Wait for signal from receiver
 		pthread_mutex_lock(&ECR->CE_mutex);
-		if(ETIMEDOUT == pthread_cond_timedwait(&ECR->CE_execute_sig, &ECR->CE_mutex, &timeout_time))
+		if(ETIMEDOUT == pthread_cond_timedwait(&ECR->CE_execute_sig, &ECR->CE_mutex, &timeout))
 			ECR->CE_metrics.CE_event = ce_timeout;
 		
 		// execute CE
@@ -878,24 +889,20 @@ void ExtensibleCognitiveRadio::print_metrics(ExtensibleCognitiveRadio * ECR){
         // for definition of fec_scheme_str
 }
 
-void ExtensibleCognitiveRadio::log_metrics(ExtensibleCognitiveRadio * ECR){
-    //std::cout<<"log_metrics() called"<<std::endl;
+void ExtensibleCognitiveRadio::log_rx_metrics(){
+    
 	// create string of actual file location
 	char file_name[100];
 	strcpy(file_name, "./logs/");
-	strcat(file_name, ECR->log_file);
+	strcat(file_name, rx_log_file);
 	
 	// open file, append metrics, and close
-	//FILE * file;
-    std::ofstream log_file;
-	//file = fopen(file_name, "ab");	
-    // Open output binary file for appending
+	std::ofstream log_file;
+	// Open output binary file for appending
     log_file.open(file_name, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
     if (log_file.is_open())
     {
-        //fwrite(&ECR->CE_metrics, sizeof(struct metric_s), 1, file); 
-        //std::cout<<"Log file open"<<std::endl;
-        log_file.write((char*)&ECR->CE_metrics, sizeof(struct metric_s));
+        log_file.write((char*)&CE_metrics, sizeof(struct metric_s));
     }
     else
     {
@@ -904,6 +911,33 @@ void ExtensibleCognitiveRadio::log_metrics(ExtensibleCognitiveRadio * ECR){
 
 	//fclose(file);
     log_file.close();
+}
+
+void ExtensibleCognitiveRadio::log_tx_parameters(){
+    
+	// update current time
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	
+	// create string of actual file location
+	char file_name[100];
+	strcpy(file_name, "./logs/");
+	strcat(file_name, tx_log_file);
+	
+	// open file, append parameters, and close
+	std::ofstream log_file;
+	log_file.open(file_name, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
+    if (log_file.is_open())
+    {
+        log_file.write((char*)&tv, sizeof(tv));
+		log_file.write((char*)&tx_params, sizeof(struct tx_parameter_s));
+    }
+    else
+    {
+        std::cerr<<"Error opening log file:"<<file_name<<std::endl;
+    }
+
+	log_file.close();
 }
 
 

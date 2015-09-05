@@ -4,10 +4,10 @@
 // custom member struct
 struct CE_Hopper_members{
 	unsigned int num_received;
-    static const float freq1 = 834e6;
-    static const float freq2 = 838e6;
-    static const float freq3 = 842e6;
-    static const float freq4 = 846e6;
+    static const float freq1 = 770e6;
+    static const float freq2 = 780e6;
+    static const float freq3 = 870e6;
+    static const float freq4 = 880e6;
 };
 
 // custom function declarations

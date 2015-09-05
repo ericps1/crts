@@ -47,8 +47,10 @@ struct node_parameters{
     int layers;
     int traffic;
     int print_metrics;
-    int log_metrics;
-    char log_file[30];
+    int log_rx_metrics;
+	int log_tx_parameters;
+    char rx_log_file[30];
+	char tx_log_file[30];
     float ce_timeout_ms;
 
     // RF

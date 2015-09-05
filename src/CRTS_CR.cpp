@@ -61,9 +61,11 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 		// set cognitive radio parameters
 		ECR->set_ip(np->CRTS_IP);
 		ECR->print_metrics_flag = np->print_metrics;
-		ECR->log_metrics_flag = np->log_metrics;
+		ECR->log_rx_metrics_flag = np->log_rx_metrics;
+		ECR->log_tx_parameters_flag = np->log_tx_parameters;
 		ECR->set_ce_timeout_ms(np->ce_timeout_ms);
-		strcpy(ECR->log_file, np->log_file);
+		strcpy(ECR->rx_log_file, np->rx_log_file);
+		strcpy(ECR->tx_log_file, np->tx_log_file);
 		ECR->set_tx_freq(np->tx_freq);
 		ECR->set_rx_freq(np->rx_freq);
 		ECR->set_tx_rate(np->tx_rate);
@@ -77,12 +79,28 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 		ECR->set_tx_fec1(np->tx_fec1);
 		ECR->set_ce(np->CE);		
 
-		// open log file to delete any current contents
-		if (ECR->log_metrics_flag){
+		// open rx log file to delete any current contents
+		if (ECR->log_rx_metrics_flag){
 			std::ofstream log_file;
 			char log_file_name[50];
 			strcpy(log_file_name, "./logs/");
-			strcat(log_file_name, ECR->log_file);
+			strcat(log_file_name, ECR->rx_log_file);
+			log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
+            if (log_file.is_open())
+            {
+                log_file.close();
+            }
+            else
+            {
+                std::cout<<"Error opening log file:"<<log_file_name<<std::endl;
+            }
+		}
+		// open tx log file to delete any current contents
+		if (ECR->log_tx_parameters_flag){
+			std::ofstream log_file;
+			char log_file_name[50];
+			strcpy(log_file_name, "./logs/");
+			strcat(log_file_name, ECR->tx_log_file);
 			log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
             if (log_file.is_open())
             {
@@ -175,12 +193,6 @@ int main(int argc, char ** argv){
 	Receive_command_from_controller(&TCP_controller, &ECR, &np);
 	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
-	// Start ECR
-	dprintf("Starting ECR object...\n");
-	ECR.start_rx();
-    ECR.start_tx();
-	ECR.start_ce();
-
 	// Port to be used by CRTS server and client
 	int port = 4444;
 
@@ -243,15 +255,31 @@ int main(int argc, char ** argv){
 	uhd::time_spec_t t0(0, 0, 1e6);
 	ECR.usrp_rx->set_time_now(t0, 0);
 
+	// Start ECR
+	dprintf("Starting ECR object...\n");
+	ECR.start_rx();
+    ECR.start_tx();
+	ECR.start_ce();
+
 	// main loop
+	float tx_time_delta = 0;
+	struct timeval tx_time;
     while(time_s < stop_time_s && !sig_terminate){
 		// Listen for any updates from the controller (non-blocking)
 		dprintf("Listening to controller for command\n");
 		Receive_command_from_controller(&TCP_controller, &ECR, &np);
 
 		// Wait (used for test purposes only)
-        usleep(np.tx_delay_us);
-        
+        //usleep(np.tx_delay_us);
+		tx_time_delta += np.tx_delay_us;
+		tx_time.tv_sec = start_time_s + (long int) floorf(tx_time_delta/1e6);
+		tx_time.tv_usec = fmod(tx_time_delta, 1e6);
+     	while(1){
+			gettimeofday(&tv, NULL);
+			if((tv.tv_sec == tx_time.tv_sec && tv.tv_usec> tx_time.tv_usec) || tv.tv_sec > tx_time.tv_sec ) 
+				break;
+		}
+		
 		// if not using FDD then stop the receiver before transmitting
 		if(np.duplex != FDD){ 
 			ECR.stop_rx();

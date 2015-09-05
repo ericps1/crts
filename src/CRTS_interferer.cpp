@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <complex>
 #include <liquid/liquid.h>
+#include <fstream>
 #include "interferer_defined_constants.hpp"
 #include "interferer.hpp"
 #include "node_parameters.hpp"
@@ -30,6 +31,8 @@ float  freqIncrement;
 int    freqCoeff; 
 int    freqWidth; 
 int    TCP_controller; 
+int    log_tx_parameters_flag;
+char   tx_log_file[30];
 
 // ========================================================================
 //  FUNCTION:  Receive_command_from_controller
@@ -105,6 +108,26 @@ static inline void Receive_command_from_controller(Interferer * inter,
       inter->gmsk_header_length = np->gmsk_header_length; 
       inter->gmsk_payload_length = np->gmsk_payload_length; 
       inter->gmsk_bandwidth = np->gmsk_bandwidth; 
+
+      log_tx_parameters_flag = np->log_tx_parameters;
+      strcpy(tx_log_file, np->tx_log_file);
+
+	  // open tx log file to delete any current contents
+	  if(log_tx_parameters_flag){
+        std::ofstream log_file;
+		char log_file_name[50];
+		strcpy(log_file_name, "./logs/");
+		strcat(log_file_name, tx_log_file);
+		log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
+		if (log_file.is_open())
+		{
+		  log_file.close();
+		}
+		else
+		{
+		  std::cout << "Error opening log file: " << log_file_name << std::endl;
+		}
+      }
 
       break;
 
@@ -463,6 +486,35 @@ void BuildOFDMTransmission()
 */
 
 // ========================================================================
+//  FUNCTION:  Log transmission parameters
+// ========================================================================
+void log_tx_parameters(){
+
+	// update current time
+	struct timeval tv;
+    gettimeofday(&tv, NULL);
+	
+	// create string of actual file location
+	char file_name[50];
+	strcpy(file_name, "./logs/");
+	strcat(file_name, tx_log_file);
+
+	// open file, append parameters, and close
+	std::ofstream log_file;
+	log_file.open(file_name, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
+	if (log_file.is_open())
+	{
+		log_file.write((char*)&tv, sizeof(tv));
+        log_file.write((char*)&currentTxFreq, sizeof(currentTxFreq));
+	}
+	else
+	{
+		std::cerr << "Error opening log file:" << file_name << std::endl;
+	}
+	log_file.close();
+}
+
+// ========================================================================
 //  FUNCTION:  Transmit Interference
 // ========================================================================
 
@@ -476,6 +528,9 @@ void TransmitInterference(
   int tx_samp_count = 0;//samps_to_transmit;	
   int usrp_samps = USRP_BUFFER_LENGTH; 
 
+  if(log_tx_parameters_flag)
+  	log_tx_parameters();
+  
   while(tx_samp_count < samplesInBuffer) 
     {
     // modifications for the last group of samples generated
@@ -631,7 +686,6 @@ void PerformDutyCycle_Off(Interferer interfererObj,
   timer_destroy(offTimer); 
   }
 
-
 // ==========================================================================
 // ==========================================================================
 // ==========================================================================
@@ -648,7 +702,7 @@ int main(int argc, char ** argv)
   signal(SIGTERM, terminate);
 
   // set default values
-  float run_time = DEFAULT_RUN_TIME;
+  time_t run_time = DEFAULT_RUN_TIME;
   char* controller_ipaddr = (char*) DEFAULT_CONTROLLER_IP_ADDRESS;
   TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -687,8 +741,7 @@ int main(int argc, char ** argv)
     printf("Failed to Connect to server.\n");
     exit(EXIT_FAILURE);
     }
-  printf("gmk Connected to server\n");
-	
+  
   uhd::msg::register_handler(&uhd_quiet);
 
   // Create node parameters struct and interferer object
@@ -773,4 +826,5 @@ int main(int argc, char ** argv)
   char term_message = 't';
   write(TCP_controller, &term_message, 1);
   }
+
 
