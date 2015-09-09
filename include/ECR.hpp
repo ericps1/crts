@@ -39,6 +39,30 @@ struct metric_s{
 
 };
 
+// tx parameter struct
+struct tx_parameter_s{
+	unsigned int M;                 // number of subcarriers
+    unsigned int cp_len;            // cyclic prefix length
+    unsigned int taper_len;         // taper length
+    unsigned char * p;
+    ofdmflexframegenprops_s fgprops;// frame generator properties
+	float tx_gain_uhd;
+	float tx_gain_soft;
+	float tx_freq;
+	float tx_rate;
+};
+    
+// rx parameter struct
+struct rx_parameter_s{
+	unsigned int M;                 // number of subcarriers
+    unsigned int cp_len;            // cyclic prefix length
+    unsigned int taper_len;         // taper length
+    unsigned char * p;
+    float rx_gain_uhd;
+	float rx_freq;
+	float rx_rate;
+};
+
 // thread functions
 void * ECR_tx_worker(void * _arg);
 void * ECR_rx_worker(void * _arg);
@@ -112,16 +136,10 @@ public:
 			unsigned int     _payload_len);
 
     // transmitter properties/objects
-    unsigned int M;                 // number of subcarriers
-    unsigned int cp_len;            // cyclic prefix length
-    unsigned int taper_len;         // taper length
-    unsigned char * p;
-    ofdmflexframegenprops_s fgprops;// frame generator properties
-
-    ofdmflexframegen fg;            // frame generator object
-    std::complex<float> * fgbuffer; // frame generator output buffer [size: M + cp_len x 1]
+    tx_parameter_s tx_params;
+	ofdmflexframegen fg;            // frame generator object
     unsigned int fgbuffer_len;      // length of frame generator buffer
-    float tx_gain;                  // soft transmit gain (linear)
+    std::complex<float> * fgbuffer; // frame generator output buffer [size: M + cp_len x 1]
     unsigned char tx_header[8];        // header container (must have length 8)
 	uhd::usrp::multi_usrp::sptr usrp_tx;
     uhd::tx_metadata_t metadata_tx;
@@ -151,6 +169,7 @@ public:
     void set_rx_taper_len(unsigned int taper_len);
 
     // receiver objects
+	struct rx_parameter_s rx_params;
 	ofdmflexframesync fs;           // frame synchronizer object
     uhd::usrp::multi_usrp::sptr usrp_rx;
     uhd::rx_metadata_t metadata_rx;
@@ -167,9 +186,12 @@ public:
     // methods and variables for printing/logging metrics 
 	void print_metrics(ExtensibleCognitiveRadio * CR);
 	int print_metrics_flag;
-	void log_metrics(ExtensibleCognitiveRadio * CR);
-	int log_metrics_flag;
-	char log_file[30];
+	void log_rx_metrics();
+	void log_tx_parameters();
+	int log_rx_metrics_flag;
+	int log_tx_parameters_flag;
+	char rx_log_file[30];
+	char tx_log_file[30];
 
 
 private:

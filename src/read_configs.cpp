@@ -138,11 +138,17 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_int(node_config, "print_metrics", &tmpI))
 		np.print_metrics = (int)tmpI;
 	
-	if (config_setting_lookup_int(node_config, "log_metrics", &tmpI))
-		np.log_metrics = (int)tmpI;
+	if (config_setting_lookup_int(node_config, "log_rx_metrics", &tmpI))
+		np.log_rx_metrics = (int)tmpI;
+
+	if (config_setting_lookup_int(node_config, "log_tx_parameters", &tmpI))
+		np.log_tx_parameters = (int)tmpI;
 	
-	if (config_setting_lookup_string(node_config, "log_file", &tmpS))
-		strcpy(np.log_file, tmpS);
+	if (config_setting_lookup_string(node_config, "rx_log_file", &tmpS))
+		strcpy(np.rx_log_file, tmpS);
+
+	if (config_setting_lookup_string(node_config, "tx_log_file", &tmpS))
+		strcpy(np.tx_log_file, tmpS);
 
 	if (config_setting_lookup_float(node_config, "ce_timeout_ms", &tmpD))
 		np.ce_timeout_ms = tmpD;
@@ -337,15 +343,16 @@ void print_node_parameters(struct node_parameters * np)
   printf("	CORNET IP:                         %-s\n", np->CORNET_IP);
   if(np->type != interferer)
     {
-    printf("	CRTS IP:                         %-s\n", np->CRTS_IP);
-    printf("	Target IP:                       %-s\n", np->TARGET_IP);
-    printf("	Cognitive Engine:                %-s\n", np->CE);
+    printf("	CRTS IP:                           %-s\n", np->CRTS_IP);
+    printf("	Target IP:                         %-s\n", np->TARGET_IP);
+    printf("	Cognitive Engine:                  %-s\n", np->CE);
     }
   if(np->type == CR)
     {
     printf("	Traffic type:                      %-i\n", np->traffic);
     }
-  printf("	Log file:                          %-s\n", np->log_file);
+  printf("	Rx log file:                       %-s\n", np->rx_log_file);
+  printf("	Tx log file:                       %-s\n", np->tx_log_file);
   printf("	CE timeout:                        %-.2f\n", np->ce_timeout_ms);
   printf("RF:\n");
   if(np->type != interferer)
