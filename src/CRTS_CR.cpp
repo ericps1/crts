@@ -58,64 +58,71 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 		memcpy(np ,&command_buffer[1+sizeof(time_t)], sizeof(node_parameters));
 		print_node_parameters(np);
 
-		// set cognitive radio parameters
-		ECR->set_ip(np->CRTS_IP);
-		ECR->print_metrics_flag = np->print_metrics;
-		ECR->log_rx_metrics_flag = np->log_rx_metrics;
-		ECR->log_tx_parameters_flag = np->log_tx_parameters;
-		ECR->set_ce_timeout_ms(np->ce_timeout_ms);
-		strcpy(ECR->rx_log_file, np->rx_log_file);
-		strcpy(ECR->tx_log_file, np->tx_log_file);
-		ECR->set_tx_freq(np->tx_freq);
-		ECR->set_rx_freq(np->rx_freq);
-		ECR->set_tx_rate(np->tx_rate);
-		ECR->set_rx_rate(np->rx_rate);
-		ECR->set_tx_gain_soft(np->tx_gain_soft);
-		ECR->set_tx_gain_uhd(np->tx_gain);
-		ECR->set_rx_gain_uhd(np->rx_gain);
-		ECR->set_tx_modulation(np->tx_modulation);
-		ECR->set_tx_crc(np->tx_crc);
-		ECR->set_tx_fec0(np->tx_fec0);
-		ECR->set_tx_fec1(np->tx_fec1);
-		ECR->set_ce(np->CE);		
+        if(np->cr_type == liquid)
+        {
+            // set cognitive radio parameters
+            ECR->set_ip(np->CRTS_IP);
+            ECR->print_metrics_flag = np->print_metrics;
+            ECR->log_rx_metrics_flag = np->log_rx_metrics;
+            ECR->log_tx_parameters_flag = np->log_tx_parameters;
+            ECR->set_ce_timeout_ms(np->ce_timeout_ms);
+            strcpy(ECR->rx_log_file, np->rx_log_file);
+            strcpy(ECR->tx_log_file, np->tx_log_file);
+            ECR->set_tx_freq(np->tx_freq);
+            ECR->set_rx_freq(np->rx_freq);
+            ECR->set_tx_rate(np->tx_rate);
+            ECR->set_rx_rate(np->rx_rate);
+            ECR->set_tx_gain_soft(np->tx_gain_soft);
+            ECR->set_tx_gain_uhd(np->tx_gain);
+            ECR->set_rx_gain_uhd(np->rx_gain);
+            ECR->set_tx_modulation(np->tx_modulation);
+            ECR->set_tx_crc(np->tx_crc);
+            ECR->set_tx_fec0(np->tx_fec0);
+            ECR->set_tx_fec1(np->tx_fec1);
+            ECR->set_ce(np->CE);		
 
-		// open rx log file to delete any current contents
-		if (ECR->log_rx_metrics_flag){
-			std::ofstream log_file;
-			char log_file_name[50];
-			strcpy(log_file_name, "./logs/");
-			strcat(log_file_name, ECR->rx_log_file);
-			log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
-            if (log_file.is_open())
-            {
-                log_file.close();
+            // open rx log file to delete any current contents
+            if (ECR->log_rx_metrics_flag){
+                std::ofstream log_file;
+                char log_file_name[50];
+                strcpy(log_file_name, "./logs/");
+                strcat(log_file_name, ECR->rx_log_file);
+                log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
+                if (log_file.is_open())
+                {
+                    log_file.close();
+                }
+                else
+                {
+                    std::cout<<"Error opening log file:"<<log_file_name<<std::endl;
+                }
             }
-            else
-            {
-                std::cout<<"Error opening log file:"<<log_file_name<<std::endl;
+            // open tx log file to delete any current contents
+            if (ECR->log_tx_parameters_flag){
+                std::ofstream log_file;
+                char log_file_name[50];
+                strcpy(log_file_name, "./logs/");
+                strcat(log_file_name, ECR->tx_log_file);
+                log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
+                if (log_file.is_open())
+                {
+                    log_file.close();
+                }
+                else
+                {
+                    std::cout<<"Error opening log file:"<<log_file_name<<std::endl;
+                }
             }
-		}
-		// open tx log file to delete any current contents
-		if (ECR->log_tx_parameters_flag){
-			std::ofstream log_file;
-			char log_file_name[50];
-			strcpy(log_file_name, "./logs/");
-			strcat(log_file_name, ECR->tx_log_file);
-			log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
-            if (log_file.is_open())
-            {
-                log_file.close();
-            }
-            else
-            {
-                std::cout<<"Error opening log file:"<<log_file_name<<std::endl;
-            }
-		}
-		break;
-	case 't': // terminate program
-		printf("Received termination command from controller\n");
-		exit(1);
-	}
+        }
+        else if(np->type == CR && np->cr_type == python)
+        {
+            std::cout << "python radio" << std::endl;
+        }
+        break;
+    case 't': // terminate program
+        printf("Received termination command from controller\n");
+        exit(1);
+    }
 }
 
 void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
@@ -255,11 +262,22 @@ int main(int argc, char ** argv){
 	uhd::time_spec_t t0(0, 0, 1e6);
 	ECR.usrp_rx->set_time_now(t0, 0);
 
-	// Start ECR
-	dprintf("Starting ECR object...\n");
-	ECR.start_rx();
-    ECR.start_tx();
-	ECR.start_ce();
+    if(np.cr_type == liquid)
+    {
+        // Start ECR
+        dprintf("Starting ECR object...\n");
+        ECR.start_rx();
+        ECR.start_tx();
+        ECR.start_ce();
+    }
+    else if(np.cr_type == python)
+    {
+        char command[2000] = "python cognitive_engines/";
+        strcat(command, np.CE);
+        int ret_value = system(command);
+        if(ret_value != 0)
+            std::cout << "error starting python radio" << std::endl;
+    }
 	// main loop
 	float tx_time_delta = 0;
 	struct timeval tx_time;
@@ -279,12 +297,16 @@ int main(int argc, char ** argv){
 				break;
 		}
 		
-		// if not using FDD then stop the receiver before transmitting
-		if(np.duplex != FDD){ 
-			ECR.stop_rx();
-            usleep(1e3);
-		}
-		// Generate data according to traffic parameter
+        // if not using FDD then stop the receiver before transmitting
+        if(np.cr_type == liquid)
+        {
+            if(np.duplex != FDD)
+            { 
+                ECR.stop_rx();
+                usleep(1e3);
+            }
+        }
+        // Generate data according to traffic parameter
 		// Burst is not yet implemented
 		switch (np.traffic){
 		case burst:
@@ -296,11 +318,16 @@ int main(int argc, char ** argv){
 			if(send_return < 0) printf("Failed to send message\n");
 			break;
 		}
-		// restart receiver if it was stopped earlier
-		if(np.duplex != FDD) ECR.start_rx();
-			
-		// read all available data from the UDP socket
-		int recv_len =0;
+        // restart receiver if it was stopped earlier
+        if(np.cr_type == liquid)
+        {
+            if(np.duplex != FDD)
+            { 
+                ECR.start_rx();
+            }
+        }			
+        // read all available data from the UDP socket
+        int recv_len =0;
 		dprintf("CRTS: Reading from CRTS server socket\n");
 		recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0, (struct sockaddr *)&CRTS_server_addr, &clientlen);
 		// print out received messages
@@ -319,5 +346,6 @@ int main(int argc, char ** argv){
 	printf("Sending termination message to controller\n");
 	char term_message = 't';
 	write(TCP_controller, &term_message, 1);
+    std::cout << "done" << std::endl;
 }
 

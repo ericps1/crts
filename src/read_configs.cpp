@@ -122,12 +122,12 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 		if (strcmp(tmpS, "CR") == 0) 
         {
             np.type = CR;
+            np.cr_type = liquid;
+            //If node is a CR, lookup whether is uses liquid or python
             if(config_setting_lookup_string(node_config, "cr_type", &tmpS))
             {
                 if(strcmp(tmpS, "python") == 0)
                     np.cr_type = python;
-                else
-                    np.cr_type = liquid;
             }
         }
 		else if (strcmp(tmpS, "interferer") == 0) np.type = interferer;
