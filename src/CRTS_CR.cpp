@@ -272,7 +272,7 @@ int main(int argc, char ** argv){
     }
     else if(np.cr_type == python)
     {
-        char command[2000] = "python cognitive_engines/";
+        char command[2000] = "python cognitive_radios/";
         strcat(command, np.CE);
         int ret_value = system(command);
         if(ret_value != 0)
