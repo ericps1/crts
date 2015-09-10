@@ -119,8 +119,18 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	// read type of node
 	if (config_setting_lookup_string(node_config, "type", &tmpS)){
 		//printf("\nNode type: %s\n", tmpS);
-		if (!strcmp(tmpS, "CR")) np.type = CR;
-		else if (!strcmp(tmpS, "interferer")) np.type = interferer;
+		if (strcmp(tmpS, "CR") == 0) 
+        {
+            np.type = CR;
+            if(config_setting_lookup_string(node_config, "cr_type", &tmpS))
+            {
+                if(strcmp(tmpS, "python") == 0)
+                    np.cr_type = python;
+                else
+                    np.cr_type = liquid;
+            }
+        }
+		else if (strcmp(tmpS, "interferer") == 0) np.type = interferer;
 	}
 
 	// read all possible node settings
@@ -340,6 +350,13 @@ void print_node_parameters(struct node_parameters * np)
     }
 
   printf("	Node type:                         %-s\n", node_type);
+  if(np->type == CR)
+  {
+      char cr_type[15] = "liquid";
+      if(np->cr_type == python)
+          strcpy(cr_type, "python");
+      printf("	CR type:                           %-s\n", cr_type);
+  }
   printf("	CORNET IP:                         %-s\n", np->CORNET_IP);
   if(np->type != interferer)
     {

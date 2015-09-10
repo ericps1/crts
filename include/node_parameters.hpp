@@ -9,6 +9,11 @@ enum type{
     interferer		// interferer node type
 };
 
+enum cr_type{
+    python = 0, //third party python radios
+    liquid      //Radios created using ECR
+};
+
 enum duplex{
     FDD = 0,		// frequency division duplexing
     TDD,		// time division duplexing (not implemented)
@@ -40,6 +45,7 @@ enum tx_freq_hop_type{
 struct node_parameters{
 	// general
     int type;
+    int cr_type;
     char CORNET_IP[20];
     char CRTS_IP[20];
     char TARGET_IP[20];
