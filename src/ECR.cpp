@@ -212,7 +212,6 @@ void ExtensibleCognitiveRadio::set_ip(char *ip){
 // start transmitter
 void ExtensibleCognitiveRadio::start_tx()
 {
-    printf("usrp tx start\n");
     // set tx running flag
     tx_running = true;
     // signal condition (tell tx worker to start)
@@ -222,7 +221,6 @@ void ExtensibleCognitiveRadio::start_tx()
 // stop transmitter
 void ExtensibleCognitiveRadio::stop_tx()
 {
-    printf("usrp tx stop\n");
     // set rx running flag
     tx_running = false;
 }

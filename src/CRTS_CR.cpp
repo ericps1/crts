@@ -114,9 +114,9 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
                 }
             }
         }
-        else if(np->type == CR && np->cr_type == python)
+        else if(np->cr_type == python)
         {
-            std::cout << "python radio" << std::endl;
+            ECR->set_ip(np->CRTS_IP);
         }
         break;
     case 't': // terminate program
@@ -346,6 +346,5 @@ int main(int argc, char ** argv){
 	printf("Sending termination message to controller\n");
 	char term_message = 't';
 	write(TCP_controller, &term_message, 1);
-    std::cout << "done" << std::endl;
 }
 
