@@ -58,7 +58,7 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 		memcpy(np ,&command_buffer[1+sizeof(time_t)], sizeof(node_parameters));
 		print_node_parameters(np);
 
-        if(np->cr_type == liquid)
+        if(np->cr_type == ecr)
         {
             // set cognitive radio parameters
             ECR->set_ip(np->CRTS_IP);
@@ -262,7 +262,7 @@ int main(int argc, char ** argv){
 	uhd::time_spec_t t0(0, 0, 1e6);
 	ECR.usrp_rx->set_time_now(t0, 0);
 
-    if(np.cr_type == liquid)
+    if(np.cr_type == ecr)
     {
         // Start ECR
         dprintf("Starting ECR object...\n");
@@ -298,7 +298,7 @@ int main(int argc, char ** argv){
 		}
 		
         // if not using FDD then stop the receiver before transmitting
-        if(np.cr_type == liquid)
+        if(np.cr_type == ecr)
         {
             if(np.duplex != FDD)
             { 
@@ -319,7 +319,7 @@ int main(int argc, char ** argv){
 			break;
 		}
         // restart receiver if it was stopped earlier
-        if(np.cr_type == liquid)
+        if(np.cr_type == ecr)
         {
             if(np.duplex != FDD)
             { 

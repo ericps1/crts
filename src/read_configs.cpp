@@ -122,8 +122,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 		if (strcmp(tmpS, "CR") == 0) 
         {
             np.type = CR;
-            np.cr_type = liquid;
-            //If node is a CR, lookup whether is uses liquid or python
+            np.cr_type = ecr;
+            //If node is a CR, lookup whether is uses the ECR or python
             if(config_setting_lookup_string(node_config, "cr_type", &tmpS))
             {
                 if(strcmp(tmpS, "python") == 0)
@@ -352,7 +352,7 @@ void print_node_parameters(struct node_parameters * np)
   printf("	Node type:                         %-s\n", node_type);
   if(np->type == CR)
   {
-      char cr_type[15] = "liquid";
+      char cr_type[15] = "ecr";
       if(np->cr_type == python)
           strcpy(cr_type, "python");
       printf("	CR type:                           %-s\n", cr_type);

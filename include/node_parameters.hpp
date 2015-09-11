@@ -11,7 +11,7 @@ enum type{
 
 enum cr_type{
     python = 0, //third party python radios
-    liquid      //Radios created using ECR
+    ecr      //Radios created using ECR
 };
 
 enum duplex{
