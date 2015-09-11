@@ -134,6 +134,25 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
                     if(config_setting_lookup_string(node_config, "python_file", &tmpS))
                     {
                         strcpy(np.python_file, tmpS);
+                        //check for optional command line arguments and add them to
+                        //np.arguments if found
+                        const config_setting_t *arguments;
+                        char path[100];
+                        strcpy(path, nodestr);
+                        strcat(path, ".arguments");
+                        arguments = config_lookup(&cfg, path);
+                        np.num_arguments = 0;
+                        if(arguments != NULL)
+                        {
+                            np.num_arguments = config_setting_length(arguments);
+                            for(int i = 0; i < np.num_arguments; i++)
+                            {
+                                tmpS = config_setting_get_string_elem(arguments, i);
+                                strcpy(np.arguments[i], tmpS);
+                            }
+                        }
+                        else
+                            printf("arguments not found\n");
                     }
                     else
                     {

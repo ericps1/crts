@@ -274,6 +274,11 @@ int main(int argc, char ** argv){
     {
         char command[2000] = "python cognitive_radios/";
         strcat(command, np.python_file);
+        for(int i = 0; i < np.num_arguments; i++)
+        {
+            strcat(command, " ");
+            strcat(command, np.arguments[i]);
+        }
         int ret_value = system(command);
         if(ret_value != 0)
             std::cout << "error starting python radio" << std::endl;
