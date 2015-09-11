@@ -117,7 +117,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 		strcpy(np.CORNET_IP, tmpS);
 
 	// read type of node
-	if (config_setting_lookup_string(node_config, "type", &tmpS)){
+	if (config_setting_lookup_string(node_config, "type", &tmpS))
+    {
 		//printf("\nNode type: %s\n", tmpS);
 		if (strcmp(tmpS, "CR") == 0) 
         {
@@ -127,7 +128,25 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
             if(config_setting_lookup_string(node_config, "cr_type", &tmpS))
             {
                 if(strcmp(tmpS, "python") == 0)
+                {
                     np.cr_type = python;
+                    //python radios are specified by the "python_file" field in the scenario file
+                    if(config_setting_lookup_string(node_config, "python_file", &tmpS))
+                    {
+                        strcpy(np.python_file, tmpS);
+                    }
+                    else
+                    {
+                        printf("A python radio requires a python file.\n");
+                    }
+                }
+                //Possibly add more types later, but for now if not python, then radio must be ECR-based
+                // and the engine to use is specified by the "CE" field
+                else
+                {
+                    if (config_setting_lookup_string(node_config, "CE", &tmpS))
+                        strcpy(np.CE, tmpS);
+                }
             }
         }
 		else if (strcmp(tmpS, "interferer") == 0) np.type = interferer;
@@ -137,8 +156,6 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_string(node_config, "CRTS_IP", &tmpS))
 		strcpy(np.CRTS_IP, tmpS);
 
-	if (config_setting_lookup_string(node_config, "CE", &tmpS))
-		strcpy(np.CE, tmpS);
 
 	if (config_setting_lookup_string(node_config, "traffic", &tmpS)){
 		if(!strcmp(tmpS, "stream")) np.traffic = stream;

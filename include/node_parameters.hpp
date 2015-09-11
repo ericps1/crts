@@ -46,6 +46,7 @@ struct node_parameters{
 	// general
     int type;
     int cr_type;
+    char python_file[100];
     char CORNET_IP[20];
     char CRTS_IP[20];
     char TARGET_IP[20];
