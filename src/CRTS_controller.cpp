@@ -176,7 +176,7 @@ int main(int argc, char ** argv){
 		time_t time_s;
 		gettimeofday(&tv, NULL);
 		time_s = tv.tv_sec;
-		int pad_s = 5; //manual_execution ? 10 : 5;
+		int pad_s = 10; //manual_execution ? 10 : 5;
 		time_t start_time_s = time_s + 3*sp.num_nodes + pad_s;
 		printf("\nScenario start time: %li\n\n", start_time_s);
 		
