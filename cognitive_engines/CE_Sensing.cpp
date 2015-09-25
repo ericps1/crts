@@ -135,7 +135,7 @@ void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Sensing_members*
 
         // Calculate channel power
         float noisePower = 0;
-        for (int j=0; j<buffer.size(); j++)
+        for (unsigned int j=0; j<buffer.size(); j++)
         {
             noisePower += (buffer[j]*std::conj(buffer[j])).real();
         }
