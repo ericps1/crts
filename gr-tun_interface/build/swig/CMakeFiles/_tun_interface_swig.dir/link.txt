@@ -1,1 +1,0 @@
-/usr/bin/c++  -fPIC -O3 -DNDEBUG   -shared -Wl,-soname,_tun_interface_swig.so -o _tun_interface_swig.so CMakeFiles/_tun_interface_swig.dir/tun_interface_swigPYTHON_wrap.cxx.o -lpython2.7 ../lib/libgnuradio-tun_interface.so -lboost_filesystem -lboost_system -Wl,-rpath,/users/ericps1/src/gnuradio/gr-tun_interface/build/lib: 
