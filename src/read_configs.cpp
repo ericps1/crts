@@ -190,11 +190,17 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	if (config_setting_lookup_int(node_config, "log_tx_parameters", &tmpI))
 		np.log_tx_parameters = (int)tmpI;
 	
+	if (config_setting_lookup_int(node_config, "log_CRTS_rx_data", &tmpI))
+		np.log_CRTS_rx_data = (int)tmpI;
+	
 	if (config_setting_lookup_string(node_config, "rx_log_file", &tmpS))
 		strcpy(np.rx_log_file, tmpS);
 
 	if (config_setting_lookup_string(node_config, "tx_log_file", &tmpS))
 		strcpy(np.tx_log_file, tmpS);
+
+	if (config_setting_lookup_string(node_config, "CRTS_rx_log_file", &tmpS))
+		strcpy(np.CRTS_rx_log_file, tmpS);
 
 	if (config_setting_lookup_float(node_config, "ce_timeout_ms", &tmpD))
 		np.ce_timeout_ms = tmpD;

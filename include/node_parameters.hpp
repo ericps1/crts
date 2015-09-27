@@ -58,8 +58,10 @@ struct node_parameters{
     int print_metrics;
     int log_rx_metrics;
 	int log_tx_parameters;
-    char rx_log_file[30];
+    int log_CRTS_rx_data;
+	char rx_log_file[30];
 	char tx_log_file[30];
+	char CRTS_rx_log_file[30];
     float ce_timeout_ms;
 
     // RF

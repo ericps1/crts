@@ -62,7 +62,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     usrp_rx = uhd::usrp::multi_usrp::make(dev_addr);
 	
 	// Create TAP interface
-	printf("Creating tun interface\n");
+	dprintf("Creating tun interface\n");
     char tun_name[IFNAMSIZ];
     strcpy(tun_name, "tun0");
     tunfd = tun_alloc(tun_name, IFF_TUN);
@@ -72,7 +72,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
 	//	exit(1);
 	//}
 
-	printf("Bringing up tun interface\n");
+	dprintf("Bringing up tun interface\n");
 	system("ip link set dev tun0 up");
 	usleep(1e6);
 
@@ -115,6 +115,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     reset_tx();
     reset_rx();
 
+	dprintf("Finished creating ECR\n");
 }
 
 // Destructor
@@ -175,6 +176,8 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
 		CE = new CE_FEC();
 	if(!strcmp(ce, "CE_Hopper"))
 		CE = new CE_Hopper();
+	if(!strcmp(ce, "CE_DSA_PU"))
+		CE = new CE_DSA_PU();
 	if(!strcmp(ce, "CE_AMC"))
 		CE = new CE_AMC();
 //EDIT END FLAG
@@ -237,7 +240,7 @@ void ExtensibleCognitiveRadio::set_tx_freq(float _tx_freq)
     tx_params.tx_freq = _tx_freq;
 	pthread_mutex_lock(&tx_mutex);
     usrp_tx->set_tx_freq(_tx_freq);
-    pthread_mutex_unlock(&tx_mutex);
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 /*// get transmitter frequency

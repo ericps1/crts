@@ -41,6 +41,13 @@ public:
 	virtual void execute(void * _args);
 	void * custom_members;
 };
+class CE_DSA_PU : public Cognitive_Engine {
+public:
+	CE_DSA_PU();
+	~CE_DSA_PU();
+	virtual void execute(void * _args);
+	void * custom_members;
+};
 class CE_AMC : public Cognitive_Engine {
 public:
 	CE_AMC();

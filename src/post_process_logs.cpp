@@ -9,6 +9,7 @@ void help_post_process_logs() {
 		printf(" -r : Log file contains cognitive radio receive metrics.\n");
 		printf(" -t : Log file contains cognitive radio transmit parameters.\n");
         printf(" -i : Log file contains interferer transmit parameters");
+		printf(" -c : Log file contains CRTS rx data.\n");
 }
 
 int main(int argc, char ** argv){
@@ -24,7 +25,7 @@ int main(int argc, char ** argv){
     int o_opt = 0;
 
 	int d;
-	while((d = getopt(argc, argv, "hl:o:rti")) != EOF){
+	while((d = getopt(argc, argv, "hl:o:rtic")) != EOF){
 		switch(d){
 		case 'h': help_post_process_logs();                 return 0;
 		case 'l': strcpy(log_file, optarg); l_opt = 1;      break;
@@ -32,6 +33,7 @@ int main(int argc, char ** argv){
 		case 'r':                                           break;
 		case 't': log_type = 1;                             break;
 		case 'i': log_type = 2;                             break;
+		case 'c': log_type = 3;								break;
 		}
 	}
 
@@ -62,6 +64,7 @@ int main(int argc, char ** argv){
 	//fprintf(file_out, "clear all;\n");
 	//fprintf(file_out, "close all;\n");
 
+	// handle ECR rx log
 	if(log_type == 0){
 	while(fread((char*)&metrics, sizeof(struct metric_s), 1, file_in)){
 		fprintf(file_out, "t(%i) = %li + %f;\n", i, metrics.time_spec.get_full_secs(), metrics.time_spec.get_frac_secs());
@@ -149,7 +152,9 @@ int main(int argc, char ** argv){
 	fprintf(file_out, "set(gca, 'YTick', 0:28, 'YTickLabel', labels);\n\n");
 	
 	}
-	else if(log_type == 1){
+	
+	// handle ECR tx log
+	if(log_type == 1){
 	struct timeval log_time;
     while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
 		fread((char*)&tx_params, sizeof(struct tx_parameter_s), 1, file_in);
@@ -211,6 +216,7 @@ int main(int argc, char ** argv){
 	
 	}
 
+	// handle interferer tx logs
     if(log_type == 2){
 	struct timeval log_time;
     float tx_freq;
@@ -229,6 +235,48 @@ int main(int argc, char ** argv){
 	fprintf(file_out, "xlabel('Time (s)');\n");
 	fprintf(file_out, "ylabel('Frequency (Hz)');\n");
 	fprintf(file_out, "ylim([2*min(Int_tx_freq)-max(Int_tx_freq), 2*max(Int_tx_freq)-min(Int_tx_freq)]);\n");
+	}
+	
+	// handle CRTS rx data logs
+	if(log_type == 3){
+	struct timeval log_time;
+    int bytes;
+	while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
+		fread((int*)&bytes, sizeof(int), 1, file_in);
+		fprintf(file_out, "CRTS_rx_t(%i) = %li + 1e-6*%li;\n", i, log_time.tv_sec, log_time.tv_usec);
+		fprintf(file_out, "CRTS_rx_bytes(%i) = %i;\n\n", i, bytes);
+		i++;
+	}
+
+	fprintf(file_out, "\nCRTS_rx_t = CRTS_rx_t - CRTS_rx_t(1);\n");
+	fprintf(file_out, "t_step = 0.01;\n");
+	fprintf(file_out, "steps = ceil(CRTS_rx_t(end)/t_step);\n");
+	fprintf(file_out, "t = linspace(t_step, t_step*steps, steps);\n");
+	fprintf(file_out, "CRTS_throughput = zeros(1,steps);\n");
+	fprintf(file_out, "j = 1;\n\n");
+	fprintf(file_out, "for i = 1:steps\n");
+	fprintf(file_out, "	 while(CRTS_rx_t(j) < t(i))\n");
+	fprintf(file_out, "    CRTS_throughput(i) = CRTS_throughput(i) + 8*CRTS_rx_bytes(j)/t_step;\n");
+	fprintf(file_out, "    j = j+1;\n");
+	fprintf(file_out, "    if(j == length(CRTS_rx_t))\n");
+	fprintf(file_out, "      break;\n");
+	fprintf(file_out, "    end\n");
+	fprintf(file_out, "  end\n");
+	fprintf(file_out, "  if(j == length(CRTS_rx_t))\n");
+	fprintf(file_out, "    break\n");
+	fprintf(file_out, "  end\n");
+	fprintf(file_out, "end\n\n");
+	fprintf(file_out, "MA_span = 2.0;\n");
+	fprintf(file_out, "taps = round(MA_span/t_step);\n");
+	fprintf(file_out, "CRTS_throughput = filter(ones(1,taps)/taps, 1, [CRTS_throughput zeros(1,taps)]);\n");
+	fprintf(file_out, "CRTS_throughput = CRTS_throughput(taps+1:end);\n\n");
+	fprintf(file_out, "figure;\n");
+	fprintf(file_out, "plot(t,CRTS_throughput);\n");
+	fprintf(file_out, "title('Throughput vs. Time');\n");
+	fprintf(file_out, "xlabel('Time (s)');\n");
+	fprintf(file_out, "ylabel('Throughput (bps)');\n");
+
+
 	}
 
 	fclose(file_in);
