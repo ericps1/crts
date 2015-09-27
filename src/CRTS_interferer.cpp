@@ -83,7 +83,6 @@ static inline void Receive_command_from_controller(Interferer * inter,
       freqIncrement = +2.5e5; 
       freqCoeff = +1; 
 
-      printf("setting hardware freq \n"); 
       inter->usrp_tx->set_tx_freq(currentTxFreq);
       inter->usrp_tx->set_tx_rate(np->tx_rate);
       inter->tx_rate = np->tx_rate;
@@ -788,7 +787,6 @@ int main(int argc, char ** argv)
   struct timeval tv;
   time_t time_s;
   time_t stop_time_s = start_time_s + run_time;
-  printf("runtime: %lu\n", run_time);
   while(1){
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;

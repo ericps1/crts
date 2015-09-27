@@ -31,11 +31,15 @@
 
 int sig_terminate;
 time_t start_time_s;
-
-void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRadio *ECR, struct node_parameters *np){
+struct node_parameters np;
+	
+void Receive_command_from_controller(int *TCP_controller, struct node_parameters *np){
 	// Listen to socket for message from controller
-	char command_buffer[500+sizeof(struct node_parameters)];
+	char command_buffer[1+sizeof(time_t)+sizeof(struct node_parameters)];
+	memset(&command_buffer, 0, sizeof(command_buffer));
 	int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(time_t)+sizeof(struct node_parameters), 0);
+	
+	dprintf("TCP receive flag: %i\n", rflag);
 	int err = errno;
 	if(rflag <= 0){
 		if ((err == EAGAIN) || (err == EWOULDBLOCK))
@@ -50,7 +54,7 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 	// Parse command
 	switch (command_buffer[0]){
 	case 's': // settings for upcoming scenario
-		printf("Received settings for scenario\n");
+		printf("CRTS: Received settings for scenario\n");
 		// copy start time
 		memcpy((void*)&start_time_s, &command_buffer[1], sizeof(time_t));
 		
@@ -58,71 +62,110 @@ void Receive_command_from_controller(int *TCP_controller, ExtensibleCognitiveRad
 		memcpy(np ,&command_buffer[1+sizeof(time_t)], sizeof(node_parameters));
 		print_node_parameters(np);
 
-        if(np->cr_type == ecr)
-        {
-            // set cognitive radio parameters
-            ECR->set_ip(np->CRTS_IP);
-            ECR->print_metrics_flag = np->print_metrics;
-            ECR->log_rx_metrics_flag = np->log_rx_metrics;
-            ECR->log_tx_parameters_flag = np->log_tx_parameters;
-            ECR->set_ce_timeout_ms(np->ce_timeout_ms);
-            strcpy(ECR->rx_log_file, np->rx_log_file);
-            strcpy(ECR->tx_log_file, np->tx_log_file);
-            ECR->set_tx_freq(np->tx_freq);
-            ECR->set_rx_freq(np->rx_freq);
-            ECR->set_tx_rate(np->tx_rate);
-            ECR->set_rx_rate(np->rx_rate);
-            ECR->set_tx_gain_soft(np->tx_gain_soft);
-            ECR->set_tx_gain_uhd(np->tx_gain);
-            ECR->set_rx_gain_uhd(np->rx_gain);
-            ECR->set_tx_modulation(np->tx_modulation);
-            ECR->set_tx_crc(np->tx_crc);
-            ECR->set_tx_fec0(np->tx_fec0);
-            ECR->set_tx_fec1(np->tx_fec1);
-            ECR->set_ce(np->CE);		
-
-            // open rx log file to delete any current contents
-            if (ECR->log_rx_metrics_flag){
-                std::ofstream log_file;
-                char log_file_name[50];
-                strcpy(log_file_name, "./logs/");
-                strcat(log_file_name, ECR->rx_log_file);
-                log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
-                if (log_file.is_open())
-                {
-                    log_file.close();
-                }
-                else
-                {
-                    std::cout<<"Error opening log file:"<<log_file_name<<std::endl;
-                }
-            }
-            // open tx log file to delete any current contents
-            if (ECR->log_tx_parameters_flag){
-                std::ofstream log_file;
-                char log_file_name[50];
-                strcpy(log_file_name, "./logs/");
-                strcat(log_file_name, ECR->tx_log_file);
-                log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
-                if (log_file.is_open())
-                {
-                    log_file.close();
-                }
-                else
-                {
-                    std::cout<<"Error opening log file:"<<log_file_name<<std::endl;
-                }
-            }
-        }
-        else if(np->cr_type == python)
-        {
-            ECR->set_ip(np->CRTS_IP);
-        }
-        break;
+		break;
     case 't': // terminate program
         printf("Received termination command from controller\n");
         exit(1);
     }
+}
+
+void Initialize_CR(struct node_parameters *np, void * ECR_p){
+	
+	// initialize ECR parameters if applicable
+	if(np->cr_type == ecr)
+    {
+        ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *) ECR_p;
+		
+		// set cognitive radio parameters
+        ECR->set_ip(np->CRTS_IP);
+        ECR->print_metrics_flag = np->print_metrics;
+        ECR->log_rx_metrics_flag = np->log_rx_metrics;
+        ECR->log_tx_parameters_flag = np->log_tx_parameters;
+        ECR->set_ce_timeout_ms(np->ce_timeout_ms);
+        strcpy(ECR->rx_log_file, np->rx_log_file);
+        strcpy(ECR->tx_log_file, np->tx_log_file);
+        ECR->set_tx_freq(np->tx_freq);
+        ECR->set_rx_freq(np->rx_freq);
+        ECR->set_tx_rate(np->tx_rate);
+        ECR->set_rx_rate(np->rx_rate);
+        ECR->set_tx_gain_soft(np->tx_gain_soft);
+        ECR->set_tx_gain_uhd(np->tx_gain);
+        ECR->set_rx_gain_uhd(np->rx_gain);
+        ECR->set_tx_modulation(np->tx_modulation);
+        ECR->set_tx_crc(np->tx_crc);
+        ECR->set_tx_fec0(np->tx_fec0);
+        ECR->set_tx_fec1(np->tx_fec1);
+        ECR->set_ce(np->CE);		
+
+		// open rx log file to delete any current contents
+        if (ECR->log_rx_metrics_flag){
+            std::ofstream log_file;
+            char log_file_name[50];
+            strcpy(log_file_name, "./logs/");
+            strcat(log_file_name, ECR->rx_log_file);
+            log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
+            if (log_file.is_open())
+            {
+                log_file.close();
+            }
+            else
+            {
+                std::cout<<"Error opening log file:"<<log_file_name<<std::endl;
+            }
+        }
+        // open tx log file to delete any current contents
+        if (ECR->log_tx_parameters_flag){
+            std::ofstream log_file;
+            char log_file_name[50];
+            strcpy(log_file_name, "./logs/");
+            strcat(log_file_name, ECR->tx_log_file);
+            log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
+            if (log_file.is_open())
+            {
+                log_file.close();
+            }
+            else
+            {
+                std::cout<<"Error opening log file:"<<log_file_name<<std::endl;
+            }
+        }
+   	}
+	// intialize python radio if applicable
+    else if(np->cr_type == python)
+    {
+        // set IP for TUN interface
+		//char command[50];
+		//sprintf(command, "ifconfig tun0 %s", np->CRTS_IP);
+		//system("ip link set dev tun0 up");
+		//sprintf(command, "ip addr add %s/24 dev tun0", np->CRTS_IP);
+		//system(command);
+		//printf("Running command: %s\n", command);
+		//system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
+		//system("ifconfig");
+	}
+}
+
+void log_rx_data(int bytes){
+	// update current time
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+
+	// create string for file location
+	char file_name[100];
+	strcpy(file_name, "./logs/");
+	strcat(file_name, np.CRTS_rx_log_file);
+
+	// open file, append parameters, and close
+	std::ofstream log_file;
+	log_file.open(file_name, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
+	if(log_file.is_open()){
+		log_file.write((char*)&tv, sizeof(tv));
+		log_file.write((char*)&bytes, sizeof(bytes));
+	}
+	else
+		std::cerr<<"Error opening log file: "<<file_name<<std::endl;
+
+	log_file.close();
 }
 
 void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
@@ -190,18 +233,88 @@ int main(int argc, char ** argv){
 	// Quiet UHD output
 	uhd::msg::register_handler(&uhd_quiet);
 	
-	// Create ECR object
-	dprintf("Creating ECR object...\n");
-	ExtensibleCognitiveRadio ECR;
-	
-	// Create node parameters struct and read scenario info from controller
-	struct node_parameters np;
-	dprintf("Receiving command from controller...\n");
-	Receive_command_from_controller(&TCP_controller, &ECR, &np);
-	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
-
 	// Port to be used by CRTS server and client
 	int port = 4444;
+
+	// Create node parameters struct and read scenario info from controller
+	memset(&np, 0, sizeof(np));
+	dprintf("Receiving command from controller...\n");
+	sleep(1);
+	Receive_command_from_controller(&TCP_controller, &np);
+	fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
+
+	// open CRTS rx log file to delete any current contents
+    if (np.log_CRTS_rx_data){
+        std::ofstream log_file;
+        char log_file_name[50];
+        strcpy(log_file_name, "./logs/");
+        strcat(log_file_name, np.CRTS_rx_log_file);
+        log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
+        if (log_file.is_open())
+        {
+            log_file.close();
+        }
+        else
+        {
+            std::cout<<"Error opening log file:"<<log_file_name<<std::endl;
+        }
+    }
+
+	// this is used to create a child process for python radios which can be killed later
+	pid_t pid = 0;
+	
+	// pointer to ECR which may or may not be used
+	ExtensibleCognitiveRadio *ECR = NULL;
+	
+	// Create and start the ECR or python CR so that they are in a ready
+	// state when the experiment begins
+	if(np.cr_type == ecr)
+    {
+		dprintf("Creating ECR object...\n");
+		ECR = new ExtensibleCognitiveRadio;
+		
+		// set the USRP's timer to 0
+		uhd::time_spec_t t0(0, 0, 1e6);
+		ECR->usrp_rx->set_time_now(t0, 0);
+
+    	Initialize_CR(&np, (void*) ECR);
+		
+	}
+	else if(np.cr_type == python)
+    {
+        dprintf("CRTS: Forking child process\n");
+		pid_t pid = fork();
+		
+		// define child's process
+		if(pid == 0){
+			char command[2000] = "sudo python cognitive_radios/";
+        	strcat(command, np.python_file);
+        	for(int i = 0; i < np.num_arguments; i++)
+        	{
+            	strcat(command, " ");
+            	strcat(command, np.arguments[i]);
+        	}
+			strcat(command, " &");
+			int ret_value = system(command);
+        	if(ret_value != 0)
+            	std::cout << "error starting python radio" << std::endl;
+		
+			sleep(5);
+			dprintf("CRTS Child: Initializing python CR\n");
+			Initialize_CR(&np, NULL);
+
+			while(true){
+				if(sig_terminate) break;
+			};
+
+			dprintf("CRTS Child: Closing sockets\n");
+			//char term_message = 't';
+			//write(TCP_controller, &term_message, 1);
+
+			close(TCP_controller);
+			exit(1);
+		}
+    }	
 
 	// Define address structure for CRTS socket server used to receive network traffic
 	struct sockaddr_in CRTS_server_addr;
@@ -230,10 +343,10 @@ int main(int argc, char ** argv){
 	// Define a buffer for receiving and a temporary message for sending
 	int recv_buffer_len = 8192*2;
 	char recv_buffer[recv_buffer_len];
-	char message[1024]; 
+	char message[128]; 
 	strcpy(message, "Test Message from "); 
 	strcat(message, np.CRTS_IP);	
-    for(int i = 0; i < 1024; i++)
+    for(int i = 0; i < 128; i++)
         message[i] = rand() & 0xff;
 	
 	// initialize sig_terminate flag and check return from socket call
@@ -258,38 +371,21 @@ int main(int argc, char ** argv){
 			break;
 	}
 
-	// set the USRP's timer to 0
-	uhd::time_spec_t t0(0, 0, 1e6);
-	ECR.usrp_rx->set_time_now(t0, 0);
-
-    if(np.cr_type == ecr)
-    {
-        // Start ECR
+	if(np.cr_type == ecr){
+		// Start ECR
         dprintf("Starting ECR object...\n");
-        ECR.start_rx();
-        ECR.start_tx();
-        ECR.start_ce();
-    }
-    else if(np.cr_type == python)
-    {
-        char command[2000] = "python cognitive_radios/";
-        strcat(command, np.python_file);
-        for(int i = 0; i < np.num_arguments; i++)
-        {
-            strcat(command, " ");
-            strcat(command, np.arguments[i]);
-        }
-        int ret_value = system(command);
-        if(ret_value != 0)
-            std::cout << "error starting python radio" << std::endl;
-    }
+        ECR->start_rx();
+        ECR->start_tx();
+        ECR->start_ce();
+	}
+	
 	// main loop
 	float tx_time_delta = 0;
 	struct timeval tx_time;
     while(time_s < stop_time_s && !sig_terminate){
 		// Listen for any updates from the controller (non-blocking)
-		dprintf("Listening to controller for command\n");
-		Receive_command_from_controller(&TCP_controller, &ECR, &np);
+		dprintf("CRTS: Listening to controller for command\n");
+		Receive_command_from_controller(&TCP_controller, &np);
 
 		// Wait (used for test purposes only)
         //usleep(np.tx_delay_us);
@@ -302,15 +398,6 @@ int main(int argc, char ** argv){
 				break;
 		}
 		
-        // if not using FDD then stop the receiver before transmitting
-        if(np.cr_type == ecr)
-        {
-            if(np.duplex != FDD)
-            { 
-                ECR.stop_rx();
-                usleep(1e3);
-            }
-        }
         // Generate data according to traffic parameter
 		// Burst is not yet implemented
 		switch (np.traffic){
@@ -318,38 +405,47 @@ int main(int argc, char ** argv){
 			// TODO generate data according to some probabilistic model (probably simple Poisson process)
 			break;
 		case stream:
-			dprintf("Sending UDP packet using CRTS client socket\n");
+			dprintf("CRTS: Sending UDP packet using CRTS client socket\n");
 			int send_return = sendto(CRTS_client_sock, message, sizeof(message), 0, (struct sockaddr*)&CRTS_client_addr, sizeof(CRTS_client_addr));	
 			if(send_return < 0) printf("Failed to send message\n");
 			break;
 		}
-        // restart receiver if it was stopped earlier
-        if(np.cr_type == ecr)
-        {
-            if(np.duplex != FDD)
-            { 
-                ECR.start_rx();
-            }
-        }			
-        // read all available data from the UDP socket
+        
+		// read all available data from the UDP socket
         int recv_len =0;
 		dprintf("CRTS: Reading from CRTS server socket\n");
 		recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0, (struct sockaddr *)&CRTS_server_addr, &clientlen);
 		// print out received messages
 		if(recv_len > 0){
-			dprintf("\nCRTS_CR received message:\n");
+			dprintf("\nCRTS received message:\n");
 			for(int j=0; j<recv_len; j++)
 				dprintf("%c", recv_buffer[j]);
 			dprintf("\n");
+			if(np.log_CRTS_rx_data)
+				log_rx_data(recv_len);
 		}
-
+		
 		// Update the current time
 		gettimeofday(&tv, NULL);
 		time_s = tv.tv_sec;	
 	}
 
-	printf("Sending termination message to controller\n");
+	printf("CRTS: Reached termination. Sending termination message to controller\n");
 	char term_message = 't';
 	write(TCP_controller, &term_message, 1);
+
+	close(TCP_controller);
+	close(CRTS_client_sock);
+	close(CRTS_server_sock);
+	
+	// clean up ECR
+	if(np.cr_type == ecr){
+		delete ECR;
+	}
+	// kill the python child process if applicable
+	if(np.cr_type == python){
+		kill(pid, SIGTERM);
+	}
+
 }
 
