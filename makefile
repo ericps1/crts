@@ -8,7 +8,7 @@ CRTS_PATH = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 CEs = src/CE.cpp cognitive_engines/CE_DSA.cpp cognitive_engines/CE_Example.cpp cognitive_engines/CE_FEC.cpp cognitive_engines/CE_Hopper.cpp cognitive_engines/CE_DSA_PU.cpp cognitive_engines/CE_AMC.cpp
 #EDIT END FLAG
 
-all: lib/pt_sleep.o lib/TUN.o TUN lib/read_configs.o config_CEs lib/ECR.o CRTS_CR lib/interferer.o CRTS_interferer CRTS_controller logs/post_process_logs
+all: lib/pt_sleep.o lib/TUN.o TUN lib/read_configs.o config_CEs lib/ECR.o logs/logs2python logs/post_process_logs CRTS_CR lib/interferer.o CRTS_interferer CRTS_controller
 #CRTS_test
 
 lib/pt_sleep.o: src/pt_sleep.cpp
@@ -47,6 +47,9 @@ CRTS_controller: include/node_parameters.hpp src/CRTS_controller.cpp src/read_co
 logs/post_process_logs: src/post_process_logs.cpp
 	g++ $(FLAGS) -o logs/post_process_logs src/post_process_logs.cpp -luhd
 
+logs/logs2python: src/logs2python.cpp
+	g++ $(FLAGS) -o logs/logs2python src/logs2python.cpp -luhd
+
 setup_env:
 	echo "CRTS_PATH DEFAULT=$(CRTS_PATH)" >> ~/.pam_environment
 	chmod +x ./.add_sudoers
@@ -63,6 +66,7 @@ clean:
 	rm -rf CRTS_CR
 	rm -rf CRTS_interferer
 	rm -rf CRTS_controller
-	rm -rf post_process_logs
+	rm -rf logs/post_process_logs
+	rm -rf logs/logs2python
 	rm -rf config_CEs
     
