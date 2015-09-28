@@ -9,7 +9,7 @@ struct scenario_parameters{
 	float run_time;
 };
 
-int read_scenario_master_file(char scenario_list[30][60]);
+int read_scenario_master_file(char scenario_list[30][60], unsigned int scenario_reps[60]);
 
 struct scenario_parameters read_scenario_parameters(char * scenario_file);
 

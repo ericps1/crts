@@ -9,7 +9,7 @@
 #include "read_configs.hpp"
 #include "node_parameters.hpp"
 
-int read_scenario_master_file(char scenario_list[30][60])
+int read_scenario_master_file(char scenario_list[30][60], unsigned int scenario_reps[60])
 {
 	config_t cfg; // Returns all parameters in this structure
 	char current_scenario[30];
@@ -33,6 +33,11 @@ int read_scenario_master_file(char scenario_list[30][60])
 		sprintf(current_scenario, "scenario_%d", i+1);
 		if (config_lookup_string(&cfg, current_scenario, &tmpS))
 			strcpy(&scenario_list[i][0], tmpS);
+	}
+	for (int i=0; i< num_scenarios; i++){
+		sprintf(current_scenario, "reps_scenario_%d", i+1);
+		if (config_lookup_int(&cfg, current_scenario, &tmpI))
+            scenario_reps[i] = tmpI;
 	}
 	config_destroy(&cfg);
 	return num_scenarios;
