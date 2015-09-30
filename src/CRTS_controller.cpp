@@ -84,7 +84,9 @@ int main(int argc, char ** argv){
     signal(SIGQUIT, terminate);
     signal(SIGTERM, terminate);
             
-    int manual_execution = 0;
+    sig_terminate = 0;
+	
+	int manual_execution = 0;
 
     // Use current username as default username for ssh
     char ssh_uname[100];
@@ -260,13 +262,32 @@ int main(int argc, char ** argv){
                     fprintf(stderr, "ERROR: Failed to Set Sleeping (listening) Mode\n");
                     exit(EXIT_FAILURE);
                 }    
-                // accept connection
-                client[j] = accept(sockfd, (struct sockaddr *)&clientAddr[j], &client_addr_size[j]);
-                if (client[j] < 0)
-                {
-                    fprintf(stderr, "ERROR: Sever Failed to Connect to Client\n");
-                    exit(EXIT_FAILURE);
-                }
+                
+				// loop to accept
+				// accept connection
+				int accepted = 0;
+                fd_set fds;
+				struct timeval timeout;
+				timeout.tv_sec = 1;
+				timeout.tv_usec = 0;
+
+				while(!sig_terminate && !accepted){
+					FD_ZERO(&fds);
+					FD_SET(sockfd, &fds);
+					if(select(sockfd+1, &fds, NULL, NULL, &timeout) > 0){
+						client[j] = accept(sockfd, (struct sockaddr *)&clientAddr[j], &client_addr_size[j]);
+                		if (client[j] < 0)
+                		{
+                	    	fprintf(stderr, "ERROR: Sever Failed to Connect to Client\n");
+                	    	exit(EXIT_FAILURE);
+                		}
+
+						accepted = 1;
+					}
+				}
+
+				if(sig_terminate)
+					break;
 
                 // set socket to non-blocking
                 fcntl(client[j], F_SETFL, O_NONBLOCK);
@@ -281,7 +302,6 @@ int main(int argc, char ** argv){
 
             printf("Listening for scenario termination message from nodes\n");
             
-            sig_terminate = 0;
             int msg_terminate = 0;
             num_nodes_terminated = 0;
             while((!sig_terminate) && (!msg_terminate)){
@@ -302,6 +322,9 @@ int main(int argc, char ** argv){
             }
 
         }// scenario repition loop
+
+		if(sig_terminate)
+			break;
 
     }// scenario loop
 
