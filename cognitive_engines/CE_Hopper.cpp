@@ -4,7 +4,7 @@
 
 // custom member struct
 struct CE_Hopper_members{
-	unsigned int num_received;
+    unsigned int num_received;
     unsigned int bad_received;
     static const float freq1 = 770e6;
     static const float freq2 = 774e6;
@@ -18,14 +18,14 @@ void SelectNewFrequency(ExtensibleCognitiveRadio* ECR, struct CE_Hopper_members*
 
 // constructor
 CE_Hopper::CE_Hopper(){
-	struct CE_Hopper_members cm;
-	cm.num_received = 0;
+    struct CE_Hopper_members cm;
+    cm.num_received = 0;
     cm.bad_received = 0;
     cm.t1 = timer_create();
     timer_tic(cm.t1);
-	custom_members = malloc(sizeof(struct CE_Hopper_members));
-	memcpy(custom_members, (void *)&cm, sizeof(struct CE_Hopper_members));
-	
+    custom_members = malloc(sizeof(struct CE_Hopper_members));
+    memcpy(custom_members, (void *)&cm, sizeof(struct CE_Hopper_members));
+    
 }
 
 // destructor
@@ -33,12 +33,12 @@ CE_Hopper::~CE_Hopper() {}
 
 // execute function
 void CE_Hopper::execute(void * _args){
-	// type cast pointer to cognitive radio object
-	ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
+    // type cast pointer to cognitive radio object
+    ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
     // type cast custom members void pointer to custom member struct
-    struct CE_Hopper_members * cm = (struct CE_Hopper_members*) custom_members;	
+    struct CE_Hopper_members * cm = (struct CE_Hopper_members*) custom_members;    
 
-    //Received control packet, switch tx freq
+    //Received control frame, switch tx freq
     if(ECR->CE_metrics.CE_event == ce_phy_event && ECR->CE_metrics.CE_frame == ce_frame_control)
     {
         if(ECR->CE_metrics.header[0] == 'f')
@@ -49,7 +49,7 @@ void CE_Hopper::execute(void * _args){
             ECR->set_tx_freq(new_freq);
         }
     }
-    else//Timeout or data packet received
+    else//Timeout or data frame received
     {
         if( !ECR->CE_metrics.header_valid ||
             !ECR->CE_metrics.payload_valid) 
@@ -131,5 +131,5 @@ void SelectNewFrequency(ExtensibleCognitiveRadio* ECR, struct CE_Hopper_members*
         f_payload[0] = cm->freq3;
         printf("transmitting %f\n", cm->freq3);
     }
-    ECR->transmit_packet(header, payload, 100);
+    ECR->transmit_frame(header, payload, 100);
 }

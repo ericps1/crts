@@ -67,14 +67,14 @@ static inline void Receive_command_from_controller(Interferer * inter,
     case 's': // settings for upcoming scenario
       printf("Received settings for scenario\n");
       
-	  // copy start time
+      // copy start time
       memcpy((void*)&start_time_s ,&command_buffer[1], sizeof(time_t));
             
-	  // copy node_parameters
+      // copy node_parameters
       memcpy(np ,&command_buffer[1+sizeof(time_t)], sizeof(node_parameters));
       print_node_parameters(np);
       
-	  // set interferer parameters
+      // set interferer parameters
       currentTxFreq = np->tx_freq;
       if (np->tx_freq_hop_type == (ALTERNATING))
         {
@@ -98,9 +98,9 @@ static inline void Receive_command_from_controller(Interferer * inter,
       inter->tx_freq_hop_dwell_time = np->tx_freq_hop_dwell_time; 
       inter->tx_freq_hop_increment  = np->tx_freq_hop_increment;
       if (inter->tx_freq_hop_increment > 0.0)
-	  {
+      {
           freqIncrement = inter->tx_freq_hop_increment; 
-	  }
+      }
       freqWidth = floor(np->tx_freq_hop_max - np->tx_freq_hop_min); 
 
       // set gmsk parameters 
@@ -111,21 +111,21 @@ static inline void Receive_command_from_controller(Interferer * inter,
       log_tx_parameters_flag = np->log_tx_parameters;
       strcpy(tx_log_file, np->tx_log_file);
 
-	  // open tx log file to delete any current contents
-	  if(log_tx_parameters_flag){
+      // open tx log file to delete any current contents
+      if(log_tx_parameters_flag){
         std::ofstream log_file;
-		char log_file_name[50];
-		strcpy(log_file_name, "./logs/");
-		strcat(log_file_name, tx_log_file);
-		log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
-		if (log_file.is_open())
-		{
-		  log_file.close();
-		}
-		else
-		{
-		  std::cout << "Error opening log file: " << log_file_name << std::endl;
-		}
+        char log_file_name[50];
+        strcpy(log_file_name, "./logs/");
+        strcat(log_file_name, tx_log_file);
+        log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
+        if (log_file.is_open())
+        {
+          log_file.close();
+        }
+        else
+        {
+          std::cout << "Error opening log file: " << log_file_name << std::endl;
+        }
       }
 
       break;
@@ -279,7 +279,7 @@ unsigned int BuildGMSKTransmission(
   // header and payload for frame generators
   unsigned char header[gmskHeaderLength]; 
   unsigned char payload[gmskPayloadLength];
-	
+    
   // generate a random header
   for(unsigned int j = 0; j < gmskHeaderLength; j++)
     {
@@ -297,9 +297,9 @@ unsigned int BuildGMSKTransmission(
                         header, 
                         payload, 
                         gmskPayloadLength, 
-			gmskCrcScheme, 
-			gmskFecSchemeInner, 
-			gmskFecSchemeOuter); 
+            gmskCrcScheme, 
+            gmskFecSchemeInner, 
+            gmskFecSchemeOuter); 
   
   unsigned int frameLen = gmskframegen_getframelen(gmsk_fg); 
 
@@ -450,7 +450,7 @@ void BuildOFDMTransmission()
   // header and payload for frame generators
   unsigned char header[INTERFERER_HEADER_LENGTH]; 
   unsigned char payload[INTERFERER_PAYLOAD_LENGTH];
-	
+    
 
   // generate frame
   if (frame_complete) 
@@ -489,28 +489,28 @@ void BuildOFDMTransmission()
 // ========================================================================
 void log_tx_parameters(){
 
-	// update current time
-	struct timeval tv;
+    // update current time
+    struct timeval tv;
     gettimeofday(&tv, NULL);
-	
-	// create string of actual file location
-	char file_name[50];
-	strcpy(file_name, "./logs/");
-	strcat(file_name, tx_log_file);
+    
+    // create string of actual file location
+    char file_name[50];
+    strcpy(file_name, "./logs/");
+    strcat(file_name, tx_log_file);
 
-	// open file, append parameters, and close
-	std::ofstream log_file;
-	log_file.open(file_name, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
-	if (log_file.is_open())
-	{
-		log_file.write((char*)&tv, sizeof(tv));
+    // open file, append parameters, and close
+    std::ofstream log_file;
+    log_file.open(file_name, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
+    if (log_file.is_open())
+    {
+        log_file.write((char*)&tv, sizeof(tv));
         log_file.write((char*)&currentTxFreq, sizeof(currentTxFreq));
-	}
-	else
-	{
-		std::cerr << "Error opening log file:" << file_name << std::endl;
-	}
-	log_file.close();
+    }
+    else
+    {
+        std::cerr << "Error opening log file:" << file_name << std::endl;
+    }
+    log_file.close();
 }
 
 // ========================================================================
@@ -524,11 +524,11 @@ void TransmitInterference(
   node_parameters  np
   )
   {
-  int tx_samp_count = 0;//samps_to_transmit;	
+  int tx_samp_count = 0;//samps_to_transmit;    
   int usrp_samps = USRP_BUFFER_LENGTH; 
 
   if(log_tx_parameters_flag)
-  	log_tx_parameters();
+      log_tx_parameters();
   
   while(tx_samp_count < samplesInBuffer) 
     {
@@ -540,11 +540,11 @@ void TransmitInterference(
     interfererObj.usrp_tx->get_device()->send(&tx_buffer[tx_samp_count], 
                                               usrp_samps,
                                               interfererObj.metadata_tx,
-				              uhd::io_type_t::COMPLEX_FLOAT32,
+                              uhd::io_type_t::COMPLEX_FLOAT32,
                                               uhd::device::SEND_MODE_FULL_BUFF
-				              //TODO: Should we set a timeout here?
+                              //TODO: Should we set a timeout here?
                                               );
-				
+                
     // update number of tx samples remaining
     tx_samp_count += USRP_BUFFER_LENGTH;
     Receive_command_from_controller(&interfererObj, &np);
@@ -566,13 +566,13 @@ void ChangeFrequency(Interferer interfererObj)
     {
     case (ALTERNATING):
       if (currentTxFreq == interfererObj.tx_freq_hop_max) 
-	{
+    {
         currentTxFreq = interfererObj.tx_freq_hop_min; 
-	}
+    }
       else
-	{
+    {
         currentTxFreq = interfererObj.tx_freq_hop_max; 
-	}
+    }
       break;
     case (SWEEP):
       currentTxFreq += (freqIncrement * freqCoeff); 
@@ -595,7 +595,7 @@ void ChangeFrequency(Interferer interfererObj)
 //  FUNCTION:  Perform Duty Cycle ON
 // ========================================================================
 void PerformDutyCycle_On( Interferer interfererObj,
-			  node_parameters np,
+              node_parameters np,
                           float time_onCycle)
   {
   std::vector<std::complex<float> > tx_buffer(TX_BUFFER_LENGTH);
@@ -626,23 +626,23 @@ void PerformDutyCycle_On( Interferer interfererObj,
         FillBufferForTransmission(randomFlag,
                                   tx_buffer); 
         samplesInBuffer = tx_buffer.size(); 
-	break;
+    break;
 
       case(GMSK):
-	  samplesInBuffer = BuildGMSKTransmission(tx_buffer,
+      samplesInBuffer = BuildGMSKTransmission(tx_buffer,
                                                   interfererObj); 
         break; 
 
       case(RRC):
         while (samplesInBuffer < tx_buffer.size())
-	   {
+       {
            samplesInBuffer += BuildRRCTransmission(tx_buffer,
                                                    samplesInBuffer); 
            }
          break; 
-	  //        case(OFDM):
-	  //          BuildOFDMTransmission(); 
-	  //          break; 
+      //        case(OFDM):
+      //          BuildOFDMTransmission(); 
+      //          break; 
       }// interference type switch
 
     Receive_command_from_controller(&interfererObj, &np);
@@ -730,7 +730,7 @@ int main(int argc, char ** argv)
   controller_addr.sin_family = AF_INET;
   controller_addr.sin_addr.s_addr = inet_addr(controller_ipaddr);
   controller_addr.sin_port = htons(4444);
-	
+    
   // Attempt to connect client socket to server
   int connect_status = connect(TCP_controller, 
                                (struct sockaddr*)&controller_addr, 
@@ -769,10 +769,10 @@ int main(int argc, char ** argv)
         interfererObj.period_duration = run_time; 
         }
       if (interfererObj.duty_cycle != 1.0)
-	{  
+    {  
         printf("NOTICE:  Config Override, setting duty_cycle to 1.0 \n"); 
         interfererObj.duty_cycle = 1.0; 
-	}
+    }
       break;
     }
 
@@ -791,7 +791,7 @@ int main(int argc, char ** argv)
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;
     if(time_s >= start_time_s)
-	  break;
+      break;
   }
   
   while (time_s < stop_time_s)
@@ -813,10 +813,10 @@ int main(int argc, char ** argv)
       }
     
     // update current time
-	gettimeofday(&tv, NULL);
-	time_s = tv.tv_sec;
+    gettimeofday(&tv, NULL);
+    time_s = tv.tv_sec;
 
-	} // end main "for" interation loop 
+    } // end main "for" interation loop 
   // ================================================================
   // END: Main Service Loop 
   // ================================================================

@@ -59,28 +59,31 @@ void CE_DSA_PU::execute(void * _args){
 		//update switch time
 		cm->switch_time_s += cm->period_s;
 		
+		float tx_freq = ECR->get_tx_freq();
+		float rx_freq = ECR-> get_rx_freq();
+
 		// switch tx frequency
-		if(ECR->tx_params.tx_freq == cm->freq_a)
+		if(tx_freq == cm->freq_a)
 			ECR->set_tx_freq(cm->freq_b);
-		else if(ECR->tx_params.tx_freq == cm->freq_b)
+		else if(tx_freq == cm->freq_b)
 			ECR->set_tx_freq(cm->freq_a);
-		else if(ECR->tx_params.tx_freq == cm->freq_x)
+		else if(tx_freq == cm->freq_x)
 			ECR->set_tx_freq(cm->freq_y);
-		else if(ECR->tx_params.tx_freq == cm->freq_y)
+		else if(tx_freq == cm->freq_y)
 			ECR->set_tx_freq(cm->freq_x);
 		
 		// switch rx frequency
-		if(ECR->rx_params.rx_freq == cm->freq_a)
+		if(rx_freq == cm->freq_a)
 			ECR->set_rx_freq(cm->freq_b);
-		else if(ECR->rx_params.rx_freq == cm->freq_b)
+		else if(rx_freq == cm->freq_b)
 			ECR->set_rx_freq(cm->freq_a);
-		else if(ECR->rx_params.rx_freq == cm->freq_x)
+		else if(rx_freq == cm->freq_x)
 			ECR->set_rx_freq(cm->freq_y);
-		else if(ECR->rx_params.rx_freq == cm->freq_y)
+		else if(rx_freq == cm->freq_y)
 			ECR->set_rx_freq(cm->freq_x);
 			
-		printf("Transmit frequency: %f\n", ECR->tx_params.tx_freq);
-		printf("Receiver frequency: %f\n\n", ECR->rx_params.rx_freq);
+		printf("Transmit frequency: %f\n", ECR->get_tx_freq());
+		printf("Receiver frequency: %f\n\n", ECR->get_rx_freq());
 	}
 
 }

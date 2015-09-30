@@ -5,8 +5,8 @@
 #include<liquid/liquid.h>
 
 enum type{
-    CR = 0,		// user equipment node type
-    interferer		// interferer node type
+    CR = 0,        // user equipment node type
+    interferer        // interferer node type
 };
 
 enum cr_type{
@@ -15,22 +15,17 @@ enum cr_type{
 };
 
 enum duplex{
-    FDD = 0,		// frequency division duplexing
-    TDD,		// time division duplexing (not implemented)
-    HD			// half-duplex
-};
-
-enum traffic{
-    stream = 0,
-    burst
+    FDD = 0,        // frequency division duplexing
+    TDD,        // time division duplexing (not implemented)
+    HD            // half-duplex
 };
 
 enum interference_type{
     CW= 0,       // continuous-wave interference
-    AWGN,  	 // additive white gaussian noise interference
-    GMSK,	 // gaussian minimum-shift keying inteference
-    RRC,	 // root-raised cosine interference (as in WCDMA)
-    OFDM	 // orthogonal frequency division multiplexing interference
+    AWGN,       // additive white gaussian noise interference
+    GMSK,     // gaussian minimum-shift keying inteference
+    RRC,     // root-raised cosine interference (as in WCDMA)
+    OFDM     // orthogonal frequency division multiplexing interference
 };
 
 
@@ -43,7 +38,7 @@ enum tx_freq_hop_type{
 
 
 struct node_parameters{
-	// general
+    // general
     int type;
     int cr_type;
     char python_file[100];
@@ -53,16 +48,16 @@ struct node_parameters{
     char CRTS_IP[20];
     char TARGET_IP[20];
     char CE[30];
-    int layers;
-    int traffic;
     int print_metrics;
     int log_rx_metrics;
-	int log_tx_parameters;
+    int log_tx_parameters;
     int log_CRTS_rx_data;
-	char rx_log_file[100];
-	char tx_log_file[100];
-	char CRTS_rx_log_file[100];
+    char rx_log_file[100];
+    char tx_log_file[100];
+    char CRTS_rx_log_file[100];
     float ce_timeout_ms;
+    int generate_octave_logs;
+    int generate_python_logs;
 
     // RF
     int duplex;

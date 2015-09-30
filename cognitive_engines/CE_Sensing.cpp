@@ -5,7 +5,7 @@
 
 // custom member struct
 struct CE_Sensing_members{
-	unsigned int num_received;
+    unsigned int num_received;
     unsigned int bad_received;
     int noise_floor_measured;
     // Take 50 measurements, each 500 ms apart to 
@@ -21,15 +21,15 @@ void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Sensing_members*
 
 // constructor
 CE_Sensing::CE_Sensing(){
-	struct CE_Sensing_members cm;
-	cm.num_received = 0;
+    struct CE_Sensing_members cm;
+    cm.num_received = 0;
     cm.bad_received = 0;
     cm.noise_floor_measured = 0;
     cm.t1 = timer_create();
     timer_tic(cm.t1);
-	custom_members = malloc(sizeof(struct CE_Sensing_members));
-	memcpy(custom_members, (void *)&cm, sizeof(struct CE_Sensing_members));
-	
+    custom_members = malloc(sizeof(struct CE_Sensing_members));
+    memcpy(custom_members, (void *)&cm, sizeof(struct CE_Sensing_members));
+    
 }
 
 // destructor
@@ -37,10 +37,10 @@ CE_Sensing::~CE_Sensing() {}
 
 // execute function
 void CE_Sensing::execute(void * _args){
-	// type cast pointer to cognitive radio object
-	ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
+    // type cast pointer to cognitive radio object
+    ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
     // type cast custom members void pointer to custom member struct
-    struct CE_Sensing_members * cm = (struct CE_Sensing_members*) custom_members;	
+    struct CE_Sensing_members * cm = (struct CE_Sensing_members*) custom_members;    
 
     // If the noise floor hasn't been measured yet, do so now.
     if (!cm->noise_floor_measured) 

@@ -26,39 +26,42 @@ int sig_terminate;
 int num_nodes_terminated;
 
 int Receive_msg_from_nodes(int *client, int num_nodes){
-	// Listen to sockets for messages from any node
-	char msg;
-	for(int i=0; i<num_nodes; i++){
-		int rflag = recv(client[i], &msg, 1, 0);
-		int err = errno;
-		if (rflag <= 0){ 
-			if(!((err == EAGAIN) || (err == EWOULDBLOCK))){
-				close(client[i]);
-				printf("Node %i has disconnected. Terminating the current scenario..\n\n", i+1);
-				//sig_terminate = 1;
-				// tell all nodes to terminate program
-				for(int j=0; j<num_nodes; j++){
-					write(client[j], &msg, 1);
-				}
-				return 1;
-			}
-		}	
-		// Parse command if received a message
-		else{
-			switch (msg){
-			case 't': // terminate program
-				printf("Node %i has sent a termination message...\n", i+1);
-				num_nodes_terminated++;
-				// check if all nodes have terminated
-				if(num_nodes_terminated == num_nodes) return 1;
-				break;
-			default:
-				printf("Invalid message type received from node %i\n", i);
-			}
-		}
-	}
+    // Listen to sockets for messages from any node
+    char msg;
+    for(int i=0; i<num_nodes; i++){
+        int rflag = recv(client[i], &msg, 1, 0);
+        int err = errno;
+        
+        // Handle errors
+        if (rflag <= 0){ 
+            if(!((err == EAGAIN) || (err == EWOULDBLOCK))){
+                close(client[i]);
+                printf("Node %i has disconnected. Terminating the current scenario..\n\n", i+1);
+                //sig_terminate = 1;
+                // tell all nodes to terminate program
+                for(int j=0; j<num_nodes; j++){
+                    write(client[j], &msg, 1);
+                }
+                return 1;
+            }
+        }    
+        
+        // Parse command if received a message
+        else{
+            switch (msg){
+            case 't': // terminate program
+                printf("Node %i has sent a termination message...\n", i+1);
+                num_nodes_terminated++;
+                // check if all nodes have terminated
+                if(num_nodes_terminated == num_nodes) return 1;
+                break;
+            default:
+                printf("Invalid message type received from node %i\n", i);
+            }
+        }
+    }
 
-	return 0;
+    return 0;
 }
 
 void help_CRTS_controller() {
@@ -70,19 +73,18 @@ void help_CRTS_controller() {
 }
 
 void terminate(int signum){
-	printf("Terminating scenario on all nodes\n");
-	sig_terminate = 1;	
+    printf("Terminating scenario on all nodes\n");
+    sig_terminate = 1;    
 }
 
 int main(int argc, char ** argv){
-	
-	// register signal handlers
-	signal(SIGINT, terminate);
-	signal(SIGQUIT, terminate);
-	signal(SIGTERM, terminate);
-	//signal(SIGPIPE, terminate);
-		
-	int manual_execution = 0;
+    
+    // register signal handlers
+    signal(SIGINT, terminate);
+    signal(SIGQUIT, terminate);
+    signal(SIGTERM, terminate);
+            
+    int manual_execution = 0;
 
     // Use current username as default username for ssh
     char ssh_uname[100];
@@ -95,81 +97,79 @@ int main(int argc, char ** argv){
     // Default IP address of server as seen by other nodes
     char * serv_ip_addr;
     // Autodetect IP address as seen by other nodes
-        struct ifreq interfaces;
-        //Create a socket
-        int fd_ip = socket(AF_INET, SOCK_DGRAM, 0);
-        // For IPv4 Address
-        interfaces.ifr_addr.sa_family = AF_INET;
-        // Get Address associated with eth0
-        strncpy(interfaces.ifr_name, "eth0", IFNAMSIZ-1);
-        ioctl(fd_ip, SIOCGIFADDR, &interfaces);
-        close(fd_ip);
-        // Get IP address out of struct
-        char serv_ip_addr_auto[30];
-        strcpy(serv_ip_addr_auto, inet_ntoa(((struct sockaddr_in *)&interfaces.ifr_addr)->sin_addr) );
-        serv_ip_addr = serv_ip_addr_auto;
+    struct ifreq interfaces;
+    //Create a socket
+    int fd_ip = socket(AF_INET, SOCK_DGRAM, 0);
+    // For IPv4 Address
+    interfaces.ifr_addr.sa_family = AF_INET;
+    // Get Address associated with eth0
+    strncpy(interfaces.ifr_name, "eth0", IFNAMSIZ-1);
+    ioctl(fd_ip, SIOCGIFADDR, &interfaces);
+    close(fd_ip);
+    // Get IP address out of struct
+    char serv_ip_addr_auto[30];
+    strcpy(serv_ip_addr_auto, inet_ntoa(((struct sockaddr_in *)&interfaces.ifr_addr)->sin_addr) );
+    serv_ip_addr = serv_ip_addr_auto;
 
-	int d;
-	while((d = getopt(argc, argv, "hma:")) != EOF){
-		switch (d){
+    // interpret command line options
+    int d;
+    while((d = getopt(argc, argv, "hma:")) != EOF){
+        switch (d){
             case 'h': help_CRTS_controller();   return 0;
             case 'm': manual_execution = 1;     break;
             case 'a': serv_ip_addr = optarg;    break;
-		}
-	}
-	
+        }
+    }
+    
     // Message about IP Address Detection
     printf("IP address of CRTS_controller autodetected as %s\n", serv_ip_addr_auto);
     printf("If this is incorrect, use -a option to fix.\n\n");
 
-	// create TCP server
-	//int reusePortOption = 1;
-	//int client_count = 0; // Client counter
-	// Create socket for incoming connections
-	int sockfd;
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-		printf("Transmitter Failed to Create Server Socket.\n");
-		exit(EXIT_FAILURE);
-	}
-	// Allow reuse of a port. See http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t
+    // Create socket for incoming connections
+    int sockfd;
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+        printf("Transmitter Failed to Create Server Socket.\n");
+        exit(EXIT_FAILURE);
+    }
+    // Allow reuse of a port. See http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t
     // FIXME: May not be necessary in this version of CRTS
-	int yes = 1;
-	if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1){
-		printf("setsockopt() failed\n");
-		exit(1);
-	}
-	// Construct local (server) address structure
-	struct sockaddr_in serv_addr;
-	memset(&serv_addr, 0, sizeof(serv_addr)); // Zero out structure
-	serv_addr.sin_family = AF_INET; // Internet address family
-	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); // Any incoming interface
-	serv_addr.sin_port = htons(4444); // Local port
-	// Bind to the local address to a port
-	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
-		printf("ERROR: bind() error\n");
-		exit(1);
-	}	
+    int yes = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1){
+        printf("setsockopt() failed\n");
+        exit(1);
+    }
+    // Construct local (server) address structure
+    struct sockaddr_in serv_addr;
+    memset(&serv_addr, 0, sizeof(serv_addr)); // Zero out structure
+    serv_addr.sin_family = AF_INET; // Internet address family
+    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); // Any incoming interface
+    serv_addr.sin_port = htons(4444); // Local port
+    // Bind to the local address to a port
+    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
+        printf("ERROR: bind() error\n");
+        exit(1);
+    }    
 
-	// objects needs for TCP links to cognitive radio nodes
-	int client[48];
-	struct sockaddr_in clientAddr[48];
-	socklen_t client_addr_size[48];
-	struct node_parameters np[48];
-	
-	// read master scenario config file
-	char scenario_list[30][60];
+    // objects needs for TCP links to cognitive radio nodes
+    int client[48];
+    struct sockaddr_in clientAddr[48];
+    socklen_t client_addr_size[48];
+    struct node_parameters np[48];
+    
+    // read master scenario config file
+    char scenario_list[30][60];
     unsigned int scenario_reps[60];
-	int num_scenarios = read_scenario_master_file(scenario_list, scenario_reps);
-	printf("Number of scenarios: %i\n\n", num_scenarios);
+    int num_scenarios = read_scenario_master_file(scenario_list, scenario_reps);
+    printf("Number of scenarios: %i\n\n", num_scenarios);
 
-	// loop through scenarios
-	for (int i = 0; i < num_scenarios; i++){
+    // loop through scenarios
+    for (int i = 0; i < num_scenarios; i++){
         for (unsigned int ii=0; ii<scenario_reps[i]; ii++)
         {
             printf("Scenario %i:\n", i+1);
             printf("Rep %i:\n", ii+1);
             printf("Config file: %s\n", &scenario_list[i][0]);
-            // read the number of nodes in scenario	
+            // read the number of nodes in scenario    
             struct scenario_parameters sp = read_scenario_parameters(&scenario_list[i][0]);
             printf("Number of nodes: %i\n", sp.num_nodes);
             printf("Run time: %f\n", sp.run_time);
@@ -259,7 +259,7 @@ int main(int argc, char ** argv){
                 {
                     fprintf(stderr, "ERROR: Failed to Set Sleeping (listening) Mode\n");
                     exit(EXIT_FAILURE);
-                }	
+                }    
                 // accept connection
                 client[j] = accept(sockfd, (struct sockaddr *)&clientAddr[j], &client_addr_size[j]);
                 if (client[j] < 0)
@@ -276,7 +276,7 @@ int main(int argc, char ** argv){
                 char msg_type = 's';
                 send(client[j], (void*)&msg_type, sizeof(char), 0);
                 send(client[j], (void*)&start_time_s, sizeof(time_t), 0);
-                send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);			
+                send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);            
             }
 
             printf("Listening for scenario termination message from nodes\n");
@@ -298,16 +298,14 @@ int main(int argc, char ** argv){
                 for(int j=0; j<sp.num_nodes; j++){
                     write(client[j], &msg, 1);
                 }
+
             }
 
-            // Generate/push transmit data if needed
-            // Receive feedback if needed
-            // Determine when scenario is over either from feedback or from a message from a CR node
-            // Terminate scenario on all nodes
-        }
-	}
+        }// scenario repition loop
 
-}
+    }// scenario loop
+
+}// main
 
 
 

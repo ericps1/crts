@@ -8,44 +8,44 @@ void help_logs2python() {
         printf(" -l : Name of log file to process (required).\n");
         printf(" -o : Name of output file (required).\n");
         printf(" -p : Optional prefix for Python variable names.\n");
-		printf(" -r : Log file contains cognitive radio receive metrics.\n");
-		printf(" -t : Log file contains cognitive radio transmit parameters.\n");
+        printf(" -r : Log file contains cognitive radio receive metrics.\n");
+        printf(" -t : Log file contains cognitive radio transmit parameters.\n");
         printf(" -i : Log file contains interferer transmit parameters.");
 }
 
 int main(int argc, char ** argv){
-	
-	char log_file[50]; 
-	char output_file[50];
+    
+    char log_file[50]; 
+    char output_file[50];
     char node_prefix[50];
     strcpy(node_prefix, "");
-	
+    
     enum log_t {
         RXMETRICS = 0,
         TXPARAMS,
         INTPARAMS
     };
 
-	// default log type is receive metrics
-	log_t log_type = RXMETRICS;
+    // default log type is receive metrics
+    log_t log_type = RXMETRICS;
 
-	// Option flags
+    // Option flags
     int l_opt = 0;
     int o_opt = 0;
 
-	int d;
-	while((d = getopt(argc, argv, "hl:o:p:rti")) != EOF){
-		switch(d){
-		case 'h': help_logs2python();                       return 0;
-		case 'l': strcpy(log_file, optarg); l_opt = 1;      break;
-		case 'o': strcpy(output_file, optarg); o_opt = 1;   break;
+    int d;
+    while((d = getopt(argc, argv, "hl:o:p:rti")) != EOF){
+        switch(d){
+        case 'h': help_logs2python();                       return 0;
+        case 'l': strcpy(log_file, optarg); l_opt = 1;      break;
+        case 'o': strcpy(output_file, optarg); o_opt = 1;   break;
         case 'p': strcpy(node_prefix, optarg); 
                     strcat(node_prefix, "_");               break;
-		case 'r':                                           break;
-		case 't': log_type = TXPARAMS;                      break;
-		case 'i': log_type = INTPARAMS;                     break;
-		}
-	}
+        case 'r':                                           break;
+        case 't': log_type = TXPARAMS;                      break;
+        case 'i': log_type = INTPARAMS;                     break;
+        }
+    }
 
     // Check that log file and output file names were given
     if (!l_opt)
@@ -62,28 +62,29 @@ int main(int argc, char ** argv){
     }
 
     // Check that output file name has .py extension. If not add one.
-    static char * fileExtension = ".py";
+    char fileExtension[4];
+    strcpy(fileExtension, ".py");
     if ( strcmp(output_file+(strlen(output_file)-strlen(fileExtension)), fileExtension ) )
         strcat(output_file, fileExtension);
 
-	printf("Log file name: %s\n", log_file);
-	printf("Output file name: %s\n", output_file);
+    printf("Log file name: %s\n", log_file);
+    printf("Output file name: %s\n", output_file);
 
-	FILE * file_in = fopen(log_file, "rb");
-	FILE * file_out = fopen(output_file, "w");
+    FILE * file_in = fopen(log_file, "rb");
+    FILE * file_out = fopen(output_file, "w");
 
-	struct metric_s metrics = {};
-	struct tx_parameter_s tx_params = {};
-	int i = 1;
-	
-	if(log_type == RXMETRICS){
+    struct metric_s metrics = {};
+    struct tx_parameter_s tx_params = {};
+    int i = 1;
+    
+    if(log_type == RXMETRICS){
         fprintf(file_out,   "%st                      = list()\n", node_prefix);
         fprintf(file_out,   "%sECR_rx_Header_valid    = list()\n", node_prefix);
         fprintf(file_out,   "%sECR_rx_Payload_valid   = list()\n", node_prefix);
         fprintf(file_out,   "%sECR_rx_EVM             = list()\n", node_prefix);
         fprintf(file_out,   "%sECR_rx_RSSI            = list()\n", node_prefix);
         fprintf(file_out,   "%sECR_rx_CFO             = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_num_syms        = list()\n", node_prefix);	
+        fprintf(file_out,   "%sECR_rx_num_syms        = list()\n", node_prefix);    
         fprintf(file_out,   "%sECR_rx_mod_scheme      = list()\n", node_prefix);
         fprintf(file_out,   "%sECR_rx_BPS             = list()\n", node_prefix);
         fprintf(file_out,   "%sECR_rx_fec0            = list()\n", node_prefix);
@@ -97,15 +98,15 @@ int main(int argc, char ** argv){
             fprintf(file_out, "%sECR_rx_EVM.append(%f)\n",              node_prefix,    metrics.stats.evm);
             fprintf(file_out, "%sECR_rx_RSSI.append(%f)\n",             node_prefix,    metrics.stats.rssi);
             fprintf(file_out, "%sECR_rx_CFO.append(%f)\n",              node_prefix,    metrics.stats.cfo);
-            fprintf(file_out, "%sECR_rx_num_syms.append(%i)\n",         node_prefix,    metrics.stats.num_framesyms);	
+            fprintf(file_out, "%sECR_rx_num_syms.append(%i)\n",         node_prefix,    metrics.stats.num_framesyms);    
             fprintf(file_out, "%sECR_rx_mod_scheme.append(%i)\n",       node_prefix,    metrics.stats.mod_scheme);
             fprintf(file_out, "%sECR_rx_BPS.append(%i)\n",              node_prefix,    metrics.stats.mod_bps);
             fprintf(file_out, "%sECR_rx_fec0.append(%i)\n",             node_prefix,    metrics.stats.fec0);
             fprintf(file_out, "%sECR_rx_fec1.append(%i)\n",             node_prefix,    metrics.stats.fec1);
             i++;
         }
-	}
-	else if(log_type == TXPARAMS){
+    }
+    else if(log_type == TXPARAMS){
         fprintf(file_out, "%sECR_tx_t         = list()\n", node_prefix);
         fprintf(file_out, "%sECR_tx_M         = list()\n", node_prefix);
         fprintf(file_out, "%sECR_tx_cp_len    = list()\n", node_prefix);
@@ -113,7 +114,7 @@ int main(int argc, char ** argv){
         fprintf(file_out, "%sECR_tx_gain_uhd  = list()\n", node_prefix);
         fprintf(file_out, "%sECR_tx_gain_soft = list()\n", node_prefix);
         fprintf(file_out, "%sECR_tx_freq      = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_rate      = list()\n", node_prefix);	
+        fprintf(file_out, "%sECR_tx_rate      = list()\n", node_prefix);    
 
         struct timeval log_time;
         while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
@@ -125,10 +126,10 @@ int main(int argc, char ** argv){
             fprintf(file_out, "%sECR_tx_gain_uhd.append(%f)\n",       node_prefix, tx_params.tx_gain_uhd);
             fprintf(file_out, "%sECR_tx_gain_soft.append(%f)\n",      node_prefix, tx_params.tx_gain_soft);
             fprintf(file_out, "%sECR_tx_freq.append(%f)\n",           node_prefix, tx_params.tx_freq);
-            fprintf(file_out, "%sECR_tx_rate.append(%f)\n",           node_prefix, tx_params.tx_rate);	
+            fprintf(file_out, "%sECR_tx_rate.append(%f)\n",           node_prefix, tx_params.tx_rate);    
             i++;
         }
-	}
+    }
 
     if(log_type == INTPARAMS){
         fprintf(file_out, "%sInt_tx_t       = list()\n", node_prefix);
@@ -141,8 +142,8 @@ int main(int argc, char ** argv){
             fprintf(file_out, "%sInt_tx_freq.append(%f)\n",  node_prefix, tx_freq);
             i++;
         }
-	}
+    }
 
-	fclose(file_in);
-	fclose(file_out);
+    fclose(file_in);
+    fclose(file_out);
 }

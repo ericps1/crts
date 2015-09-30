@@ -4,8 +4,8 @@
 
 // Constructor
 Interferer::Interferer(){
-	uhd::device_addr_t dev_addr;
-	usrp_tx = uhd::usrp::multi_usrp::make(dev_addr);
+    uhd::device_addr_t dev_addr;
+    usrp_tx = uhd::usrp::multi_usrp::make(dev_addr);
 }
 
 // Destructor
