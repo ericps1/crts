@@ -54,6 +54,12 @@ teardown_env:
 	chmod +x ./.rm_sudoers
 	./.rm_sudoers
 
+.PHONY: doc
+doc:
+	$(MAKE) -C doc all
+cleandoc:
+	$(MAKE) -C doc clean
+
 clean:
 	rm -rf lib/*.o
 	rm -rf CRTS_CR
@@ -62,4 +68,6 @@ clean:
 	rm -rf logs/logs2octave
 	rm -rf logs/logs2python
 	rm -rf config_CEs
+	$(MAKE) -C doc clean
+
     
