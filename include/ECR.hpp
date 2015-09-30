@@ -10,8 +10,22 @@
 #include <uhd/usrp/multi_usrp.hpp>
 #include "CE.hpp"
 
+// Needed to document the global objects in this file.
+/// \file 
+
+/// \brief Defines the different types of CE events.
+///
+/// The different circumstances under which the CE
+/// can be executed are defined here.
+// FIXME: Should probably be made part of the ECR class.
 enum CE_event_types{
+    /// \brief The CE had not been executed for a period
+    /// of time as defined by ExtensibleCognitiveRadio::ce_timeout_ms.
+    /// It is now executed as a timeout event.
     ce_timeout = 0,    // event is triggered by a timer
+    /// \brief A PHY layer event has caused the execution 
+    /// of the CE. Usually this means a frame was received
+    /// by the radio.
     ce_phy_event,    // event is triggered by the reception of a physical layer frame
 };
 
@@ -23,6 +37,14 @@ enum CE_frame_types{
 
 // metric struct
 struct metric_s{
+
+
+    /// \brief Specifies the circumstances under which
+    /// the CE was executed.
+    ///
+    /// When the CE is executed, this value is set according
+    /// to the type of event that caused the CE execution,
+    /// as specified in ::CE_event_types.
     // Flag for metric type
     int CE_event;
     int CE_frame;
@@ -85,7 +107,9 @@ public:
     // cognitive engine methods
     void set_ce(char * ce); // method to set CE to custom defined subclass
     void start_ce();
+    /// \brief Assign a value to ExtensibleCognitiveRadio::ce_timeout_ms.
     void set_ce_timeout_ms(float new_timeout_ms);
+    /// \brief Get the current value of ExtensibleCognitiveRadio::ce_timeout_ms 
     float get_ce_timeout_ms();
 
     struct metric_s CE_metrics; // struct containing metrics used by cognitive engine
@@ -179,6 +203,19 @@ private:
     
     // cognitive engine objects
     Cognitive_Engine * CE; // pointer to CE object
+
+    /// \brief The maximum length of time to go
+    /// without an event before executing the CE
+    /// under a timeout event. In milliseconds.
+    ///
+    /// The CE is executed every time an event occurs. 
+    /// The CE can also be executed if no event has occursed
+    /// after some period of time. 
+    /// This is referred to as a timeout event and this variable
+    /// defines the length of the timeout period in milliseconds.
+    ///
+    /// It can be accessed using ExtensibleCognitiveRadio::set_ce_timeout_ms()
+    /// and ExtensibleCognitiveRadio::get_ce_timeout_ms().
     float ce_timeout_ms;
 
     // variables to enable/disable ce events
