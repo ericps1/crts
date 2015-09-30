@@ -7,7 +7,7 @@ void help_post_process_logs() {
         printf(" -l : Name of log file to process (required).\n");
         printf(" -r : Log file contains cognitive radio receive metrics.\n");
         printf(" -t : Log file contains cognitive radio transmit parameters.\n");
-        printf(" -i : Log file contains interferer transmit parameters");
+        printf(" -i : Log file contains interferer transmit parameters.\n");
         printf(" -c : Log file contains CRTS rx data.\n");
 }
 
