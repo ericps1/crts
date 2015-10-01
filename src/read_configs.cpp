@@ -256,63 +256,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	else
 		np.rx_gain = 20.0;
 
-    // default rx modulation is BPSK
-    np.tx_modulation = LIQUID_MODEM_BPSK;
-    if (config_setting_lookup_string(node_config, "rx_modulation", &tmpS)){
-
-        // Iterate through every liquid modulation scheme 
-        // and if the string matches, then assign that scheme.
-        // See liquid soruce: src/modem/src/modem_utilities.c
-        // for definition of modulation_types
-        for (int k = 0; k<LIQUID_MODEM_NUM_SCHEMES; k++){
-            if(!strcmp(tmpS, modulation_types[k].name))
-                np.rx_modulation = modulation_types[k].scheme;
-        }
-    }
-
-    // default rx CRC32
-    np.rx_crc = LIQUID_CRC_32;
-    if (config_setting_lookup_string(node_config, "rx_crc", &tmpS)){
-
-        // Iterate through every liquid CRC
-        // and if the string matches, then assign that CRC.
-        // See liquid soruce: src/fec/src/crc.c
-        // for definition of crc_scheme_str
-        for (int k = 0; k<LIQUID_CRC_NUM_SCHEMES; k++){
-            if(!strcmp(tmpS, crc_scheme_str[k][0]))
-                np.rx_crc = k;
-        }
-    }
-
-    // default rx FEC0 is Hamming 12/8
-    np.rx_fec0 = LIQUID_FEC_HAMMING128;
-    if (config_setting_lookup_string(node_config, "rx_fec0", &tmpS)){
-
-        // Iterate through every liquid FEC
-        // and if the string matches, then assign that FEC.
-        // See liquid soruce: src/fec/src/fec.c
-        // for definition of fec_scheme_str
-        for (int k = 0; k<LIQUID_FEC_NUM_SCHEMES; k++){
-            if(!strcmp(tmpS, fec_scheme_str[k][0]))
-                np.rx_fec0 = k;
-        }
-    }
-
-    // default rx FEC1 is none
-    np.rx_fec1 = LIQUID_FEC_NONE;
-    if (config_setting_lookup_string(node_config, "rx_fec1", &tmpS)){
-
-        // Iterate through every liquid FEC
-        // and if the string matches, then assign that FEC.
-        // See liquid soruce: src/fec/src/fec.c
-        // for definition of fec_scheme_str
-        for (int k = 0; k<LIQUID_FEC_NUM_SCHEMES; k++){
-            if(!strcmp(tmpS, fec_scheme_str[k][0]))
-                np.rx_fec1 = k;
-        }
-    }
-    
-	// default tx modulation is BPSK
+    // default tx modulation is BPSK
     np.tx_modulation = LIQUID_MODEM_BPSK;
     if (config_setting_lookup_string(node_config, "tx_modulation", &tmpS)){
 
@@ -522,11 +466,7 @@ void print_node_parameters(struct node_parameters * np)
       case (HD): strcpy(duplex, "HD"); break;
       }
     printf("    Duplex scheme:                     %-s\n", duplex);
-    printf("    Receive modulation:                %s\n", modulation_types[np->rx_modulation].name);
-    printf("    Receive CRC:                       %s\n", crc_scheme_str[np->rx_crc][0]);
-    printf("    Receive FEC0:                      %s\n", fec_scheme_str[np->rx_fec0][0]); 
-	printf("    Receive FEC1:                      %s\n", fec_scheme_str[np->rx_fec1][0]); 
-	printf("    Transmit soft gain:                %-.2f\n", np->tx_gain_soft);
+    printf("    Transmit soft gain:                %-.2f\n", np->tx_gain_soft);
     printf("    Transmit modulation:               %s\n", modulation_types[np->tx_modulation].name);
     printf("    Transmit CRC:                      %s\n", crc_scheme_str[np->tx_crc][0]);
     printf("    Transmit FEC0:                     %s\n", fec_scheme_str[np->tx_fec0][0]); 
