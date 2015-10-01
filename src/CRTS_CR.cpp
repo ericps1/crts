@@ -106,7 +106,8 @@ void Initialize_CR(struct node_parameters *np, void * ECR_p){
         ECR->set_tx_fec1(np->tx_fec1);
         ECR->set_ce(np->CE);        
 
-        // open rx log file to delete any current contents
+        ECR->reset_log_files();
+		/*// open rx log file to delete any current contents
         if (ECR->log_rx_metrics_flag){
             std::ofstream log_fstream;
             log_fstream.open(rx_log_file_name, std::ofstream::out | std::ofstream::trunc);
@@ -131,7 +132,7 @@ void Initialize_CR(struct node_parameters *np, void * ECR_p){
             {
                 std::cout<<"Error opening log file:"<<tx_log_file_name<<std::endl;
             }
-        }
+        }*/
        }
     // intialize python radio if applicable
     else if(np->cr_type == python)

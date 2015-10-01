@@ -88,7 +88,7 @@ static inline void Receive_command_from_controller(Interferer * inter,
       inter->tx_rate = np->tx_rate;
       inter->usrp_tx->set_tx_gain(np->tx_gain);
       inter->interference_type = np->interference_type;
-      inter->period_duration = np->period_duration;
+      inter->period = np->period;
       inter->duty_cycle = np->duty_cycle;
 
       // set freq hopping parameters
@@ -763,10 +763,10 @@ int main(int argc, char ** argv)
     case (ALTERNATING):
     case (SWEEP):
     case (RANDOM):
-      if (interfererObj.period_duration != run_time)
+      if (interfererObj.period != run_time)
         {
         printf("NOTICE:  Config Override, setting period to run_time \n"); 
-        interfererObj.period_duration = run_time; 
+        interfererObj.period = run_time; 
         }
       if (interfererObj.duty_cycle != 1.0)
     {  
@@ -780,8 +780,8 @@ int main(int argc, char ** argv)
   // BEGIN: Main Service Loop 
   // ================================================================
   sig_terminate = 0;
-  float time_onCycle = (interfererObj.period_duration * interfererObj.duty_cycle); 
-  float time_offCycle = (interfererObj.period_duration * (1 - interfererObj.duty_cycle)); 
+  float time_onCycle = (interfererObj.period * interfererObj.duty_cycle); 
+  float time_offCycle = (interfererObj.period * (1 - interfererObj.duty_cycle)); 
 
   // wait for start time and calculate stop time
   struct timeval tv;

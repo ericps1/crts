@@ -29,8 +29,8 @@ void CE_FEC::execute(void * _args){
     // type cast custom members void pointer to custom member struct
     struct CE_FEC_members * cm = (struct CE_FEC_members*) custom_members;    
 
-    if(ECR->CE_metrics.CE_event == ce_timeout) printf("CE execution was triggered by a timeout\n");
-    else if(ECR->CE_metrics.CE_event == ce_phy_event)
+    if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT) printf("CE execution was triggered by a timeout\n");
+    else if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY)
     { 
         if(ECR->CE_metrics.payload_valid)
             cm->num_received++;

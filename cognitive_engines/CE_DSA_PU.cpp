@@ -41,7 +41,7 @@ void CE_DSA_PU::execute(void * _args){
 	struct CE_DSA_PU_members * cm = (struct CE_DSA_PU_members*) custom_members;
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 
-	if(ECR->CE_metrics.CE_event == ce_timeout)
+	if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
 		printf("Timeout!\n");
 	
 	gettimeofday(&cm->tv, NULL);

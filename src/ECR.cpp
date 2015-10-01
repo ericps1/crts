@@ -769,21 +769,21 @@ int rxCallback(unsigned char * _header,
 
         // Signal CE thread
         pthread_mutex_lock(&ECR->CE_mutex);
-        ECR->CE_metrics.CE_event = ce_phy_event;        // set event type to phy once mutex is locked
+        ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::PHY;        // set event type to phy once mutex is locked
         if(_header_valid)
         {
             if('d' == _header[0])
             {
-                ECR->CE_metrics.CE_frame = ce_frame_data;
+                ECR->CE_metrics.CE_frame = ExtensibleCognitiveRadio::DATA;
             }
             else
             {
-                ECR->CE_metrics.CE_frame = ce_frame_control;
+                ECR->CE_metrics.CE_frame = ExtensibleCognitiveRadio::CONTROL;
             }
         }
         else
         {
-            ECR->CE_metrics.CE_frame = ce_frame_unknown;
+            ECR->CE_metrics.CE_frame = ExtensibleCognitiveRadio::UNKNOWN;
         }
         pthread_cond_signal(&ECR->CE_execute_sig);
         pthread_mutex_unlock(&ECR->CE_mutex);
@@ -922,7 +922,7 @@ void * ECR_ce_worker(void *_arg){
         // Wait for signal from receiver
         pthread_mutex_lock(&ECR->CE_mutex);
         if(ETIMEDOUT == pthread_cond_timedwait(&ECR->CE_execute_sig, &ECR->CE_mutex, &timeout))
-            ECR->CE_metrics.CE_event = ce_timeout;
+            ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TIMEOUT;
         
         // execute CE
         ECR->CE->execute((void*)ECR);
@@ -996,5 +996,41 @@ void ExtensibleCognitiveRadio::log_tx_parameters(){
 
     log_fstream.close();
 }
+
+void ExtensibleCognitiveRadio::reset_log_files(){
+
+	if (log_rx_metrics_flag){
+        std::ofstream log_fstream;
+		log_fstream.open(rx_log_file, std::ofstream::out | std::ofstream::trunc);
+		if(log_fstream.is_open())
+			log_fstream.close();
+        else
+			printf("Error opening rx log file: %s\n", rx_log_file);
+	}
+
+	if (log_tx_parameters_flag){
+        std::ofstream log_fstream;
+		log_fstream.open(tx_log_file, std::ofstream::out | std::ofstream::trunc);
+		if(log_fstream.is_open())
+			log_fstream.close();
+        else
+			printf("Error opening tx log file: %s\n", tx_log_file);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

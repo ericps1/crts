@@ -36,7 +36,7 @@ void CE_AMC::execute(void * _args){
     struct CE_AMC_members * cm = (struct CE_AMC_members*) custom_members;    
 
     // only update/validate EVM when the CE was triggered by a physical layer event
-    if(ECR->CE_metrics.CE_event == ce_phy_event){
+    if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY){
         dprintf("CE was triggered by physical layer event\n");
         // define old and new EVM values
         float EVM_old = cm->EVM_buff[cm->ind];

@@ -39,7 +39,7 @@ void CE_Hopper::execute(void * _args){
     struct CE_Hopper_members * cm = (struct CE_Hopper_members*) custom_members;    
 
     //Received control frame, switch tx freq
-    if(ECR->CE_metrics.CE_event == ce_phy_event && ECR->CE_metrics.CE_frame == ce_frame_control)
+    if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY && ECR->CE_metrics.CE_frame == ExtensibleCognitiveRadio::CONTROL)
     {
         if(ECR->CE_metrics.header[0] == 'f')
         {
@@ -55,21 +55,21 @@ void CE_Hopper::execute(void * _args){
             !ECR->CE_metrics.payload_valid) 
         {
             cm->bad_received++;
-            if(ECR->CE_metrics.CE_event == ce_timeout)
+            if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
                 printf("timeout, %u\n", cm->bad_received);
             else if(!ECR->CE_metrics.header_valid)
                 printf("bad header, %u\n", cm->bad_received);
             else if(!ECR->CE_metrics.payload_valid)
                 printf("bad payload, %u\n", cm->bad_received);
         }
-        else if(ECR->CE_metrics.CE_frame == ce_frame_data && ECR->CE_metrics.payload_valid)
+        else if(ECR->CE_metrics.CE_frame == ExtensibleCognitiveRadio::DATA && ECR->CE_metrics.payload_valid)
         {
             printf(".");
             fflush(stdout);
             cm->num_received++;
             cm->bad_received = 0;
         }
-        if(cm->bad_received >= 10 || ECR->CE_metrics.CE_event == ce_timeout)
+        if(cm->bad_received >= 10 || ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
         {
             if(timer_toc(cm->t1) > 5.0)
             {
