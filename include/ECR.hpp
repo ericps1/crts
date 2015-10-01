@@ -204,7 +204,7 @@ private:
     /// under a timeout event. In milliseconds.
     ///
     /// The CE is executed every time an event occurs. 
-    /// The CE can also be executed if no event has occursed
+    /// The CE can also be executed if no event has occured
     /// after some period of time. 
     /// This is referred to as a timeout event and this variable
     /// defines the length of the timeout period in milliseconds.
