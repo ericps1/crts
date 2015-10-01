@@ -59,24 +59,30 @@ struct node_parameters{
     int generate_octave_logs;
     int generate_python_logs;
 
-    // RF
-    int duplex;
-    float tx_freq;
-    float tx_rate;
-    float tx_gain_soft;
-    float tx_gain;
-    float tx_delay_us;
+	// USRP settings
     float rx_freq;
     float rx_rate;
     float rx_gain;
+    float tx_freq;
+    float tx_rate;
+    float tx_gain;
+
+    // liquid OFDM settings
+    int duplex;
+    int rx_modulation;
+    int rx_crc;
+    int rx_fec0;
+    int rx_fec1;
+	float tx_gain_soft;
     int tx_modulation;
     int tx_crc;
     int tx_fec0;
     int tx_fec1;
-
+	float tx_delay_us;
+    
     // interferer only
     int   interference_type;          // see ENUM list above 
-    float period_duration;            // seconds for a single period
+    float period;                     // seconds for a single period
     float duty_cycle;                 // percent of period that interference 
                                       // is ON.  expressed as a float 
                                       // between 0.0 and 1.0

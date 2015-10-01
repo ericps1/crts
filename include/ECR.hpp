@@ -167,7 +167,8 @@ public:
     int log_tx_parameters_flag;
     char rx_log_file[100];
     char tx_log_file[100];
-    
+	void reset_log_files();
+
     // USRP objects accessible to user for now
     uhd::usrp::multi_usrp::sptr usrp_tx;
     uhd::tx_metadata_t metadata_tx;

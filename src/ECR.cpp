@@ -997,4 +997,40 @@ void ExtensibleCognitiveRadio::log_tx_parameters(){
     log_fstream.close();
 }
 
+void ExtensibleCognitiveRadio::reset_log_files(){
+
+	if (log_rx_metrics_flag){
+        std::ofstream log_fstream;
+		log_fstream.open(rx_log_file, std::ofstream::out | std::ofstream::trunc);
+		if(log_fstream.is_open())
+			log_fstream.close();
+        else
+			printf("Error opening rx log file: %s\n", rx_log_file);
+	}
+
+	if (log_tx_parameters_flag){
+        std::ofstream log_fstream;
+		log_fstream.open(tx_log_file, std::ofstream::out | std::ofstream::trunc);
+		if(log_fstream.is_open())
+			log_fstream.close();
+        else
+			printf("Error opening tx log file: %s\n", tx_log_file);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
