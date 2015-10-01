@@ -44,34 +44,150 @@ public:
         PHY,    // event is triggered by the reception of a physical layer frame
     };
 
+    /// \brief Defines the different types of frames 
+    /// that might be received, causing 
+    /// Cognitive_Engine::execute() to be called.
     enum FrameType{
+        /// \brief The frame contains application
+        /// layer data. 
+        ///
+        /// Generally, most frames received by the radio
+        /// will contain application layer data, 
+        /// not directly useful to the cognitive engine (CE).
+        /// However, the other parameters in 
+        /// ExtensibleCognitiveRadio::metric_s
+        /// may still contain important information about the 
+        /// quality of the received frame, which the 
+        /// CE may decide to act on.
         DATA = 0,
+
+        /// \brief The frame was sent explicitly at the
+        /// behest of another cognitive engine (CE) in the
+        /// network and it contains custom data for use 
+        /// by the receiving CE.
+        /// 
+        /// The handling of ExtensibleCognitiveRadio::DATA 
+        /// frames is performed automatically by the
+        /// Extensible Cognitive Radio (ECR).
+        /// However, the CE may initiate the transmission
+        /// of a custom control frame containing 
+        /// information to be relayed to another CE in the 
+        /// network. 
+        /// A custom frame can be sent using 
+        /// ExtensibleCognitiveRadio::transmit_frame().
         CONTROL,
+        /// \brief The Extensible Cognitve Radio (ECR) is
+        /// unable to determine the type of the received frame.
+        ///
+        /// The received frame was too corrupted to determine
+        /// its type. 
         UNKNOWN
     };
 
     // metric struct
+    /// \brief Contains metric information when a 
+    /// ExtensibleCognitiveRadio::Event occurs.
+    /// This information is made available to the
+    /// custom Cognitive_Engine::execute() implementation.
+    ///
+    /// Whenever an ExtensibleCognitiveRadio::Event occurs, 
+    /// an instance of this struct is filled with information
+    /// pertinent to the event that may then be used by the 
+    /// cognitive engine's (CE's) custom implementation of 
+    /// Cognitive_Engine::execute().
+    /// 
+    /// The most important member of this struct is 
+    /// ExtensibleCognitiveRadio::metric_s::CE_event 
+    /// which alerts the CE of what type of event 
+    /// caused the CE exectution. 
+    /// 
+    /// The other members of this struct are dependent on the 
+    /// event type and will only contain valid information
+    /// when the CE has been executed under the corrseponding event.
+    /// Otherwise, they should not be accesssed. 
+    ///
+    /// The valid members under a 
+    /// ExtensibleCognitiveRadio::PHY event are:
+    /// 
+    /// ExtensibleCognitiveRadio::metric_s::CE_frame,
+    /// 
+    /// ExtensibleCognitiveRadio::metric_s::header_valid,
+    /// 
+    /// ExtensibleCognitiveRadio::metric_s::header,
+    /// 
+    /// ExtensibleCognitiveRadio::metric_s::payload,
+    /// 
+    /// ExtensibleCognitiveRadio::metric_s::payload_valid,
+    /// 
+    /// ExtensibleCognitiveRadio::metric_s::payload_len,
+    /// 
+    /// ExtensibleCognitiveRadio::metric_s::frame_num,
+    /// 
+    /// ExtensibleCognitiveRadio::metric_s::stats, and
+    /// 
+    /// ExtensibleCognitiveRadio::metric_s::time_spec
     struct metric_s{
         /// \brief Specifies the circumstances under which
         /// the CE was executed.
         ///
         /// When the CE is executed, this value is set according
         /// to the type of event that caused the CE execution,
-        /// as specified in ::CE_event_types.
+        /// as specified in ExtensibleCognitiveRadio::Event.
         // Flag for metric type
         ExtensibleCognitiveRadio::Event CE_event;
-        ExtensibleCognitiveRadio::FrameType CE_frame;
 
         // PHY
-        int header_valid;
-        unsigned char header[8];
-        unsigned char* payload;
-        int payload_valid;
-        unsigned int payload_len;
-        unsigned int frame_num;
-        framesyncstats_s stats; // stats used by ofdmtxrx object (RSSI, EVM)
-        uhd::time_spec_t time_spec;
+        /// \brief Specifies the type of frame received as 
+        /// defined by ExtensibleCognitiveRadio::FrameType
+        ExtensibleCognitiveRadio::FrameType CE_frame;
 
+        /// \brief Indicates whether the \p header of the 
+        /// received frame passed error checking tests.
+        ///
+        /// Derived from 
+        /// \c <a href="http://liquidsdr.org/">liquid-dsp</a>. See the
+        /// <a href="http://liquidsdr.org/doc/tutorial_ofdmflexframe.html">Liquid Documentation</a>
+        /// for more information.
+        int header_valid;
+        /// \brief The raw header data of the received frame.
+        unsigned char header[8];
+        /// \brief The raw payload data of the received frame.
+        unsigned char* payload;
+        /// \brief Indicates whether the \p payload of the 
+        /// received frame passed error checking tests.
+        ///
+        /// Derived from 
+        /// \c <a href="http://liquidsdr.org/">liquid-dsp</a>. See the
+        /// <a href="http://liquidsdr.org/doc/tutorial_ofdmflexframe.html">Liquid Documentation</a>
+        /// for more information.
+        int payload_valid;
+        /// \brief The number of elements of the \p payload array.
+        ///
+        /// Equal to the byte length of the \p payload.
+        unsigned int payload_len;
+        /// \brief The frame number of the received 
+        /// ExtensibleCognitiveRadio::DATA frame.
+        ///
+        /// Each ExtensibleCognitiveRadio::DATA frame transmitted
+        /// by the ECR is assigned a number, according to the order
+        /// in which it was transmitted.
+        unsigned int frame_num;
+        /// \brief The statistics of the received frame as
+        /// reported by 
+        /// \c <a href="http://liquidsdr.org/">liquid-dsp</a>.
+        ///
+        /// For information about its members, refer to the
+        /// <a href="http://liquidsdr.org/doc/framing.html#framing:framesyncstats_s">Liquid Documentation</a>.
+        framesyncstats_s stats; // stats used by ofdmtxrx object (RSSI, EVM)
+        /// \brief The 
+        /// <a href="http://files.ettus.com/manual/classuhd_1_1time__spec__t.html">uhd::time_spec_t</a>
+        /// object returned by the 
+        /// <a href="http://files.ettus.com/manual/index.html">UHD</a> driver upon reception 
+        /// of a complete frame. 
+        ///
+        /// This serves as a marker to denote at what time the 
+        /// end of the frame was received.
+        uhd::time_spec_t time_spec;
     };
 
     // tx parameter struct
@@ -111,7 +227,7 @@ public:
     // network layer methods
     void set_ip(char *ip);
 
-       // transmitter methods
+    // transmitter methods
     void set_tx_freq(float _tx_freq);
     void set_tx_rate(float _tx_rate);
     void set_tx_gain_soft(float _tx_gain_soft);
@@ -149,6 +265,29 @@ public:
     void stop_tx();
     void reset_tx();
     
+    /// \brief Transmit a custom frame.
+    ///
+    /// The cognitive engine (CE) can initiate transmission
+    /// of a custom frame by calling this function.
+    /// \p _header must be a pointer to an array
+    /// of exactly 8 elements of type 
+    /// \c unsigned \c int.
+    /// The first byte of \p _header \b must be set to 
+    /// ExtensibleCognitiveRadio::CONTROL.
+    /// For Example:
+    /// @code
+    /// ExtensibleCognitiveRadio ECR;
+    /// unsigned char myHeader[8];
+    /// unsigned char myPayload[20];
+    /// myHeader[0] = ExtensibleCognitiveRadio::CONTROL.
+    /// ECR.transmit_frame(myHeader, myPayload, 20);
+    /// @endcode
+    /// \p _payload is an array of \c unsigned \c char
+    /// and can be any length. It can contain any data 
+    /// as would be useful to the CE.
+    ///
+    /// \p _payload_len is the number of elements in
+    /// \p _payload.
     void transmit_frame(unsigned char * _header,
             unsigned char *  _payload,
             unsigned int     _payload_len);
