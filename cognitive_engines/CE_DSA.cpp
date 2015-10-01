@@ -42,13 +42,13 @@ void CE_DSA::execute(void * _args){
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 
     // If we recieved a frame and the payload is valid
-    if((ECR->CE_metrics.CE_event != ce_timeout) && ECR->CE_metrics.payload_valid)
+    if((ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT) && ECR->CE_metrics.payload_valid)
         cm->cons_invalid_payloads = 0;
     else
         cm->cons_invalid_payloads += 1;
 
     // If we recieved a frame and the header is valid
-    if((ECR->CE_metrics.CE_event != ce_timeout) && ECR->CE_metrics.header_valid)
+    if((ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT) && ECR->CE_metrics.header_valid)
         cm->cons_invalid_headers = 0;
     else
         cm->cons_invalid_headers += 1;
@@ -59,9 +59,9 @@ void CE_DSA::execute(void * _args){
     // or not being received
     if (cm->cons_invalid_payloads>cm->invalid_payloads_thresh || 
         cm->cons_invalid_headers>cm->invalid_headers_thresh || 
-        ECR->CE_metrics.CE_event == ce_timeout)
+        ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
     {
-        if (ECR->CE_metrics.CE_event == ce_timeout)
+        if (ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
             std::cout<<"Timed out without receiving any frames."<<std::endl;
         if (cm->cons_invalid_payloads > cm->invalid_payloads_thresh)
             std::cout<<"Received "<<cm->cons_invalid_payloads<<" consecutive invalid payloads."<<std::endl;

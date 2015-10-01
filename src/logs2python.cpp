@@ -73,8 +73,8 @@ int main(int argc, char ** argv){
     FILE * file_in = fopen(log_file, "rb");
     FILE * file_out = fopen(output_file, "w");
 
-    struct metric_s metrics = {};
-    struct tx_parameter_s tx_params = {};
+    struct ExtensibleCognitiveRadio::metric_s metrics = {};
+    struct ExtensibleCognitiveRadio::tx_parameter_s tx_params = {};
     int i = 1;
     
     if(log_type == RXMETRICS){
@@ -90,7 +90,7 @@ int main(int argc, char ** argv){
         fprintf(file_out,   "%sECR_rx_fec0            = list()\n", node_prefix);
         fprintf(file_out,   "%sECR_rx_fec1            = list()\n", node_prefix);
 
-        while(fread((char*)&metrics, sizeof(struct metric_s), 1, file_in)){
+        while(fread((char*)&metrics, sizeof(struct ExtensibleCognitiveRadio::metric_s), 1, file_in)){
             fprintf(file_out, "%st.append(%li + %f)\n",                 node_prefix,    metrics.time_spec.get_full_secs(), 
                         metrics.time_spec.get_frac_secs());
             fprintf(file_out, "%sECR_rx_Header_valid.append(%i)\n",     node_prefix,    metrics.header_valid);
@@ -118,7 +118,7 @@ int main(int argc, char ** argv){
 
         struct timeval log_time;
         while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
-            fread((char*)&tx_params, sizeof(struct tx_parameter_s), 1, file_in);
+            fread((char*)&tx_params, sizeof(struct ExtensibleCognitiveRadio::tx_parameter_s), 1, file_in);
             fprintf(file_out, "%sECR_tx_t.append(%li + 1e-6*%li)\n", node_prefix, log_time.tv_sec, log_time.tv_usec);
             fprintf(file_out, "%sECR_tx_M.append(%u)\n",              node_prefix, tx_params.M);
             fprintf(file_out, "%sECR_tx_cp_len.append(%u)\n",         node_prefix, tx_params.cp_len);

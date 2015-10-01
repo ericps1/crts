@@ -10,59 +10,6 @@
 #include <uhd/usrp/multi_usrp.hpp>
 #include "CE.hpp"
 
-enum CE_event_types{
-    ce_timeout = 0,    // event is triggered by a timer
-    ce_phy_event,    // event is triggered by the reception of a physical layer frame
-};
-
-enum CE_frame_types{
-    ce_frame_data = 0,
-    ce_frame_control,
-    ce_frame_unknown
-};
-
-// metric struct
-struct metric_s{
-    // Flag for metric type
-    int CE_event;
-    int CE_frame;
-
-    // PHY
-    int header_valid;
-    unsigned char header[8];
-    unsigned char* payload;
-    int payload_valid;
-    unsigned int payload_len;
-    unsigned int frame_num;
-    framesyncstats_s stats; // stats used by ofdmtxrx object (RSSI, EVM)
-    uhd::time_spec_t time_spec;
-
-};
-
-// tx parameter struct
-struct tx_parameter_s{
-    unsigned int M;                 // number of subcarriers
-    unsigned int cp_len;            // cyclic prefix length
-    unsigned int taper_len;         // taper length
-    unsigned char * p;
-    ofdmflexframegenprops_s fgprops;// frame generator properties
-    float tx_gain_uhd;
-    float tx_gain_soft;
-    float tx_freq;
-    float tx_rate;
-};
-    
-// rx parameter struct
-struct rx_parameter_s{
-    unsigned int M;                 // number of subcarriers
-    unsigned int cp_len;            // cyclic prefix length
-    unsigned int taper_len;         // taper length
-    unsigned char * p;
-    float rx_gain_uhd;
-    float rx_freq;
-    float rx_rate;
-};
-
 // thread functions
 void * ECR_tx_worker(void * _arg);
 void * ECR_rx_worker(void * _arg);
@@ -70,17 +17,70 @@ void * ECR_ce_worker(void * _arg);
 
 // function that receives frame from PHY layer
 int rxCallback(unsigned char * _header,
-        int _header_valid,
-        unsigned char * _payload,
-        unsigned int _payload_len,
-        int _payload_valid,
-        framesyncstats_s _stats,
-        void * _userdata);
+                int _header_valid,
+                unsigned char * _payload,
+                unsigned int _payload_len,
+                int _payload_valid,
+                framesyncstats_s _stats,
+                void * _userdata);
 
 class ExtensibleCognitiveRadio {
 public:
     ExtensibleCognitiveRadio();
     ~ExtensibleCognitiveRadio();
+
+    enum Event{
+        TIMEOUT = 0,    // event is triggered by a timer
+        PHY,    // event is triggered by the reception of a physical layer frame
+    };
+
+    enum FrameType{
+        DATA = 0,
+        CONTROL,
+        UNKNOWN
+    };
+
+    // metric struct
+    struct metric_s{
+        // Flag for metric type
+        ExtensibleCognitiveRadio::Event CE_event;
+        ExtensibleCognitiveRadio::FrameType CE_frame;
+
+        // PHY
+        int header_valid;
+        unsigned char header[8];
+        unsigned char* payload;
+        int payload_valid;
+        unsigned int payload_len;
+        unsigned int frame_num;
+        framesyncstats_s stats; // stats used by ofdmtxrx object (RSSI, EVM)
+        uhd::time_spec_t time_spec;
+
+    };
+
+    // tx parameter struct
+    struct tx_parameter_s{
+        unsigned int M;                 // number of subcarriers
+        unsigned int cp_len;            // cyclic prefix length
+        unsigned int taper_len;         // taper length
+        unsigned char * p;
+        ofdmflexframegenprops_s fgprops;// frame generator properties
+        float tx_gain_uhd;
+        float tx_gain_soft;
+        float tx_freq;
+        float tx_rate;
+    };
+        
+    // rx parameter struct
+    struct rx_parameter_s{
+        unsigned int M;                 // number of subcarriers
+        unsigned int cp_len;            // cyclic prefix length
+        unsigned int taper_len;         // taper length
+        unsigned char * p;
+        float rx_gain_uhd;
+        float rx_freq;
+        float rx_rate;
+    };
 
     // cognitive engine methods
     void set_ce(char * ce); // method to set CE to custom defined subclass
