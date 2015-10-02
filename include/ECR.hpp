@@ -191,15 +191,85 @@ public:
     };
 
     // tx parameter struct
+    /// \brief Contains parameters defining how
+    /// to handle frame transmission.
     struct tx_parameter_s{
         unsigned int M;                 // number of subcarriers
         unsigned int cp_len;            // cyclic prefix length
         unsigned int taper_len;         // taper length
         unsigned char * p;
+        /// \brief The properties for the OFDM frame generator from 
+        /// <a href="http://liquidsdr.org/">liquid</a>.
+        /// 
+        /// See 
+        /// \todo insert reference to liquid documentation of ofdmflexframegenprops_s
+        /// for details.
+        /// 
+        /// Members of this struct can be accessed with the following functions:
+        /// - \p check:
+        ///     + ExtensibleCognitiveRadio::set_tx_crc()
+        ///     + ExtensibleCognitiveRadio::get_tx_crc().
+        /// - \p fec0:
+        ///     + ExtensibleCognitiveRadio::set_tx_fec0()
+        ///     + ExtensibleCognitiveRadio::get_tx_fec0().
+        /// - \p fec1:
+        ///     + ExtensibleCognitiveRadio::set_tx_fec1()
+        ///     + ExtensibleCognitiveRadio::get_tx_fec1().
+        /// - \p mod_scheme:
+        ///     + ExtensibleCognitiveRadio::set_tx_modulation()
+        ///     + ExtensibleCognitiveRadio::get_tx_modulation().
         ofdmflexframegenprops_s fgprops;// frame generator properties
+        /// \brief The value of the hardware gain. In dB. 
+        ///
+        /// Sets the gain of the hardware amplifier in the transmit chain
+        /// of the USRP. 
+        /// This value is passed directly to 
+        /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
+        ///
+        /// It can be accessed with ExtensibleCognitiveRadio::set_tx_gain_uhd()
+        /// and ExtensibleCognitiveRadio::get_tx_gain_uhd().
+        /// 
+        /// Run
+        /// 
+        ///     $ uhd_usrp_probe
+        /// 
+        /// for details about the particular gain limits of your USRP device.
         float tx_gain_uhd;
+        /// \brief The software gain of the transmitter. In dB. 
+        ///
+        /// In addition to the hardware gain 
+        /// (ExtensibleCognitiveRadio::tx_parameter_s::tx_gain_uhd), 
+        /// the gain of the transmission can be adjusted in software by
+        /// setting this parameter.  It is converted to a linear factor
+        /// and then applied to the frame samples before they are sent to
+        /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
+        ///
+        /// It can be accessed with ExtensibleCognitiveRadio::set_tx_gain_soft()
+        /// and ExtensibleCognitiveRadio::get_tx_gain_soft().
+        ///
+        /// Note that the values of samples sent to 
+        /// <a href="http://files.ettus.com/manual/index.html">UHD</a>
+        /// must be between -1 and 1. 
+        /// Approaching these limits may cause distortion and exceeding them
+        /// will cause clipping. 
+        /// Thus it is generally recommended to set this parameter below zero.
+        /// \todo See, (insert reference), for example values.
         float tx_gain_soft;
+        /// \brief The transmitter frequency in Hertz. 
+        ///
+        /// It can be accessed with ExtensibleCognitiveRadio::set_tx_freq()
+        /// and ExtensibleCognitiveRadio::get_tx_freq().
+        ///
+        /// This value is passed directly to 
+        /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
         float tx_freq;
+        /// \brief The sample rate of the transmitter in samples/second. 
+        ///
+        /// It can be accessed with ExtensibleCognitiveRadio::set_tx_rate()
+        /// and ExtensibleCognitiveRadio::get_tx_rate().
+        ///
+        /// This value is passed directly to 
+        /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
         float tx_rate;
     };
         
@@ -228,14 +298,22 @@ public:
     void set_ip(char *ip);
 
     // transmitter methods
+    /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
     void set_tx_freq(float _tx_freq);
+    /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_rate.
     void set_tx_rate(float _tx_rate);
+    /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_gain_soft.
     void set_tx_gain_soft(float _tx_gain_soft);
+    /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_gain_uhd.
     void set_tx_gain_uhd(float _tx_gain_uhd);
     void set_tx_antenna(char * _tx_antenna);
+    /// \brief Set the value of \p mod_scheme in ExtensibleCognitiveRadio::tx_parameter_s::fgprops.
     void set_tx_modulation(int mod_scheme);
+    /// \brief Set the value of \p check in ExtensibleCognitiveRadio::tx_parameter_s::fgprops.
     void set_tx_crc(int crc_scheme);
+    /// \brief Set the value of \p fec0 in ExtensibleCognitiveRadio::tx_parameter_s::fgprops.
     void set_tx_fec0(int fec_scheme);
+    /// \brief Set the value of \p fec1 in ExtensibleCognitiveRadio::tx_parameter_s::fgprops.
     void set_tx_fec1(int fec_scheme);
     void set_tx_subcarriers(unsigned int subcarriers);
     void set_tx_subcarrier_alloc(char *subcarrier_alloc);
@@ -245,14 +323,22 @@ public:
     void increase_tx_mod_order();
     void decrease_tx_mod_order();
     
+    /// \brief Return the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
     float get_tx_freq();
+    /// \brief Return the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_rate.
     float get_tx_rate();
+    /// \brief Return the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_gain_soft.
     float get_tx_gain_soft();
+    /// \brief Return the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_gain_uhd.
     float get_tx_gain_uhd();
     char* get_tx_antenna();
+    /// \brief Return the value of \p mod_scheme in ExtensibleCognitiveRadio::tx_parameter_s::fgprops.
     int get_tx_modulation();
+    /// \brief Return the value of \p check in ExtensibleCognitiveRadio::tx_parameter_s::fgprops.
     int get_tx_crc();
+    /// \brief Return the value of \p fec0 in ExtensibleCognitiveRadio::tx_parameter_s::fgprops.
     int get_tx_fec0();
+    /// \brief Return the value of \p fec1 in ExtensibleCognitiveRadio::tx_parameter_s::fgprops.
     int get_tx_fec1();
     unsigned int get_tx_subcarriers();
     void get_tx_subcarrier_alloc(char *p);
