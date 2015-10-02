@@ -88,7 +88,9 @@ public:
     /// \brief Contains metric information when a 
     /// ExtensibleCognitiveRadio::Event occurs.
     /// This information is made available to the
-    /// custom Cognitive_Engine::execute() implementation.
+    /// custom Cognitive_Engine::execute() implementation
+    /// and is accessed in the instance of this struct:
+    /// ExtensibleCognitiveRadio::CE_metrics. 
     ///
     /// Whenever an ExtensibleCognitiveRadio::Event occurs, 
     /// an instance of this struct is filled with information
@@ -193,6 +195,10 @@ public:
     // tx parameter struct
     /// \brief Contains parameters defining how
     /// to handle frame transmission.
+    ///
+    /// The member parameters are accessed using the 
+    /// instance of the struct:
+    /// ExtensibleCognitiveRadio::tx_params.
     struct tx_parameter_s{
         unsigned int M;                 // number of subcarriers
         unsigned int cp_len;            // cyclic prefix length
@@ -219,7 +225,7 @@ public:
         ///     + ExtensibleCognitiveRadio::set_tx_modulation()
         ///     + ExtensibleCognitiveRadio::get_tx_modulation().
         ofdmflexframegenprops_s fgprops;// frame generator properties
-        /// \brief The value of the hardware gain. In dB. 
+        /// \brief The value of the hardware gain for the transmitter. In dB. 
         ///
         /// Sets the gain of the hardware amplifier in the transmit chain
         /// of the USRP. 
@@ -274,13 +280,48 @@ public:
     };
         
     // rx parameter struct
+    /// \brief Contains parameters defining how
+    /// to handle frame reception.
+    ///
+    /// The member parameters are accessed using the 
+    /// instance of the struct:
+    /// ExtensibleCognitiveRadio::tx_params.
     struct rx_parameter_s{
         unsigned int M;                 // number of subcarriers
         unsigned int cp_len;            // cyclic prefix length
         unsigned int taper_len;         // taper length
         unsigned char * p;
+        /// \brief The value of the hardware gain for the receiver. In dB. 
+        ///
+        /// Sets the gain of the hardware amplifier in the receive chain
+        /// of the USRP. 
+        /// This value is passed directly to 
+        /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
+        ///
+        /// It can be accessed with ExtensibleCognitiveRadio::set_rx_gain_uhd()
+        /// and ExtensibleCognitiveRadio::get_rx_gain_uhd().
+        /// 
+        /// Run
+        /// 
+        ///     $ uhd_usrp_probe
+        /// 
+        /// for details about the particular gain limits of your USRP device.
         float rx_gain_uhd;
+        /// \brief The receiver frequency in Hertz. 
+        ///
+        /// It can be accessed with ExtensibleCognitiveRadio::set_rx_freq()
+        /// and ExtensibleCognitiveRadio::get_rx_freq().
+        ///
+        /// This value is passed directly to 
+        /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
         float rx_freq;
+        /// \brief The sample rate of the receiver in samples/second. 
+        ///
+        /// It can be accessed with ExtensibleCognitiveRadio::set_rx_rate()
+        /// and ExtensibleCognitiveRadio::get_rx_rate().
+        ///
+        /// This value is passed directly to 
+        /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
         float rx_rate;
     };
 
@@ -292,6 +333,9 @@ public:
     /// \brief Get the current value of ExtensibleCognitiveRadio::ce_timeout_ms 
     float get_ce_timeout_ms();
 
+    /// \brief The instance of 
+    /// ExtensibleCognitiveRadio::metric_s
+    /// made accessible to the Cognitive_Engine.
     struct metric_s CE_metrics; // struct containing metrics used by cognitive engine
     
     // network layer methods
@@ -379,8 +423,11 @@ public:
             unsigned int     _payload_len);
 
     // receiver methods
+    /// \brief Set the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
     void set_rx_freq(float _rx_freq);
+    /// \brief Set the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_rate.
     void set_rx_rate(float _rx_rate);
+    /// \brief Return the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_gain_uhd.
     void set_rx_gain_uhd(float _rx_gain_uhd);
     void set_rx_antenna(char * _rx_antenna);
     void set_rx_subcarriers(unsigned int subcarriers);
@@ -388,8 +435,11 @@ public:
     void set_rx_cp_len(unsigned int cp_len);
     void set_rx_taper_len(unsigned int taper_len);
 
+    /// \brief Return the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
     float get_rx_freq();
+    /// \brief Return the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_rate.
     float get_rx_rate();
+    /// \brief Return the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_gain_uhd.
     float get_rx_gain_uhd();
     char* get_rx_antenna();
     unsigned int get_rx_subcarriers();
