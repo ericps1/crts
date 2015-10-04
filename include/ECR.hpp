@@ -8,6 +8,7 @@
 //#include <liquid/ofdmtxrx.h>
 #include <pthread.h>
 #include <uhd/usrp/multi_usrp.hpp>
+#include <uhd/types/tune_request.hpp>
 #include "CE.hpp"
 
 // thread functions
@@ -68,6 +69,7 @@ public:
         float tx_gain_uhd;
         float tx_gain_soft;
         float tx_freq;
+		float tx_dsp_freq;
         float tx_rate;
     };
         
@@ -79,12 +81,14 @@ public:
         unsigned char * p;
         float rx_gain_uhd;
         float rx_freq;
-        float rx_rate;
+        float rx_dsp_freq;
+		float rx_rate;
     };
 
     // cognitive engine methods
     void set_ce(char * ce); // method to set CE to custom defined subclass
     void start_ce();
+    void stop_ce();
     void set_ce_timeout_ms(float new_timeout_ms);
     float get_ce_timeout_ms();
 
@@ -93,8 +97,9 @@ public:
     // network layer methods
     void set_ip(char *ip);
 
-       // transmitter methods
+    // transmitter methods
     void set_tx_freq(float _tx_freq);
+    void set_tx_freq(float _tx_freq, float _dsp_freq);
     void set_tx_rate(float _tx_rate);
     void set_tx_gain_soft(float _tx_gain_soft);
     void set_tx_gain_uhd(float _tx_gain_uhd);
@@ -137,6 +142,7 @@ public:
 
     // receiver methods
     void set_rx_freq(float _rx_freq);
+    void set_rx_freq(float _rx_freq, float _dsp_freq);
     void set_rx_rate(float _rx_rate);
     void set_rx_gain_uhd(float _rx_gain_uhd);
     void set_rx_antenna(char * _rx_antenna);
@@ -157,7 +163,9 @@ public:
     void reset_rx();
     void start_rx();
     void stop_rx();
-       
+    void start_liquid_rx();
+	void stop_liquid_rx();
+
     // methods and variables for printing/logging metrics 
     void print_metrics(ExtensibleCognitiveRadio * CR);
     int print_metrics_flag;
@@ -176,6 +184,8 @@ public:
     uhd::usrp::multi_usrp::sptr usrp_rx;
     uhd::rx_metadata_t metadata_rx;
     
+	pthread_mutex_t rx_mutex;       // receive mutex
+    
 private:
     
     // cognitive engine objects
@@ -188,8 +198,11 @@ private:
     // cognitive engine threading objects
     pthread_t CE_process;
     pthread_mutex_t CE_mutex;
+	pthread_cond_t CE_cond;
     pthread_cond_t CE_execute_sig;    
-    friend void * ECR_ce_worker(void *);
+    bool ce_thread_running;
+	bool ce_running;
+	friend void * ECR_ce_worker(void *);
     
     // network layer objects
     int tunfd; // virtual network interface
@@ -201,7 +214,6 @@ private:
 
     // receiver threading objects
     pthread_t rx_process;           // receive thread
-    pthread_mutex_t rx_mutex;       // receive mutex
     pthread_cond_t  rx_cond;        // receive condition
     bool rx_running;                // is receiver running? (physical receiver)
     bool rx_thread_running;         // is receiver thread running?

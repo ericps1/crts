@@ -58,14 +58,17 @@ int main(int argc, char ** argv){
     FILE * file_out = fopen(output_file, "w");
 
     struct ExtensibleCognitiveRadio::metric_s metrics = {};
+    struct ExtensibleCognitiveRadio::rx_parameter_s rx_params = {};
     struct ExtensibleCognitiveRadio::tx_parameter_s tx_params = {};
     int i = 1;
     
     // handle ECR rx log
     if(log_type == 0){
         while(fread((char*)&metrics, sizeof(struct ExtensibleCognitiveRadio::metric_s), 1, file_in)){
-            fprintf(file_out, "t(%i) = %li + %f;\n", i, metrics.time_spec.get_full_secs(), metrics.time_spec.get_frac_secs());
-            fprintf(file_out, "ECR_rx_Header_valid(%i) = %i;\n", i, metrics.header_valid);
+            fread((char*)&rx_params, sizeof(struct ExtensibleCognitiveRadio::rx_parameter_s), 1, file_in);
+			fprintf(file_out, "t(%i) = %li + %f;\n", i, metrics.time_spec.get_full_secs(), metrics.time_spec.get_frac_secs());
+            // metrics
+			fprintf(file_out, "ECR_rx_Header_valid(%i) = %i;\n", i, metrics.header_valid);
             fprintf(file_out, "ECR_rx_Payload_valid(%i) = %i;\n", i, metrics.payload_valid);
             fprintf(file_out, "ECR_rx_EVM(%i) = %f;\n", i, metrics.stats.evm);
             fprintf(file_out, "ECR_rx_RSSI(%i) = %f;\n", i, metrics.stats.rssi);
@@ -75,6 +78,13 @@ int main(int argc, char ** argv){
             fprintf(file_out, "ECR_rx_BPS(%i) = %i;\n", i, metrics.stats.mod_bps);
             fprintf(file_out, "ECR_rx_fec0(%i) = %i;\n", i, metrics.stats.fec0);
             fprintf(file_out, "ECR_rx_fec1(%i) = %i;\n\n", i, metrics.stats.fec1);
+			// parameters
+			fprintf(file_out, "ECR_rx_M(%i) = %u;\n", i, rx_params.M);
+            fprintf(file_out, "ECR_rx_cp_len(%i) = %u;\n", i, rx_params.cp_len);
+            fprintf(file_out, "ECR_rx_taper_len(%i) = %u;\n", i, rx_params.taper_len);
+            fprintf(file_out, "ECR_rx_gain_uhd(%i) = %f;\n", i, rx_params.rx_gain_uhd);
+            fprintf(file_out, "ECR_rx_freq(%i) = %f;\n", i, rx_params.rx_freq - rx_params.rx_dsp_freq);
+            fprintf(file_out, "ECR_rx_rate(%i) = %f;\n", i, rx_params.rx_rate);    
             i++;
         }
     }
@@ -90,7 +100,7 @@ int main(int argc, char ** argv){
             fprintf(file_out, "ECR_tx_taper_len(%i) = %u;\n", i, tx_params.taper_len);
             fprintf(file_out, "ECR_tx_gain_uhd(%i) = %f;\n", i, tx_params.tx_gain_uhd);
             fprintf(file_out, "ECR_tx_gain_soft(%i) = %f;\n", i, tx_params.tx_gain_soft);
-            fprintf(file_out, "ECR_tx_freq(%i) = %f;\n", i, tx_params.tx_freq);
+            fprintf(file_out, "ECR_tx_freq(%i) = %f;\n", i, tx_params.tx_freq + tx_params.tx_dsp_freq);
             fprintf(file_out, "ECR_tx_rate(%i) = %f;\n", i, tx_params.tx_rate);    
             i++;
         }

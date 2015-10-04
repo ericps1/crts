@@ -7,9 +7,9 @@
 // custom member struct
 struct CE_DSA_PU_members{
 	static const float freq_a = 770e6;
-    static const float freq_b = 780e6;
-    static const float freq_x = 870e6;
-    static const float freq_y = 880e6;
+    static const float freq_b = 769e6;
+    static const float freq_x = 760e6;
+    static const float freq_y = 759e6;
 
     struct timeval tv;
 	time_t time_s;
@@ -41,17 +41,20 @@ void CE_DSA_PU::execute(void * _args){
 	struct CE_DSA_PU_members * cm = (struct CE_DSA_PU_members*) custom_members;
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 
-	if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
-		printf("Timeout!\n");
+	//if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
+	//	printf("Timeout!\n");
 	
 	gettimeofday(&cm->tv, NULL);
 	
 
 	if(cm->first_execution){
 		//printf("Setting switch time and timeout\n");
+		//usleep(1e6);
 		cm->switch_time_s = cm->tv.tv_sec + cm->period_s;
 		ECR->set_ce_timeout_ms(100.0);
 		cm->first_execution = 0;
+		//ECR->set_tx_subcarriers(72);
+		//ECR->set_rx_subcarriers(72);	
 	}
 	
     if(cm->tv.tv_sec >= cm->switch_time_s){

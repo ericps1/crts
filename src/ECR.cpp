@@ -60,7 +60,9 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     uhd::device_addr_t dev_addr;
     usrp_tx = uhd::usrp::multi_usrp::make(dev_addr);
     usrp_rx = uhd::usrp::multi_usrp::make(dev_addr);
-    
+	usrp_rx->set_rx_antenna("RX2",0);
+	usrp_tx->set_tx_antenna("TX/RX",0);
+
     // Create TUN interface
     dprintf("Creating tun interface\n");
     char tun_name[IFNAMSIZ];
@@ -89,9 +91,11 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     
     // Start CE thread
     dprintf("Starting CE thread...\n");
+    ce_running = false; // ce is not running initially
+    ce_thread_running = true; // ce thread IS running initially
     pthread_mutex_init(&CE_mutex, NULL);
     pthread_cond_init(&CE_execute_sig, NULL);
-    
+    pthread_cond_init(&CE_cond, NULL); // cognitive engine condition 
     pthread_create(&CE_process, NULL, ECR_ce_worker, (void*)this);
     
     // initialize default tx values
@@ -120,37 +124,66 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
     system("route del -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
     system("ip link set dev tun0 down");
     
-    dprintf("waiting for process to finish...\n");
+    printf("waiting for process to finish...\n");
 
-    // ensure reciever thread is not running
-    if (rx_running) stop_rx();
+    //if (ce_running) 
+	stop_ce();
+	
+	// signal condition (tell ce worker to continue)
+    printf("destructor signaling ce condition...\n");
+    ce_thread_running = false; 
+	pthread_cond_signal(&CE_cond);
 
-    // signal condition (tell rx worker to continue)
-    dprintf("destructor signaling condition...\n");
+    printf("destructor joining ce thread...\n");
+    void * ce_exit_status;
+    pthread_join(CE_process, &ce_exit_status);
+
+    //if (rx_running) 
+	stop_rx();
+	//if (tx_running) 
+	stop_tx();
+	
+	// signal condition (tell rx worker to continue)
+    printf("destructor signaling rx condition...\n");
     rx_thread_running = false;
     pthread_cond_signal(&rx_cond);
 
-    dprintf("destructor joining rx thread...\n");
-    void * exit_status;
-    pthread_join(rx_process, &exit_status);
+    printf("destructor joining rx thread...\n");
+    void * rx_exit_status;
+    pthread_join(rx_process, &rx_exit_status);
 
-    // destroy threading objects
-    dprintf("destructor destroying mutex...\n");
+    // signal condition (tell tx worker to continue)
+    printf("destructor signaling tx condition...\n");
+    tx_thread_running = false; 
+	pthread_cond_signal(&tx_cond);
+
+    printf("destructor joining tx thread...\n");
+    void * tx_exit_status;
+    pthread_join(tx_process, &tx_exit_status);
+
+    // destroy ce threading objects
+    printf("destructor destroying ce mutex...\n");
+    pthread_mutex_destroy(&CE_mutex);
+    printf("destructor destroying ce condition...\n");
+    pthread_cond_destroy(&CE_cond);
+    
+    // destroy rx threading objects
+    printf("destructor destroying rx mutex...\n");
     pthread_mutex_destroy(&rx_mutex);
-    dprintf("destructor destroying condition...\n");
+    printf("destructor destroying rx condition...\n");
     pthread_cond_destroy(&rx_cond);
     
-    dprintf("destructor destroying other objects...\n");
+    // destroy tx threading objects
+    printf("destructor destroying tx mutex...\n");
+    pthread_mutex_destroy(&tx_mutex);
+    printf("destructor destroying tx condition...\n");
+    pthread_cond_destroy(&tx_cond);
+    
+    printf("destructor destroying other objects...\n");
     // destroy framing objects
     ofdmflexframegen_destroy(fg);
     ofdmflexframesync_destroy(fs);
 
-    // Stop transceiver
-    stop_tx();
-    stop_rx();
-
-    // Terminate CE thread
-    pthread_cancel(CE_process);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -167,6 +200,8 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
         CE = new CE_FEC();
     if(!strcmp(ce, "CE_Hopper"))
         CE = new CE_Hopper();
+    if(!strcmp(ce, "CE_Sensing"))
+        CE = new CE_Sensing();
     if(!strcmp(ce, "CE_DSA_PU"))
         CE = new CE_DSA_PU();
     if(!strcmp(ce, "CE_AMC"))
@@ -175,8 +210,15 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
 }
 
 void ExtensibleCognitiveRadio::start_ce(){
-    // signal condition for the ce to start listening for events of interest
-    pthread_cond_signal(&CE_execute_sig);
+    // set ce running flag
+	ce_running = true;
+	// signal condition for the ce to start listening for events of interest
+    pthread_cond_signal(&CE_cond);
+}
+
+void ExtensibleCognitiveRadio::stop_ce(){
+    // reset ce running flag
+	ce_running = false;
 }
 
 void ExtensibleCognitiveRadio::set_ce_timeout_ms(float new_timeout_ms){
@@ -215,8 +257,10 @@ void ExtensibleCognitiveRadio::start_tx()
 // stop transmitter
 void ExtensibleCognitiveRadio::stop_tx()
 {
-    // set rx running flag
+    // reset tx running flag
+    pthread_mutex_lock(&tx_mutex);
     tx_running = false;
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 // reset transmitter objects and buffers
@@ -228,16 +272,35 @@ void ExtensibleCognitiveRadio::reset_tx()
 // set transmitter frequency
 void ExtensibleCognitiveRadio::set_tx_freq(float _tx_freq)
 {
-    tx_params.tx_freq = _tx_freq;
     pthread_mutex_lock(&tx_mutex);
+    tx_params.tx_freq = _tx_freq;
+    tx_params.tx_dsp_freq = 0.0;
     usrp_tx->set_tx_freq(_tx_freq);
     pthread_mutex_unlock(&tx_mutex);
+}
+
+// set transmitter frequency
+void ExtensibleCognitiveRadio::set_tx_freq(float _tx_freq, float _dsp_freq)
+{
+    pthread_mutex_lock(&tx_mutex);
+	tx_params.tx_freq = _tx_freq;
+	tx_params.tx_dsp_freq = _dsp_freq;
+
+    uhd::tune_request_t tune;	
+	tune.rf_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
+	tune.dsp_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
+	tune.rf_freq = _tx_freq;
+	tune.dsp_freq = _dsp_freq;
+    
+	usrp_tx->set_tx_freq(tune);
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 // get transmitter frequency
 float ExtensibleCognitiveRadio::get_tx_freq()
 {
-    return tx_params.tx_freq;
+    return tx_params.tx_freq + tx_params.tx_dsp_freq;
+	//return tx_params.tx_freq;
 }
 
 // set transmitter sample rate
@@ -297,6 +360,7 @@ int ExtensibleCognitiveRadio::get_tx_modulation()
     return tx_params.fgprops.mod_scheme;
 }
 
+// decrease modulation order
 // decrease modulation order
 void ExtensibleCognitiveRadio::decrease_tx_mod_order()
 {    
@@ -374,8 +438,10 @@ void ExtensibleCognitiveRadio::set_tx_subcarriers(unsigned int _M)
     // destroy frame gen, set cp length, recreate frame gen
     pthread_mutex_lock(&tx_mutex);
     ofdmflexframegen_destroy(fg);
-    tx_params.M = _M;
-    fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
+	tx_params.M = _M;
+	fgbuffer_len = _M + tx_params.cp_len;
+    fgbuffer = (std::complex<float> *) realloc((void*)fgbuffer, fgbuffer_len * sizeof(std::complex<float>));
+	fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
     pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -409,7 +475,9 @@ void ExtensibleCognitiveRadio::set_tx_cp_len(unsigned int _cp_len)
     pthread_mutex_lock(&tx_mutex);
     ofdmflexframegen_destroy(fg);
     tx_params.cp_len = _cp_len;
-    fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
+    fgbuffer_len = tx_params.M + _cp_len;
+    fgbuffer = (std::complex<float> *) realloc((void*)fgbuffer, fgbuffer_len * sizeof(std::complex<float>));
+	fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
     pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -456,8 +524,13 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char * _header,
                    unsigned char * _payload,
                    unsigned int    _payload_len)
 {
+    if(log_tx_parameters_flag){
+        //printf("\nLogging transmit parameters\n\n");
+        log_tx_parameters();
+    }
+
     // set up the metadta flags
-    metadata_tx.start_of_burst = false; // never SOB when continuous
+    metadata_tx.start_of_burst = true; // never SOB when continuous
     metadata_tx.end_of_burst   = false; // 
     metadata_tx.has_time_spec  = false; // set to false to send immediately
     //TODO: flush buffers
@@ -465,26 +538,30 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char * _header,
     // vector buffer to send data to device
     std::vector<std::complex<float> > usrp_buffer(fgbuffer_len);
 
-    // assemble frame
-    ofdmflexframegen_assemble(fg, _header, _payload, _payload_len);
-
     float tx_gain_soft_lin = powf(10.0f, tx_params.tx_gain_soft / 20.0f);
 
-    if(log_tx_parameters_flag){
-        //printf("\nLogging transmit parameters\n\n");
-        log_tx_parameters();
-    }
+    pthread_mutex_lock(&tx_mutex); 
+	
+	tx_header[0] = 'd';
+    tx_header[1] = (frame_num >> 8) & 0xff;
+    tx_header[2] = (frame_num) & 0xff;
+    frame_num++;
+            
+	// assemble frame
+    ofdmflexframegen_assemble(fg, _header, _payload, _payload_len);
 
     // generate a single OFDM frame
     bool last_symbol=false;
     unsigned int i;
-    pthread_mutex_lock(&tx_mutex);
     while (!last_symbol) {
 
         // generate symbol
         last_symbol = ofdmflexframegen_writesymbol(fg, fgbuffer);
 
-        // copy symbol and apply gain
+        //if(last_symbol)
+		//	metadata_tx.end_of_burst   = true; 
+    	
+		// copy symbol and apply gain
         for (i=0; i<fgbuffer_len; i++)
             usrp_buffer[i] = fgbuffer[i] * tx_gain_soft_lin;
     
@@ -495,14 +572,15 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char * _header,
             uhd::io_type_t::COMPLEX_FLOAT32,
             uhd::device::SEND_MODE_FULL_BUFF
         );
-
+	
+		metadata_tx.start_of_burst = false; // never SOB when continuou
+		
     } // while loop
-    pthread_mutex_unlock(&tx_mutex);
-
-    // send a few extra samples to the device
+    
+	// send a few extra samples to the device
     // NOTE: this seems necessary to preserve last OFDM symbol in
     //       frame from corruption
-    usrp_tx->get_device()->send(
+	usrp_tx->get_device()->send(
     &usrp_buffer.front(), usrp_buffer.size(),
     metadata_tx,
     uhd::io_type_t::COMPLEX_FLOAT32,
@@ -510,14 +588,13 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char * _header,
     );
     
     // send a mini EOB packet
-    metadata_tx.start_of_burst = false;
     metadata_tx.end_of_burst   = true;
 
     usrp_tx->get_device()->send("", 0, metadata_tx,
     uhd::io_type_t::COMPLEX_FLOAT32,
     uhd::device::SEND_MODE_FULL_BUFF
     );
-
+	pthread_mutex_unlock(&tx_mutex);
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -528,13 +605,30 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char * _header,
 void ExtensibleCognitiveRadio::set_rx_freq(float _rx_freq)
 {
     rx_params.rx_freq = _rx_freq;
+    rx_params.rx_dsp_freq = 0.0;
     usrp_rx->set_rx_freq(_rx_freq);
+}
+
+// set receiver frequency
+void ExtensibleCognitiveRadio::set_rx_freq(float _rx_freq, float _dsp_freq)
+{
+    rx_params.rx_freq = _rx_freq;
+	rx_params.rx_dsp_freq = _dsp_freq;
+
+    uhd::tune_request_t tune;
+	tune.rf_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
+	tune.dsp_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
+	tune.rf_freq = _rx_freq;
+	tune.dsp_freq = _dsp_freq;
+    
+	usrp_rx->set_rx_freq(tune);
 }
 
 // set receiver frequency
 float ExtensibleCognitiveRadio::get_rx_freq()
 {
-    return rx_params.rx_freq;
+    return rx_params.rx_freq - rx_params.rx_dsp_freq;
+	//return rx_params.rx_freq;
 }
 
 // set receiver sample rate
@@ -579,12 +673,11 @@ void ExtensibleCognitiveRadio::reset_rx()
 void ExtensibleCognitiveRadio::set_rx_subcarriers(unsigned int _M)
 {
     // stop rx, destroy frame sync, set subcarriers, recreate frame sync
-    stop_rx();
-    usleep(1.0);
+    pthread_mutex_lock(&rx_mutex);
     ofdmflexframesync_destroy(fs);
-    rx_params.M = _M;
-    fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
-    start_rx();
+	rx_params.M = _M;
+	fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
+	pthread_mutex_unlock(&rx_mutex);
 }
 
 // get number of subcarriers
@@ -616,12 +709,11 @@ void ExtensibleCognitiveRadio::get_rx_subcarrier_alloc(char *p)
 void ExtensibleCognitiveRadio::set_rx_cp_len(unsigned int _cp_len)
 {
     // destroy frame gen, set cp length, recreate frame gen
-    stop_rx();
-    usleep(1.0);
+    pthread_mutex_lock(&rx_mutex);
     ofdmflexframesync_destroy(fs);
     rx_params.cp_len = _cp_len;
     fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
-    start_rx();
+    pthread_mutex_unlock(&rx_mutex);
 }
 
 // get cp_len
@@ -634,12 +726,11 @@ unsigned int ExtensibleCognitiveRadio::get_rx_cp_len()
 void ExtensibleCognitiveRadio::set_rx_taper_len(unsigned int _taper_len)
 {
     // destroy frame gen, set cp length, recreate frame gen
-    stop_rx();
-    usleep(1.0);
+    pthread_mutex_lock(&rx_mutex);
     ofdmflexframesync_destroy(fs);
     rx_params.taper_len = _taper_len;
     fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
-    start_rx();
+    pthread_mutex_unlock(&rx_mutex);    
 }
 
 // get taper_len
@@ -671,6 +762,28 @@ void ExtensibleCognitiveRadio::stop_rx()
     usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
 }
 
+// start liquid-dsp processing
+void ExtensibleCognitiveRadio::start_liquid_rx()
+{
+    printf("Starting liquid\n");
+	
+	// set rx running flag
+    rx_running = true;
+
+    // signal condition (tell rx worker to start)
+    pthread_cond_signal(&rx_cond);
+}
+
+// stop receiver
+void ExtensibleCognitiveRadio::stop_liquid_rx()
+{
+    // set rx running flag
+    //pthread_mutex_lock(&rx_mutex);
+	printf("Stopping liquid\n");
+	rx_running = false;
+	//pthread_mutex_unlock(&rx_mutex); 
+}
+
 // receiver worker thread
 void * ECR_rx_worker(void * _arg)
 {
@@ -700,8 +813,9 @@ void * ECR_rx_worker(void * _arg)
         // run receiver
         while (ECR->rx_running) {
 
-            // grab data from device
-            //printf("rx_worker waiting for samples...\n");
+            pthread_mutex_lock(&(ECR->rx_mutex));
+        
+			// grab data from device
             size_t num_rx_samps = ECR->usrp_rx->get_device()->recv(
                 &buffer.front(), buffer.size(), ECR->metadata_rx,
                 uhd::io_type_t::COMPLEX_FLOAT32,
@@ -716,14 +830,15 @@ void * ECR_rx_worker(void * _arg)
 
             // push resulting samples through synchronizer
             ofdmflexframesync_execute(ECR->fs, &usrp_sample, 1);
-            }
+            pthread_mutex_unlock(&(ECR->rx_mutex));
+        	}
         
         } // while rx_running
         dprintf("rx_worker finished running\n");
 
     } // while true
     
-    dprintf("rx_worker exiting thread\n");
+    printf("rx_worker exiting thread\n");
     pthread_exit(NULL);
 }
 
@@ -841,17 +956,19 @@ void * ECR_tx_worker(void * _arg)
     int nread;
 
     while (ECR->tx_thread_running) {
-        // wait for signal to start 
+        pthread_mutex_lock(&(ECR->tx_mutex));
+		// wait for signal to start 
         pthread_cond_wait(&(ECR->tx_cond), &(ECR->tx_mutex));
         // unlock the mutex
         pthread_mutex_unlock(&(ECR->tx_mutex));
         
         // condition given; check state: run or exit
-        if (!ECR->tx_running) {
+        /*if (!ECR->tx_running) {
             printf("tx_worker finished\n");
-        break;
-        }
-        // run transmitter
+        	break;
+        }*/
+        //printf("Entering transmit loop\n");
+		// run transmitter
         while (ECR->tx_running) {
             memset(buffer, 0, buffer_len);
             
@@ -874,15 +991,11 @@ void * ECR_tx_worker(void * _arg)
             dprintf("\n");
 
             dprintf("Transmitting frame\n");    
-            ECR->tx_header[0] = 'd';
-            ECR->tx_header[1] = (ECR->frame_num >> 8) & 0xff;
-            ECR->tx_header[2] = (ECR->frame_num) & 0xff;
-            ECR->frame_num++;
             ECR->transmit_frame(ECR->tx_header,
                 payload,
                 payload_len);
         } // while tx_running
-        printf("tx_worker finished running\n");
+        dprintf("tx_worker finished running\n");
     } // while true
     //
     printf("tx_worker exiting thread\n");
@@ -899,35 +1012,36 @@ void * ECR_ce_worker(void *_arg){
     double timeout_nspart;
     struct timespec timeout;
 
-    // wait for signal to start ce executio the first signal should be sent by start_ce()
-    // every signal thereafter will be triggered by some event the ce is interested in
-    pthread_mutex_lock(&ECR->CE_mutex);
-    pthread_cond_wait(&ECR->CE_execute_sig, &ECR->CE_mutex);
-    pthread_mutex_unlock(&ECR->CE_mutex);
+    // until CE thread is joined
+    while (ECR->ce_thread_running){
 
-    // Infinite loop
-    while (true){
+   		pthread_mutex_lock(&ECR->CE_mutex);  
+		pthread_cond_wait(&ECR->CE_cond, &ECR->CE_mutex);
+    	pthread_mutex_unlock(&ECR->CE_mutex);  
 
-        // Get current time of day
-        gettimeofday(&time_now, NULL);
+		while (ECR->ce_running){
+		
+			// Get current time of day
+        	gettimeofday(&time_now, NULL);
 
-        // Calculate timeout time in nanoseconds
-        timeout_ns = (double)time_now.tv_usec*1e3 + (double)time_now.tv_sec*1e9 + ECR->ce_timeout_ms*1e6;
-        // Convert timeout time to s and ns parts
-        timeout_nspart = modf(timeout_ns/1e9, &timeout_spart);
-        // Put timeout into timespec struct
-        timeout.tv_sec = (long int)timeout_spart;
-        timeout.tv_nsec = (long int)(timeout_nspart*1e9);
+        	// Calculate timeout time in nanoseconds
+        	timeout_ns = (double)time_now.tv_usec*1e3 + (double)time_now.tv_sec*1e9 + ECR->ce_timeout_ms*1e6;
+        	// Convert timeout time to s and ns parts
+        	timeout_nspart = modf(timeout_ns/1e9, &timeout_spart);
+        	// Put timeout into timespec struct
+        	timeout.tv_sec = (long int)timeout_spart;
+        	timeout.tv_nsec = (long int)(timeout_nspart*1e9);
     
-        // Wait for signal from receiver
-        pthread_mutex_lock(&ECR->CE_mutex);
-        if(ETIMEDOUT == pthread_cond_timedwait(&ECR->CE_execute_sig, &ECR->CE_mutex, &timeout))
-            ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TIMEOUT;
+        	// Wait for signal from receiver
+        	pthread_mutex_lock(&ECR->CE_mutex);
+        	if(ETIMEDOUT == pthread_cond_timedwait(&ECR->CE_execute_sig, &ECR->CE_mutex, &timeout))
+        	    ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TIMEOUT;
         
-        // execute CE
-        ECR->CE->execute((void*)ECR);
-        pthread_mutex_unlock(&ECR->CE_mutex);
-    }
+			// execute CE
+        	ECR->CE->execute((void*)ECR);
+        	pthread_mutex_unlock(&ECR->CE_mutex);
+    	}
+	}
     printf("ce_worker exiting thread\n");
     pthread_exit(NULL);
 
@@ -948,8 +1062,8 @@ void ExtensibleCognitiveRadio::print_metrics(ExtensibleCognitiveRadio * ECR){
         ECR->CE_metrics.payload_valid, ECR->CE_metrics.stats.mod_bps);
     printf("EVM:              %-8.2f    Check:               %s\n", 
         ECR->CE_metrics.stats.evm, crc_scheme_str[ECR->CE_metrics.stats.check][0]);
-        // See liquid soruce: src/fec/src/crc.c
-        // for definition of crc_scheme_str
+		// See liquid source: src/fec/src/crc.c
+		// for definition of crc_scheme_str
     printf("RSSI:             %-8.2f    Inner FEC:           %s\n", 
         ECR->CE_metrics.stats.rssi, fec_scheme_str[ECR->CE_metrics.stats.fec0][0]);
     printf("Frequency Offset: %-8.2f    Outter FEC:          %s\n", 
@@ -966,6 +1080,7 @@ void ExtensibleCognitiveRadio::log_rx_metrics(){
     if (log_fstream.is_open())
     {
         log_fstream.write((char*)&CE_metrics, sizeof(struct metric_s));
+		log_fstream.write((char*)&rx_params, sizeof(struct rx_parameter_s));
     }
     else
     {

@@ -225,19 +225,39 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 		else np.duplex = FDD;
     }
 
-    if (config_setting_lookup_float(node_config, "tx_freq", &tmpD))
-        np.tx_freq = tmpD;
-
     if (config_setting_lookup_float(node_config, "rx_freq", &tmpD))
         np.rx_freq = tmpD;
 
-    if (config_setting_lookup_float(node_config, "tx_rate", &tmpD))
-        np.tx_rate = tmpD;
+    if (config_setting_lookup_float(node_config, "rx_rate", &tmpD))
+        np.rx_rate = tmpD;
 	else
 		np.rx_rate = 1e6;
 
-    if (config_setting_lookup_float(node_config, "rx_rate", &tmpD))
-        np.rx_rate = tmpD;
+    if (config_setting_lookup_float(node_config, "rx_gain", &tmpD))
+        np.rx_gain = tmpD;
+	else
+		np.rx_gain = 20.0;
+
+    if (config_setting_lookup_int(node_config, "rx_subcarriers", &tmpI))
+        np.rx_subcarriers = (int)tmpI;
+   	else
+		np.rx_subcarriers = 64;
+
+    if (config_setting_lookup_int(node_config, "rx_cp_len", &tmpI))
+        np.rx_cp_len = (int)tmpI;
+   	else
+		np.rx_cp_len = 16;
+
+    if (config_setting_lookup_int(node_config, "rx_taper_len", &tmpI))
+        np.rx_taper_len = (int)tmpI;
+   	else
+		np.rx_taper_len = 4;
+
+    if (config_setting_lookup_float(node_config, "tx_freq", &tmpD))
+        np.tx_freq = tmpD;
+
+    if (config_setting_lookup_float(node_config, "tx_rate", &tmpD))
+        np.tx_rate = tmpD;
 	else
 		np.rx_rate = 1e6;
 
@@ -251,10 +271,20 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
 	else
 		np.tx_gain = 20.0;
 
-    if (config_setting_lookup_float(node_config, "rx_gain", &tmpD))
-        np.rx_gain = tmpD;
-	else
-		np.rx_gain = 20.0;
+    if (config_setting_lookup_int(node_config, "tx_subcarriers", &tmpI))
+        np.tx_subcarriers = (int)tmpI;
+   	else
+		np.tx_subcarriers = 64;
+
+    if (config_setting_lookup_int(node_config, "tx_cp_len", &tmpI))
+        np.tx_cp_len = (int)tmpI;
+   	else
+		np.tx_cp_len = 16;
+
+    if (config_setting_lookup_int(node_config, "tx_taper_len", &tmpI))
+        np.tx_taper_len = (int)tmpI;
+   	else
+		np.tx_taper_len = 4;
 
     // default tx modulation is BPSK
     np.tx_modulation = LIQUID_MODEM_BPSK;
@@ -466,6 +496,12 @@ void print_node_parameters(struct node_parameters * np)
       case (HD): strcpy(duplex, "HD"); break;
       }
     printf("    Duplex scheme:                     %-s\n", duplex);
+    printf("    Receive subcarriers:               %i\n", np->tx_subcarriers);
+    printf("    Receive cyclic prefix length:      %i\n", np->tx_cp_len);
+    printf("    Receive taper length:              %i\n", np->tx_taper_len);
+    printf("    Transmit subcarriers:              %i\n", np->tx_subcarriers);
+    printf("    Transmit cyclic prefix length:     %i\n", np->tx_cp_len);
+    printf("    Transmit taper length:             %i\n", np->tx_taper_len);
     printf("    Transmit soft gain:                %-.2f\n", np->tx_gain_soft);
     printf("    Transmit modulation:               %s\n", modulation_types[np->tx_modulation].name);
     printf("    Transmit CRC:                      %s\n", crc_scheme_str[np->tx_crc][0]);

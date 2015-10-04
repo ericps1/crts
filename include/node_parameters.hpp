@@ -70,7 +70,13 @@ struct node_parameters{
     // liquid OFDM settings
     int duplex;
     float tx_gain_soft;
-    int tx_modulation;
+    int rx_subcarriers;
+	int rx_cp_len;
+	int rx_taper_len;
+	int tx_subcarriers;
+	int tx_cp_len;
+	int tx_taper_len;
+	int tx_modulation;
     int tx_crc;
     int tx_fec0;
     int tx_fec1;
