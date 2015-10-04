@@ -887,7 +887,7 @@ int rxCallback(unsigned char * _header,
         ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::PHY;        // set event type to phy once mutex is locked
         if(_header_valid)
         {
-            if('d' == _header[0])
+            if(ExtensibleCognitiveRadio::DATA == _header[0])
             {
                 ECR->CE_metrics.CE_frame = ExtensibleCognitiveRadio::DATA;
             }
@@ -926,7 +926,7 @@ int rxCallback(unsigned char * _header,
 
     int nwrite = 0;
     if(_payload_valid){
-        if('d' == _header[0])
+        if(ExtensibleCognitiveRadio::DATA == _header[0])
         {
             // Pass payload to tun interface
             dprintf("Passing payload to tun interface\n");
@@ -991,7 +991,7 @@ void * ECR_tx_worker(void * _arg)
             dprintf("\n");
 
             dprintf("Transmitting frame\n");    
-            ECR->transmit_frame(ECR->tx_header,
+			ECR->transmit_frame(ECR->tx_header,
                 payload,
                 payload_len);
         } // while tx_running
