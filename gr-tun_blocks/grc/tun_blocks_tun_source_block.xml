@@ -1,0 +1,21 @@
+<block>
+  <name>Tun source block</name>
+  <key>tun_blocks_tun_source_block</key>
+  <category>TUN_BLOCKS</category>
+  <import>import tun_blocks</import>
+  <make>tun_blocks.tun_source_block($interface_name, $interface_address)</make>
+  <param>
+    <name>Interface_name</name>
+    <key>interface_name</key>
+    <type>string</type>
+  </param>
+  <param>
+    <name>Interface_address</name>
+    <key>interface_address</key>
+    <type>string</type>
+  </param>
+  <source>
+    <name>out</name>
+    <type>byte</type>
+  </source>
+</block>
