@@ -71,10 +71,12 @@ namespace gr {
         // Do <+signal processing+>
         // Tell runtime system how many input items we consumed on
         // each input stream.
+        for(int i = 0; i < ninput_items[0]; i++)
+            out[i] = in[i];
         consume_each (ninput_items[0]);
 
         // Tell runtime system how many output items we produced.
-        return noutput_items;
+        return ninput_items[0];
     }
 
   } /* namespace tun_blocks */
