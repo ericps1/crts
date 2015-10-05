@@ -7,11 +7,13 @@
   <param>
     <name>Interface_name</name>
     <key>interface_name</key>
+    <value>"tun0"</value>
     <type>string</type>
   </param>
   <param>
     <name>Interface_address</name>
     <key>interface_address</key>
+    <value>"10.10.10.2"</value>
     <type>string</type>
   </param>
   <source>
