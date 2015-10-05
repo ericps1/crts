@@ -26,7 +26,8 @@ include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 list(APPEND tun_blocks_sources
     tun_source_block_impl.cc
-    debug_block_impl.cc )
+    debug_block_impl.cc
+    tun_sink_block_impl.cc )
 
 set(tun_blocks_sources "${tun_blocks_sources}" PARENT_SCOPE)
 if(NOT tun_blocks_sources)

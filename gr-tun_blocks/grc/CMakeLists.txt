@@ -18,5 +18,6 @@
 # Boston, MA 02110-1301, USA.
 install(FILES
     tun_blocks_tun_source_block.xml
-    tun_blocks_debug_block.xml DESTINATION share/gnuradio/grc/blocks
+    tun_blocks_debug_block.xml
+    tun_blocks_tun_sink_block.xml DESTINATION share/gnuradio/grc/blocks
 )
