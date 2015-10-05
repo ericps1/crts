@@ -23,5 +23,6 @@
 install(FILES
     api.h
     tun_source_block.h
-    debug_block.h DESTINATION include/tun_blocks
+    debug_block.h
+    tun_sink_block.h DESTINATION include/tun_blocks
 )
