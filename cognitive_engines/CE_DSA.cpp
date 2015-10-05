@@ -5,9 +5,9 @@
 // custom member struct
 struct CE_DSA_members{
     static const float freq_a = 770e6;
-    static const float freq_b = 780e6;
+    static const float freq_b = 769e6;
     static const float freq_x = 870e6;
-    static const float freq_y = 880e6;
+    static const float freq_y = 869e6;
 
     // Number of consecutive invalid headers or payloads
     int cons_invalid_payloads;
@@ -25,7 +25,7 @@ CE_DSA::CE_DSA(){
     struct CE_DSA_members cm;
     cm.cons_invalid_payloads = 0;
     cm.cons_invalid_headers = 0;
-    cm.invalid_payloads_thresh = 2;
+    cm.invalid_payloads_thresh = 3;
     cm.invalid_headers_thresh = 1;
     custom_members = malloc(sizeof(struct CE_DSA_members));
     memcpy(custom_members, (void *)&cm, sizeof(struct CE_DSA_members));
@@ -62,11 +62,11 @@ void CE_DSA::execute(void * _args){
         ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
     {
         if (ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
-            std::cout<<"Timed out without receiving any frames."<<std::endl;
+            //std::cout<<"Timed out without receiving any frames."<<std::endl;
         if (cm->cons_invalid_payloads > cm->invalid_payloads_thresh)
-            std::cout<<"Received "<<cm->cons_invalid_payloads<<" consecutive invalid payloads."<<std::endl;
+            //std::cout<<"Received "<<cm->cons_invalid_payloads<<" consecutive invalid payloads."<<std::endl;
         if (cm->cons_invalid_headers > cm->invalid_headers_thresh)
-            std::cout<<"Received "<<cm->cons_invalid_headers<<" consecutive invalid headers."<<std::endl;
+            //std::cout<<"Received "<<cm->cons_invalid_headers<<" consecutive invalid headers."<<std::endl;
 
         // Reset counter to 0
         cm->cons_invalid_payloads = 0;
@@ -74,7 +74,7 @@ void CE_DSA::execute(void * _args){
 
         // Switch to other rx frequency and tell
         // other node to switch their tx frequency likewise.
-        std::cout<<"Switching from rx_freq="<<current_rx_freq<<std::endl;
+        //std::cout<<"Switching from rx_freq="<<current_rx_freq<<std::endl;
         if (current_rx_freq == cm->freq_a)
         {
             current_rx_freq = cm->freq_b;
@@ -92,8 +92,8 @@ void CE_DSA::execute(void * _args){
             current_rx_freq = cm->freq_x;
         }
         ECR->set_rx_freq(current_rx_freq);
-        std::cout<<"to rx_freq="<<current_rx_freq<<std::endl;
-        std::cout<<std::endl;
+        //std::cout<<"to rx_freq="<<current_rx_freq<<std::endl;
+        //std::cout<<std::endl;
     
     }
     

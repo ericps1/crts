@@ -71,6 +71,13 @@ public:
     virtual void execute(void * _args);
     void * custom_members;
 };
+class CE_Sensing : public Cognitive_Engine {
+public:
+    CE_Sensing();
+    ~CE_Sensing();
+    virtual void execute(void * _args);
+    void * custom_members;
+};
 class CE_DSA_PU : public Cognitive_Engine {
 public:
     CE_DSA_PU();

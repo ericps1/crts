@@ -21,7 +21,7 @@
 #include "read_configs.hpp"
 #include "TUN.hpp"
 
-#define DEBUG 0
+#define DEBUG 0 
 #if DEBUG == 1
 #define dprintf(...) printf(__VA_ARGS__)
 #else
@@ -93,47 +93,28 @@ void Initialize_CR(struct node_parameters *np, void * ECR_p){
         ECR->set_ce_timeout_ms(np->ce_timeout_ms);
         strcpy(ECR->rx_log_file, rx_log_file_name);
         strcpy(ECR->tx_log_file, tx_log_file_name);
-        ECR->set_tx_freq(np->tx_freq);
+        //ECR->set_rx_freq(np->rx_freq-1e6, -1e6);
         ECR->set_rx_freq(np->rx_freq);
-        ECR->set_tx_rate(np->tx_rate);
         ECR->set_rx_rate(np->rx_rate);
+        ECR->set_rx_gain_uhd(np->rx_gain);
+        ECR->set_rx_subcarriers(np->rx_subcarriers);
+		ECR->set_rx_cp_len(np->rx_cp_len);
+		ECR->set_rx_taper_len(np->rx_taper_len);
+		//ECR->set_tx_freq(np->tx_freq-1e6, 1e6);
+        ECR->set_tx_freq(np->tx_freq);
+        ECR->set_tx_rate(np->tx_rate);
         ECR->set_tx_gain_soft(np->tx_gain_soft);
         ECR->set_tx_gain_uhd(np->tx_gain);
-        ECR->set_rx_gain_uhd(np->rx_gain);
-        ECR->set_tx_modulation(np->tx_modulation);
+        ECR->set_tx_subcarriers(np->tx_subcarriers);
+		ECR->set_tx_cp_len(np->tx_cp_len);
+		ECR->set_tx_taper_len(np->tx_taper_len);
+		ECR->set_tx_modulation(np->tx_modulation);
         ECR->set_tx_crc(np->tx_crc);
         ECR->set_tx_fec0(np->tx_fec0);
         ECR->set_tx_fec1(np->tx_fec1);
-        ECR->set_ce(np->CE);        
-
-        ECR->reset_log_files();
-		/*// open rx log file to delete any current contents
-        if (ECR->log_rx_metrics_flag){
-            std::ofstream log_fstream;
-            log_fstream.open(rx_log_file_name, std::ofstream::out | std::ofstream::trunc);
-            if (log_fstream.is_open())
-            {
-                log_fstream.close();
-            }
-            else
-            {
-                std::cout<<"Error opening log file:"<<rx_log_file_name<<std::endl;
-            }
-        }
-        // open tx log file to delete any current contents
-        if (ECR->log_tx_parameters_flag){
-            std::ofstream log_fstream;
-            log_fstream.open(tx_log_file_name, std::ofstream::out | std::ofstream::trunc);
-            if (log_fstream.is_open())
-            {
-                log_fstream.close();
-            }
-            else
-            {
-                std::cout<<"Error opening log file:"<<tx_log_file_name<<std::endl;
-            }
-        }*/
-       }
+        ECR->set_ce(np->CE);     
+		ECR->reset_log_files();
+	}
     // intialize python radio if applicable
     else if(np->cr_type == python)
     {
@@ -162,7 +143,7 @@ void log_rx_data(int bytes){
         log_fstream.write((char*)&bytes, sizeof(bytes));
     }
     else
-        std::cerr<<"Error opening log file: "<<np.CRTS_rx_log_file<<std::endl;
+        printf("Error opening log file: %s\n", np.CRTS_rx_log_file);
 
     log_fstream.close();
 }
@@ -242,13 +223,18 @@ int main(int argc, char ** argv){
     Receive_command_from_controller(&TCP_controller, &np);
     fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
-    // modify log file to location we want
-    char CRTS_rx_log_file[100];
+	// copy log file name for post processing later
+    char CRTS_rx_log_file_cpy[100];
+    strcpy(CRTS_rx_log_file_cpy, np.CRTS_rx_log_file); 
+	
+	// modify log file name in node parameters for logging function
+	char CRTS_rx_log_file[100];
     strcpy(CRTS_rx_log_file, "./logs/bin/");
     strcat(CRTS_rx_log_file, np.CRTS_rx_log_file);
     strcat(CRTS_rx_log_file, ".log");
-
-    // open CRTS rx log file to delete any current contents
+	strcpy(np.CRTS_rx_log_file, CRTS_rx_log_file);
+	
+	// open CRTS rx log file to delete any current contents
     if (np.log_CRTS_rx_data){
         std::ofstream log_fstream;
         log_fstream.open(CRTS_rx_log_file, std::ofstream::out | std::ofstream::trunc);
@@ -370,12 +356,12 @@ int main(int argc, char ** argv){
             break;
     }
 
-    if(np.cr_type == ecr){
+	if(np.cr_type == ecr){
         // Start ECR
         dprintf("Starting ECR object...\n");
         ECR->start_rx();
-        ECR->start_tx();
-        ECR->start_ce();
+		ECR->start_tx();
+		ECR->start_ce();
     }
     
     // main loop
@@ -411,9 +397,9 @@ int main(int argc, char ** argv){
             dprintf("\nCRTS received message:\n");
             for(int j=0; j<recv_len; j++)
                 dprintf("%c", recv_buffer[j]);
-            dprintf("\n");
-            if(np.log_CRTS_rx_data)
-                log_rx_data(recv_len);
+            if(np.log_CRTS_rx_data){
+				log_rx_data(recv_len);
+			}
         }
         
         // Update the current time
@@ -425,12 +411,20 @@ int main(int argc, char ** argv){
     char term_message = 't';
     write(TCP_controller, &term_message, 1);
 
-    if(np.generate_octave_logs){
+    // clean up ECR/python process
+    if(np.cr_type == ecr){
+        //delete ECR;
+    }
+    else if(np.cr_type == python){
+        kill(pid, SIGTERM);
+    }
+	
+	if(np.generate_octave_logs){
         char command[50];
         
         if(np.log_CRTS_rx_data){
             strcpy(command, "./logs/logs2octave -c -l ");
-            strcat(command, np.CRTS_rx_log_file);
+            strcat(command, CRTS_rx_log_file_cpy);
             system(command);
         }
 
@@ -451,13 +445,5 @@ int main(int argc, char ** argv){
     close(CRTS_client_sock);
     close(CRTS_server_sock);
     
-    // clean up ECR/python process
-    if(np.cr_type == ecr){
-        delete ECR;
-    }
-    else if(np.cr_type == python){
-        kill(pid, SIGTERM);
-    }
-
-    }
+}
 

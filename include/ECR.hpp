@@ -8,6 +8,7 @@
 //#include <liquid/ofdmtxrx.h>
 #include <pthread.h>
 #include <uhd/usrp/multi_usrp.hpp>
+#include <uhd/types/tune_request.hpp>
 #include "CE.hpp"
 
 // thread functions
@@ -269,6 +270,7 @@ public:
         /// This value is passed directly to 
         /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
         float tx_freq;
+		float tx_dsp_freq;
         /// \brief The sample rate of the transmitter in samples/second. 
         ///
         /// It can be accessed with ExtensibleCognitiveRadio::set_tx_rate()
@@ -315,6 +317,7 @@ public:
         /// This value is passed directly to 
         /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
         float rx_freq;
+        float rx_dsp_freq;
         /// \brief The sample rate of the receiver in samples/second. 
         ///
         /// It can be accessed with ExtensibleCognitiveRadio::set_rx_rate()
@@ -328,6 +331,7 @@ public:
     // cognitive engine methods
     void set_ce(char * ce); // method to set CE to custom defined subclass
     void start_ce();
+    void stop_ce();
     /// \brief Assign a value to ExtensibleCognitiveRadio::ce_timeout_ms.
     void set_ce_timeout_ms(float new_timeout_ms);
     /// \brief Get the current value of ExtensibleCognitiveRadio::ce_timeout_ms 
@@ -344,6 +348,7 @@ public:
     // transmitter methods
     /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
     void set_tx_freq(float _tx_freq);
+    void set_tx_freq(float _tx_freq, float _dsp_freq);
     /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_rate.
     void set_tx_rate(float _tx_rate);
     /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_gain_soft.
@@ -425,6 +430,7 @@ public:
     // receiver methods
     /// \brief Set the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
     void set_rx_freq(float _rx_freq);
+    void set_rx_freq(float _rx_freq, float _dsp_freq);
     /// \brief Set the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_rate.
     void set_rx_rate(float _rx_rate);
     /// \brief Return the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_gain_uhd.
@@ -450,7 +456,9 @@ public:
     void reset_rx();
     void start_rx();
     void stop_rx();
-       
+    void start_liquid_rx();
+	void stop_liquid_rx();
+
     // methods and variables for printing/logging metrics 
     void print_metrics(ExtensibleCognitiveRadio * CR);
     int print_metrics_flag;
@@ -468,6 +476,8 @@ public:
     
     uhd::usrp::multi_usrp::sptr usrp_rx;
     uhd::rx_metadata_t metadata_rx;
+    
+	pthread_mutex_t rx_mutex;       // receive mutex
     
 private:
     
@@ -494,8 +504,11 @@ private:
     // cognitive engine threading objects
     pthread_t CE_process;
     pthread_mutex_t CE_mutex;
+	pthread_cond_t CE_cond;
     pthread_cond_t CE_execute_sig;    
-    friend void * ECR_ce_worker(void *);
+    bool ce_thread_running;
+	bool ce_running;
+	friend void * ECR_ce_worker(void *);
     
     // network layer objects
     int tunfd; // virtual network interface
@@ -507,7 +520,6 @@ private:
 
     // receiver threading objects
     pthread_t rx_process;           // receive thread
-    pthread_mutex_t rx_mutex;       // receive mutex
     pthread_cond_t  rx_cond;        // receive condition
     bool rx_running;                // is receiver running? (physical receiver)
     bool rx_thread_running;         // is receiver thread running?
