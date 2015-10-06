@@ -221,7 +221,8 @@ int main(int argc, char ** argv){
                     // add appropriate executable
                     switch (np[j].type){
                     case CR:
-                        strcat(command, " && sudo ./CRTS_CR");
+                        //strcat(command, " && sudo ./CRTS_CR");
+                        strcat(command, " && ./CRTS_CR");
                         break;
                     case interferer:
                         strcat(command, " && ./CRTS_interferer");

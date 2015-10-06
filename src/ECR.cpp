@@ -66,11 +66,20 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     // Create TUN interface
     dprintf("Creating tun interface\n");
     char tun_name[IFNAMSIZ];
-    strcpy(tun_name, "tun0");
+    strcpy(tun_name, "tunCRTS");
+    char createTUNcmd[200];
+    strcpy(createTUNcmd, "sudo ip tuntap add dev ");
+    strcat(createTUNcmd, tun_name);
+    strcat(createTUNcmd, " mode tun");
+    system(createTUNcmd);
+    // TODO: Ignore message "ioctl(TUNSETIFF): Device or resource busy"
+    // which appears if tun interface already exists.
+    dprintf("Connecting to tun interface\n");
+    // Get reference to TUN interface
     tunfd = tun_alloc(tun_name, IFF_TUN);
 
     dprintf("Bringing up tun interface\n");
-    system("ip link set dev tun0 up");
+    system("sudo ip link set dev tunCRTS up");
     usleep(1e6);
 
     // create and start rx thread
@@ -121,8 +130,8 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
 ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 
     // undo modifications to network interface
-    system("route del -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
-    system("ip link set dev tun0 down");
+    system("sudo route del -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
+    system("sudo ip link set dev tunCRTS down");
     
     printf("waiting for process to finish...\n");
 
@@ -235,10 +244,10 @@ float ExtensibleCognitiveRadio::get_ce_timeout_ms(){
 
 // set the ip address for the virtual network interface
 void ExtensibleCognitiveRadio::set_ip(char *ip){
-    char command[50];
-    sprintf(command, "ip addr add %s/24 dev tun0", ip);
+    char command[100];
+    sprintf(command, "sudo ip addr add %s/24 dev tunCRTS", ip);
     system(command);
-    system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
+    system("sudo route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
 }
 
 ////////////////////////////////////////////////////////////////////////
