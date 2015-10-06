@@ -65,13 +65,9 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
 
     // Create TUN interface
     dprintf("Creating tun interface\n");
-    char tun_name[IFNAMSIZ];
     strcpy(tun_name, "tunCRTS");
-    char createTUNcmd[200];
-    strcpy(createTUNcmd, "sudo ip tuntap add dev ");
-    strcat(createTUNcmd, tun_name);
-    strcat(createTUNcmd, " mode tun");
-    system(createTUNcmd);
+    sprintf(systemCMD, "sudo ip tuntap add dev %s mode tun", tun_name);
+    system(systemCMD);
     // TODO: Ignore message "ioctl(TUNSETIFF): Device or resource busy"
     // which appears if tun interface already exists.
     dprintf("Connecting to tun interface\n");
@@ -79,7 +75,8 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     tunfd = tun_alloc(tun_name, IFF_TUN);
 
     dprintf("Bringing up tun interface\n");
-    system("sudo ip link set dev tunCRTS up");
+    sprintf(systemCMD, "sudo ip link set dev %s up", tun_name);
+    system(systemCMD);
     usleep(1e6);
 
     // create and start rx thread
@@ -130,8 +127,11 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
 ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 
     // undo modifications to network interface
-    system("sudo route del -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
-    system("sudo ip link set dev tunCRTS down");
+    sprintf(systemCMD, "sudo route del -net 10.0.0.0 netmask 255.255.255.0 dev %s", tun_name);
+    system(systemCMD);
+
+    sprintf(systemCMD, "sudo ip link set dev %s down", tun_name);
+    system(systemCMD);
     
     printf("waiting for process to finish...\n");
 
@@ -244,10 +244,11 @@ float ExtensibleCognitiveRadio::get_ce_timeout_ms(){
 
 // set the ip address for the virtual network interface
 void ExtensibleCognitiveRadio::set_ip(char *ip){
-    char command[100];
-    sprintf(command, "sudo ip addr add %s/24 dev tunCRTS", ip);
-    system(command);
-    system("sudo route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
+    sprintf(systemCMD, "sudo ip addr add %s/24 dev %s", ip, tun_name);
+    system(systemCMD);
+
+    sprintf(systemCMD, "sudo route add -net 10.0.0.0 netmask 255.255.255.0 dev %s", tun_name);
+    system(systemCMD);
 }
 
 ////////////////////////////////////////////////////////////////////////
