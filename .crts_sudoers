@@ -1,0 +1,17 @@
+# This file, when placed in /etc/sudoers.d/, grants any user the sudo priveledges 
+# to run the following commands. 
+# These commands are necessary for connecting the CRTS_CR nodes in a network
+# through the TUN interfaces. 
+
+# Add the special tunCRTS TUN interface if it doesn't exist already
+ALL             ALL = NOPASSWD: /sbin/ip tuntap add dev tunCRTS mode tun
+# Bring up the tunCRTS TUN interface
+ALL             ALL = NOPASSWD: /sbin/ip link set dev tunCRTS up
+# Bring down the tunCRTS TUN interface
+ALL             ALL = NOPASSWD: /sbin/ip link set dev tunCRTS down
+# Set the tunCRTS interface with an arbitrary IP address
+ALL             ALL = NOPASSWD: /sbin/ip addr add [0-9.]*/24 dev tunCRTS
+# Set the route information for tunCRTS
+ALL             ALL = NOPASSWD: /sbin/route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS
+# Delete the route information for tunCRTS
+ALL             ALL = NOPASSWD: /sbin/route del -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS
