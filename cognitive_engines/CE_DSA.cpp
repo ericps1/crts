@@ -1,6 +1,7 @@
 #include "CE.hpp"
 #include "ECR.hpp"
 #include <stdio.h>
+#include <iostream>
 
 // custom member struct
 struct CE_DSA_members{
