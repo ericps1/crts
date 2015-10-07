@@ -202,7 +202,7 @@ public:
     /// instance of the struct:
     /// ExtensibleCognitiveRadio::tx_params.
     struct tx_parameter_s{
-        unsigned int M;                 // number of subcarriers
+        unsigned int numSubcarriers;    // number of subcarriers
         unsigned int cp_len;            // cyclic prefix length
         unsigned int taper_len;         // taper length
         unsigned char * p;
@@ -290,7 +290,7 @@ public:
     /// instance of the struct:
     /// ExtensibleCognitiveRadio::tx_params.
     struct rx_parameter_s{
-        unsigned int M;                 // number of subcarriers
+        unsigned int numSubcarriers;    // number of subcarriers
         unsigned int cp_len;            // cyclic prefix length
         unsigned int taper_len;         // taper length
         unsigned char * p;
@@ -537,7 +537,7 @@ private:
     tx_parameter_s tx_params;
     ofdmflexframegen fg;            // frame generator object
     unsigned int fgbuffer_len;      // length of frame generator buffer
-    std::complex<float> * fgbuffer; // frame generator output buffer [size: M + cp_len x 1]
+    std::complex<float> * fgbuffer; // frame generator output buffer [size: numSubcarriers + cp_len x 1]
     unsigned char tx_header[8];        // header container (must have length 8)
     unsigned int frame_counter;
     

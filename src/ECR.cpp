@@ -26,11 +26,11 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     ce_timeout_ms = 1000;
 
     // set internal properties
-    tx_params.M = 64;
+    tx_params.numSubcarriers = 64;
     tx_params.cp_len = 16;
     tx_params.taper_len = 4; 
     tx_params.p = NULL;   // subcarrier allocation (default)
-    rx_params.M = 64;
+    rx_params.numSubcarriers = 64;
     rx_params.cp_len = 16;
     rx_params.taper_len = 4; 
     rx_params.p = NULL;   // subcarrier allocation (default)
@@ -47,14 +47,14 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     tx_params.fgprops.fec0        = LIQUID_FEC_HAMMING128;
     tx_params.fgprops.fec1        = LIQUID_FEC_NONE;
     tx_params.fgprops.mod_scheme      = LIQUID_MODEM_QAM4;
-    fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
+    fg = ofdmflexframegen_create(tx_params.numSubcarriers, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
 
     // allocate memory for frame generator output (single OFDM symbol)
-    fgbuffer_len = tx_params.M + tx_params.cp_len;
+    fgbuffer_len = tx_params.numSubcarriers + tx_params.cp_len;
     fgbuffer = (std::complex<float>*) malloc(fgbuffer_len * sizeof(std::complex<float>));
 
     // create frame synchronizer
-    fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void *)this);
+    fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void *)this);
 
     // create usrp objects
     uhd::device_addr_t dev_addr;
@@ -443,22 +443,22 @@ int ExtensibleCognitiveRadio::get_tx_fec1()
 }
 
 // set number of subcarriers
-void ExtensibleCognitiveRadio::set_tx_subcarriers(unsigned int _M)
+void ExtensibleCognitiveRadio::set_tx_subcarriers(unsigned int _numSubcarriers)
 {
     // destroy frame gen, set cp length, recreate frame gen
     pthread_mutex_lock(&tx_mutex);
     ofdmflexframegen_destroy(fg);
-	tx_params.M = _M;
-	fgbuffer_len = _M + tx_params.cp_len;
+	tx_params.numSubcarriers = _numSubcarriers;
+	fgbuffer_len = _numSubcarriers + tx_params.cp_len;
     fgbuffer = (std::complex<float> *) realloc((void*)fgbuffer, fgbuffer_len * sizeof(std::complex<float>));
-	fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
+	fg = ofdmflexframegen_create(tx_params.numSubcarriers, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
     pthread_mutex_unlock(&tx_mutex);
 }
 
 // get number of subcarriers
 unsigned int ExtensibleCognitiveRadio::get_tx_subcarriers()
 {
-    return tx_params.M;    
+    return tx_params.numSubcarriers;    
 }
 
 // set subcarrier allocation
@@ -467,15 +467,15 @@ void ExtensibleCognitiveRadio::set_tx_subcarrier_alloc(char *_p)
     // destroy frame gen, set cp length, recreate frame gen
     pthread_mutex_lock(&tx_mutex);
     ofdmflexframegen_destroy(fg);
-    memcpy(tx_params.p, _p, tx_params.M);
-    fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
+    memcpy(tx_params.p, _p, tx_params.numSubcarriers);
+    fg = ofdmflexframegen_create(tx_params.numSubcarriers, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
     pthread_mutex_unlock(&tx_mutex);
 }
 
 // get subcarrier allocation
 void ExtensibleCognitiveRadio::get_tx_subcarrier_alloc(char *p)
 {
-    memcpy(p, tx_params.p, tx_params.M);
+    memcpy(p, tx_params.p, tx_params.numSubcarriers);
 }
 
 // set cp_len
@@ -485,9 +485,9 @@ void ExtensibleCognitiveRadio::set_tx_cp_len(unsigned int _cp_len)
     pthread_mutex_lock(&tx_mutex);
     ofdmflexframegen_destroy(fg);
     tx_params.cp_len = _cp_len;
-    fgbuffer_len = tx_params.M + _cp_len;
+    fgbuffer_len = tx_params.numSubcarriers + _cp_len;
     fgbuffer = (std::complex<float> *) realloc((void*)fgbuffer, fgbuffer_len * sizeof(std::complex<float>));
-	fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
+	fg = ofdmflexframegen_create(tx_params.numSubcarriers, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
     pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -504,7 +504,7 @@ void ExtensibleCognitiveRadio::set_tx_taper_len(unsigned int _taper_len)
     pthread_mutex_lock(&tx_mutex);
     ofdmflexframegen_destroy(fg);
     tx_params.taper_len = _taper_len;
-    fg = ofdmflexframegen_create(tx_params.M, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
+    fg = ofdmflexframegen_create(tx_params.numSubcarriers, tx_params.cp_len, tx_params.taper_len, tx_params.p, &tx_params.fgprops);
     pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -680,20 +680,20 @@ void ExtensibleCognitiveRadio::reset_rx()
 }
 
 // set number of subcarriers
-void ExtensibleCognitiveRadio::set_rx_subcarriers(unsigned int _M)
+void ExtensibleCognitiveRadio::set_rx_subcarriers(unsigned int _numSubcarriers)
 {
     // stop rx, destroy frame sync, set subcarriers, recreate frame sync
     pthread_mutex_lock(&rx_mutex);
     ofdmflexframesync_destroy(fs);
-	rx_params.M = _M;
-	fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
+	rx_params.numSubcarriers = _numSubcarriers;
+	fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
 	pthread_mutex_unlock(&rx_mutex);
 }
 
 // get number of subcarriers
 unsigned int ExtensibleCognitiveRadio::get_rx_subcarriers()
 {
-    return rx_params.M;
+    return rx_params.numSubcarriers;
 }
 
 // set subcarrier allocation
@@ -703,15 +703,15 @@ void ExtensibleCognitiveRadio::set_rx_subcarrier_alloc(char *_p)
     stop_rx();
     usleep(1.0);
     ofdmflexframesync_destroy(fs);
-    memcpy(rx_params.p, _p, rx_params.M);
-    fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
+    memcpy(rx_params.p, _p, rx_params.numSubcarriers);
+    fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
     start_rx();
 }
 
 // get subcarrier allocation
 void ExtensibleCognitiveRadio::get_rx_subcarrier_alloc(char *p)
 {
-    memcpy(p, rx_params.p, rx_params.M);
+    memcpy(p, rx_params.p, rx_params.numSubcarriers);
 }
 
 
@@ -722,7 +722,7 @@ void ExtensibleCognitiveRadio::set_rx_cp_len(unsigned int _cp_len)
     pthread_mutex_lock(&rx_mutex);
     ofdmflexframesync_destroy(fs);
     rx_params.cp_len = _cp_len;
-    fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
+    fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
     pthread_mutex_unlock(&rx_mutex);
 }
 
@@ -739,7 +739,7 @@ void ExtensibleCognitiveRadio::set_rx_taper_len(unsigned int _taper_len)
     pthread_mutex_lock(&rx_mutex);
     ofdmflexframesync_destroy(fs);
     rx_params.taper_len = _taper_len;
-    fs = ofdmflexframesync_create(rx_params.M, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
+    fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len, rx_params.taper_len, rx_params.p, rxCallback, (void*)this);
     pthread_mutex_unlock(&rx_mutex);    
 }
 

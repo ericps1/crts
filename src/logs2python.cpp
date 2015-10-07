@@ -108,7 +108,7 @@ int main(int argc, char ** argv){
     }
     else if(log_type == TXPARAMS){
         fprintf(file_out, "%sECR_tx_t         = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_M         = list()\n", node_prefix);
+        fprintf(file_out, "%sECR_tx_numSubcarriers         = list()\n", node_prefix);
         fprintf(file_out, "%sECR_tx_cp_len    = list()\n", node_prefix);
         fprintf(file_out, "%sECR_tx_taper_len = list()\n", node_prefix);
         fprintf(file_out, "%sECR_tx_gain_uhd  = list()\n", node_prefix);
@@ -120,7 +120,7 @@ int main(int argc, char ** argv){
         while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
             fread((char*)&tx_params, sizeof(struct ExtensibleCognitiveRadio::tx_parameter_s), 1, file_in);
             fprintf(file_out, "%sECR_tx_t.append(%li + 1e-6*%li)\n", node_prefix, log_time.tv_sec, log_time.tv_usec);
-            fprintf(file_out, "%sECR_tx_M.append(%u)\n",              node_prefix, tx_params.M);
+            fprintf(file_out, "%sECR_tx_numSubcarriers.append(%u)\n",              node_prefix, tx_params.numSubcarriers);
             fprintf(file_out, "%sECR_tx_cp_len.append(%u)\n",         node_prefix, tx_params.cp_len);
             fprintf(file_out, "%sECR_tx_taper_len.append(%u)\n",      node_prefix, tx_params.taper_len);
             fprintf(file_out, "%sECR_tx_gain_uhd.append(%f)\n",       node_prefix, tx_params.tx_gain_uhd);
