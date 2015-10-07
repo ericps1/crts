@@ -120,12 +120,12 @@ void Initialize_CR(struct node_parameters *np, void * ECR_p){
     {
         // set IP for TUN interface
         //char command[50];
-        //sprintf(command, "ifconfig tun0 %s", np->CRTS_IP);
-        //system("ip link set dev tun0 up");
-        //sprintf(command, "ip addr add %s/24 dev tun0", np->CRTS_IP);
+        //sprintf(command, "ifconfig tunCRTS %s", np->CRTS_IP);
+        //system("ip link set dev tunCRTS up");
+        //sprintf(command, "ip addr add %s/24 dev tunCRTS", np->CRTS_IP);
         //system(command);
         //printf("Running command: %s\n", command);
-        //system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
+        //system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
         //system("ifconfig");
     }
 }
