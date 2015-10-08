@@ -430,7 +430,7 @@ void BuildOFDMTransmission()
   unsigned int num_subcarriers = 0; 
   unsigned int cp_len = 0;
   unsigned int taper_len = 0;
-  unsigned char * p = NULL;
+  unsigned char * subcarrierAlloc = NULL;
   int frame_complete = 0; 
   ofdmflexframegenprops_s fgprops;
   ofdmflexframegen ofdm_fg;
@@ -438,13 +438,13 @@ void BuildOFDMTransmission()
   num_subcarriers = 2*(unsigned int)(np.tx_rate/30e3);
   cp_len = OFDM_CP_LENGTH; 
   taper_len = OFDM_TAPER_LENGTH; 
-  p = NULL;
+  subcarrierAlloc = NULL;
   frame_complete = OFDM_FRAME_COMPLETE_INITIAL_STATE; 
   ofdmflexframegenprops_init_default(&fgprops);
   ofdm_fg = ofdmflexframegen_create(num_subcarriers, 
                                     cp_len, 
                                     taper_len, 
-                                    p, 
+                                    subcarrierAlloc, 
                                     &fgprops);
 
 

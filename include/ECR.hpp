@@ -205,7 +205,7 @@ public:
         unsigned int numSubcarriers;    // number of subcarriers
         unsigned int cp_len;            // cyclic prefix length
         unsigned int taper_len;         // taper length
-        unsigned char * p;
+        unsigned char * subcarrierAlloc;
         /// \brief The properties for the OFDM frame generator from 
         /// <a href="http://liquidsdr.org/">liquid</a>.
         /// 
@@ -293,7 +293,7 @@ public:
         unsigned int numSubcarriers;    // number of subcarriers
         unsigned int cp_len;            // cyclic prefix length
         unsigned int taper_len;         // taper length
-        unsigned char * p;
+        unsigned char * subcarrierAlloc;
         /// \brief The value of the hardware gain for the receiver. In dB. 
         ///
         /// Sets the gain of the hardware amplifier in the receive chain
@@ -366,7 +366,7 @@ public:
     /// \brief Set the value of \p fec1 in ExtensibleCognitiveRadio::tx_parameter_s::fgprops.
     void set_tx_fec1(int fec_scheme);
     void set_tx_subcarriers(unsigned int subcarriers);
-    void set_tx_subcarrier_alloc(char *subcarrier_alloc);
+    void set_tx_subcarrier_alloc(char *_subcarrierAlloc);
     void set_tx_cp_len(unsigned int cp_len);
     void set_tx_taper_len(unsigned int taper_len);
     void set_header(unsigned char * _header);
@@ -391,7 +391,7 @@ public:
     /// \brief Return the value of \p fec1 in ExtensibleCognitiveRadio::tx_parameter_s::fgprops.
     int get_tx_fec1();
     unsigned int get_tx_subcarriers();
-    void get_tx_subcarrier_alloc(char *p);
+    void get_tx_subcarrier_alloc(char *subcarrierAlloc);
     unsigned int get_tx_cp_len();
     unsigned int get_tx_taper_len();
     void get_header(unsigned char *h);
@@ -438,7 +438,7 @@ public:
     void set_rx_gain_uhd(float _rx_gain_uhd);
     void set_rx_antenna(char * _rx_antenna);
     void set_rx_subcarriers(unsigned int subcarriers);
-    void set_rx_subcarrier_alloc(char *subcarrier_alloc);
+    void set_rx_subcarrier_alloc(char *_subcarrierAlloc);
     void set_rx_cp_len(unsigned int cp_len);
     void set_rx_taper_len(unsigned int taper_len);
 
@@ -450,7 +450,7 @@ public:
     float get_rx_gain_uhd();
     char* get_rx_antenna();
     unsigned int get_rx_subcarriers();
-    void get_rx_subcarrier_alloc(char *p);
+    void get_rx_subcarrier_alloc(char *subcarrierAlloc);
     unsigned int get_rx_cp_len();
     unsigned int get_rx_taper_len();
     
