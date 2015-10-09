@@ -23,34 +23,96 @@ and are designed for use with an
 [Ettus](http://www.ettus.com/)
 Univeral Software Radio Peripheral (USRP).
 
-CRTS is being developed using the CORNET testbed under 
+CRTS is being developed using the 
+[CORNET](http://cornet.wireless.vt.edu/)
+testbed under 
 Virginia Tech's
 [Wireless@VT](https://wireless.vt.edu/)
 Research Group.
 
 ##Installation:
 ###Dependencies
-	These should already be installed on most CORNET nodes.
-	-uhd
-	-liquid-dsp
-	-libconfig
+CRTS is developed on 
+[Ubuntu 14.04](http://releases.ubuntu.com/14.04/)
+but should be compatible with most 
+Linux distributions.
+To compile and run CRTS and the ECR, your system will need
+the following packages. 
+If a version is indicated, then it is recommended because it 
+is being used in CRTS development.
+- [UHD Version 3.8.4](https://github.com/EttusResearch/uhd/releases/tag/release_003_008_004)
+- [liquid-dsp commit a4d7c80d3](https://github.com/jgaeddert/liquid-dsp/commit/a4d7c80d3a3510a453c30e02e58b505d07afb920)
+- libconfig-dev
 
-###CRTS 
-	$ git clone https://github.com/ericps1/crts.git
-	$ cd crts
-	$ make
-	$ make setup_env
+Note to CORNET users: These dependencies are already installed for you on all CORNET nodes.
 
-	NOTE: do no run the last command as sudo
-	
-	The last command sets up an environment variable for the CRTS path and allows
-	the user to launch CRTS_CR as sudo without a password. This is important for
-	the automatic operation so that the user doesn't need to enter his/her 
-	password for every node. Sudo is required by CRTS_CR because it creates and 
-	tears down a virtual network interface upon each run. To undo these changes
-	run:
+###Downloading and Configuring CRTS 
+Official releases of CRTS can be downloaded from the
+[Releases Page](https://github.com/ericps1/crts/releases)
+while the latest development version is available on the main 
+[Git Page](https://github.com/ericps1/crts/).
 
-	$ make teardown_env
+Note that because using CRTS involves actively writing and compiling 
+cognitive engine code, it is not installed like traditional software.
+
+#### Official Releases
+1. Download the Version 2.0 tar.gz from the [Official Releases Page](https://github.com/ericps1/crts/releases):
+
+        $ wget -O crts-v2.0.tar.gz https://github.com/ericps1/crts/archive/v2.0.tar.gz
+
+2. Unzip the archive and move into the main source tree:
+
+        $ tar xzf crts-v2.0.tar.gz
+        $ cd crts-v2.0/
+
+3. Compile the code with:
+
+        $ make
+
+4. Then configure the system to allow certain networking commands without a password 
+    (CORNET users should skip this step):
+
+        $ sudo make setup_env
+
+The last step should only ever need to be run once. 
+It configures the system to allow all users to run
+certain very specific networking commands which are necessary for CRTS.
+They are required because CRTS creates and 
+tears down a virtual network interface upon each run. 
+The commands may be found in the .crts_sudoers file.
+
+To undo these changes, simply run:
+
+	$ sudo make teardown_env
+
+#### Latest Development Version
+1. Download the git repository:
+
+        $ git clone https://github.com/ericps1/crts.git
+
+2. Move into the main source tree:
+
+        $ cd crts/
+
+3. Compile the code with:
+
+        $ make
+
+4. Then configure the system to allow certain networking commands without a password 
+    (CORNET users should skip this step):
+
+        $ sudo make setup_env
+
+The last step should only ever need to be run once. 
+It configures the system to allow all users to run
+certain very specific networking commands which are necessary for CRTS.
+They are required because CRTS creates and 
+tears down a virtual network interface upon each run. 
+The commands may be found in the .crts_sudoers file.
+
+To undo these changes, simply run:
+
+	$ sudo make teardown_env
 
 ##Tutorial:
 
