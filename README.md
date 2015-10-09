@@ -25,7 +25,7 @@ Univeral Software Radio Peripheral (USRP).
 
 CRTS is being developed using the CORNET testbed under 
 Virginia Tech's
-[Wireless\@VT](https://wireless.vt.edu/)
+[Wireless@VT](https://wireless.vt.edu/)
 Research Group.
 
 ##Installation:
