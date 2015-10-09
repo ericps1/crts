@@ -1,12 +1,32 @@
-# crts
+# CRTS
 ##About:
 
-The Cognitive Radio Test System is intended to provide a flexible framework for 
-over the air test and evaluation of cognitive radio networks. Users will be able
-to configure a network or networks of cognitive radios that will use intelligent
+The Cognitive Radio Test System (CRTS) is intended to provide a flexible framework for 
+over the air test and evaluation of cognitive radio networks. 
+Users can configure networks of cognitive radios that use intelligent
 algorithms defined in a cognitive engine to optimize their performance and that
-of the network. CRTS is being developed using the CORNET testbed in Kelly Hall
-at Virginia Tech.
+of the network. 
+
+In time, CRTS will be able to connect with any cognitive radio with only 
+few modifications. As of now, CRTS can run with any custom cognitive engine developed 
+through the provided Extensible Cognitive Radio (ECR) API.
+Through the ECR, developers can deploy real cognitive radios built from their custom cognitive engines 
+and then evaluate their performance with CRTS. 
+By providing accessible and customizable waveforms, the ECR enables developers to focus on their 
+true interests, cognitive engine algorithms, without being bogged in implementation of 
+every option they wish to be made available to their cognitive engines.
+The waveforms of the ECR are based on the
+[OFDM Frame Generator](http://liquidsdr.org/doc/tutorial_ofdmflexframe.html)
+of
+[liquid-dsp](http://liquidsdr.org/)
+and are designed for use with an 
+[Ettus](http://www.ettus.com/)
+Univeral Software Radio Peripheral (USRP).
+
+CRTS is being developed using the CORNET testbed under 
+Virginia Tech's
+[Wireless\@VT](https://wireless.vt.edu/)
+Research Group.
 
 ##Installation:
 ###Dependencies
