@@ -2,15 +2,15 @@
 ##About:
 
 The Cognitive Radio Test System (CRTS) is intended to provide a flexible framework for 
-over the air test and evaluation of cognitive radio networks. 
-Users can configure networks of cognitive radios that use intelligent
+over the air test and evaluation of cognitive radio (CR) networks. 
+Users can configure networks of CRs that use intelligent
 algorithms defined in a cognitive engine to optimize their performance and that
 of the network. 
 
-In time, CRTS will be able to connect with any cognitive radio with only 
+In time, CRTS will be able to connect with any CR with only 
 few modifications. As of now, CRTS can run with any custom cognitive engine developed 
 through the provided Extensible Cognitive Radio (ECR) API.
-Through the ECR, developers can deploy real cognitive radios built from their custom cognitive engines 
+Through the ECR, developers can deploy real CRs built from their custom cognitive engines 
 and then evaluate their performance with CRTS. 
 By providing accessible and customizable waveforms, the ECR enables developers to focus on their 
 true interests, cognitive engine algorithms, without being bogged in implementation of 
@@ -114,6 +114,51 @@ To undo these changes, simply run:
 
 	$ sudo make teardown_env
 
+## An Overview
+
+CRTS is designed to run on a local network of machines, each 
+with their own dedicated USRP 
+(though CRTS could also be run on a single machine with multiple USRPs).
+Through the main program, `CRTS_controller`,
+CRTS facilitates fast and effiecient CR experimentation
+by automatically launching each radio node in the emulated environment or scenario.
+
+Each radio node could be 
+1. A member of a CR network (controlled by `CRTS_CR`) 
+or 
+2. An interfering node (controlled by `CRTS_interferer`),
+    generating particular noise or interference patterns against which the 
+    CR nodes must operate.
+
+### Scenarios
+
+For each experiment, which nodes in the network are CRs and which are interferers
+is defined by a scenario configuration file, placed in the `scenarios/` directory
+of the CRTS source tree. 
+
+The scenario file defines how many nodes are in the experiment, 
+the length of time to run the experiment, and for each node:
+- The node's type: CR or interferer.
+- The node's local IP address.
+- If it is a CR node, it further defines:
+    + The type of the CR (e.g. if it uses the ECR or some external CR).
+    + The node's virtual IP address in the CR network.
+    + The virtual IP address of the node it initially communicates with.
+    + If the CR node uses the ECR, it will also specify:
+        * Which cognitive engine to use.
+        * The initial configuration of CR. 
+        * What data to log.
+- If it is an interferer node, it further defines:
+    + The type of interferer (e.g. AWGN, OFDM, etc.).
+    + The paremeters of the interferer's operation.
+    + What data to log.
+
+Which scenario(s) should be run by `CRTS_controller` is configured 
+through the `master_scenario_file.cfg` in the root of the source tree.
+
+Examples of scenario files are provided in the `scenarios/` directory of the
+source tree.
+
 ##Tutorial:
 
 Begin by opening four ssh sessions on CORNET using the following command:
@@ -165,13 +210,13 @@ exchange frames over the air. On the last node:
 
 Observe that the interferer will turn off and on according to the duty cycle that
 was specified in the scenario configuration file. If you look at the EVM
-statistic being printed to the screen by the two cognitive radio nodes you can
+statistic being printed to the screen by the two CR nodes you can
 see that it degrades (becomes less negative) when the interferer is on.
 
-While the experiment was running, each cognitive radio kept a log of its 
+While the experiment was running, each CR kept a log of its 
 performance metrics stored as a binary file in the ./logs directory. These logs
 can be post processed into octave scripts which will plot the behavior and
-performance of the cognitive radio throughout the experiment. On one of the
+performance of the CR throughout the experiment. On one of the
 nodes:
 
 	$ cd logs
@@ -179,7 +224,7 @@ nodes:
 	$ octave
 	>> <octave script name>
 
-This will generate a number of plots showing what the cognitive radio was doing
+This will generate a number of plots showing what the CR was doing
 for the duration of the experiment. \<binary log file name\> should be specified in the 
 scenario configuration file (scenarios/interferer.cfg in our example) with the log_file 
 parameter. \<octave script name\> can be any convenient file name; 
