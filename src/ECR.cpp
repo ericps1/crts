@@ -67,7 +67,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     // Create TUN interface
     dprintf("Creating tun interface\n");
     strcpy(tun_name, "tunCRTS");
-    sprintf(systemCMD, "sudo ip tuntap add dev %s mode tun user ericps1", tun_name);
+    sprintf(systemCMD, "sudo ip tuntap add dev %s mode tun", tun_name);
     system(systemCMD);
     dprintf("Bringing up tun interface\n");
 	dprintf("Connecting to tun interface\n");
@@ -251,23 +251,6 @@ float ExtensibleCognitiveRadio::get_ce_timeout_ms(){
 void ExtensibleCognitiveRadio::set_ip(char *ip){
     sprintf(systemCMD, "sudo ifconfig %s %s netmask 255.255.255.0", tun_name, ip);
     system(systemCMD);
-
-	/*char ip_subnet[INET_ADDRSTRLEN];
-	int ip_n, ip_subnet_n;
-	inet_pton(AF_INET, ip, &ip_n);
-	ip_subnet_n = ip_n & 0x00FFFFFF;
-	inet_ntop(AF_INET, &ip_subnet_n, ip_subnet, INET_ADDRSTRLEN);
-
-	printf("%s\n", ip_subnet);
-
-    sprintf(systemCMD, "route add -net %s netmask 255.255.255.0 dev %s", ip_subnet, tun_name);
-    system(systemCMD);
-	printf("%s\n", systemCMD);
-	*/
-	
-	system("ifconfig");
-	system("route");
-	
 }
 
 ////////////////////////////////////////////////////////////////////////
