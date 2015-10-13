@@ -1,2 +1,0 @@
-# Cognitive Engines
-The Extensible Cognitive Radio defines a base cognitive engine class from which users can define subclasses to implement a particular cognitive engine. The structure can be seen by looking at any of the examples we've provided. The cognitive engine can access any information related to the operation of the ECR through get() functions and metrics from the receiver. It can then control parameters of the radio through various set() functions of the ECR.

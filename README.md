@@ -2,19 +2,21 @@
 ##About:
 
 The Cognitive Radio Test System (CRTS) is intended to provide a flexible framework for 
-over the air test and evaluation of cognitive radio networks. 
-Users can configure networks of cognitive radios that use intelligent
+over the air test and evaluation of cognitive radio (CR) networks. 
+Users can configure networks of CRs that use intelligent
 algorithms defined in a cognitive engine to optimize their performance and that
 of the network. 
 
-In time, CRTS will be able to connect with any cognitive radio with only 
+In time, CRTS will be able to connect with any CR with only 
 few modifications. As of now, CRTS can run with any custom cognitive engine developed 
 through the provided Extensible Cognitive Radio (ECR) API.
+
 Through the ECR, developers can deploy real cognitive radios built from their custom 
 cognitive engines and then evaluate their performance with CRTS. 
 By providing accessible and customizable waveforms, the ECR enables developers to focus 
 on their cognitive engine algorithms, without being bogged in implementation of 
 every aspect of the signal processing.
+
 The waveforms of the ECR are based on the
 [OFDM Frame Generator](http://liquidsdr.org/doc/tutorial_ofdmflexframe.html)
 of
@@ -23,31 +25,158 @@ and are designed for use with an
 [Ettus](http://www.ettus.com/)
 Univeral Software Radio Peripheral (USRP).
 
-CRTS is being developed using the CORNET testbed under 
+CRTS is being developed using the 
+[CORNET](http://cornet.wireless.vt.edu/)
+testbed under 
 Virginia Tech's
 [Wireless@VT](https://wireless.vt.edu/)
 Research Group.
 
 ##Installation:
 ###Dependencies
-	These should already be installed on most CORNET nodes.
-	-uhd
-	-liquid-dsp
-	-libconfig
 
-###CRTS 
-	$ git clone https://github.com/ericps1/crts.git
-	$ cd crts
-	$ make
-	$ make setup_env
+CRTS is developed on 
+[Ubuntu 14.04](http://releases.ubuntu.com/14.04/)
+but should be compatible with most 
+Linux distributions.
+To compile and run CRTS and the ECR, your system will need
+the following packages. 
+If a version is indicated, then it is recommended because it 
+is being used in CRTS development.
+- [UHD Version 3.8.4](https://github.com/EttusResearch/uhd/releases/tag/release_003_008_004)
+- [liquid-dsp commit a4d7c80d3](https://github.com/jgaeddert/liquid-dsp/commit/a4d7c80d3a3510a453c30e02e58b505d07afb920)
+- libconfig-dev
 
-	The last command allows the user to launch CRTS_CR as sudo without a password. 
-	This is important for the automatic operation so that the user doesn't need to 
-	enter his/her password for every node. Sudo is required by CRTS_CR because it 
-	creates and tears down a virtual network interface upon each run. To undo these 
-	changes run:
+Note to CORNET users: These dependencies are already installed for you on all CORNET nodes.
 
-	$ make teardown_env
+###Downloading and Configuring CRTS 
+Official releases of CRTS can be downloaded from the
+[Releases Page](https://github.com/ericps1/crts/releases)
+while the latest development version is available on the main 
+[Git Page](https://github.com/ericps1/crts/).
+
+Note that because using CRTS involves actively writing and compiling 
+cognitive engine code, it is not installed like traditional software.
+
+#### Official Releases
+1. Download the Version 2.0 tar.gz from the [Official Releases Page](https://github.com/ericps1/crts/releases):
+
+        $ wget -O crts-v2.0.tar.gz https://github.com/ericps1/crts/archive/v2.0.tar.gz
+
+2. Unzip the archive and move into the main source tree:
+
+        $ tar xzf crts-v2.0.tar.gz
+        $ cd crts-v2.0/
+
+3. Compile the code with:
+
+        $ make
+
+4. Then configure the system to allow certain networking commands without a password 
+    (CORNET users should skip this step):
+
+        $ sudo make setup_env
+
+The last step should only ever need to be run once. 
+It configures the system to allow all users to run
+certain very specific networking commands which are necessary for CRTS.
+They are required because CRTS creates and 
+tears down a virtual network interface upon each run. 
+The commands may be found in the .crts_sudoers file.
+
+To undo these changes, simply run:
+
+	$ sudo make teardown_env
+
+#### Latest Development Version
+1. Download the git repository:
+
+        $ git clone https://github.com/ericps1/crts.git
+
+2. Move into the main source tree:
+
+        $ cd crts/
+
+3. Compile the code with:
+
+        $ make
+
+4. Then configure the system to allow certain networking commands without a password 
+    (CORNET users should skip this step):
+
+        $ sudo make setup_env
+
+The last step should only ever need to be run once. 
+It configures the system to allow all users to run
+certain very specific networking commands which are necessary for CRTS.
+They are required because CRTS creates and 
+tears down a virtual network interface upon each run. 
+The commands may be found in the .crts_sudoers file.
+
+To undo these changes, simply run:
+
+	$ sudo make teardown_env
+
+## An Overview
+
+CRTS is designed to run on a local network of machines, each 
+with their own dedicated USRP 
+(though CRTS could also be run on a single machine with multiple USRPs).
+Through the main program, `CRTS_controller`,
+CRTS facilitates fast and effiecient CR experimentation
+by automatically launching each radio node in the emulated environment or scenario.
+
+Each radio node could be 
+1. A member of a CR network (controlled by `CRTS_CR`) 
+or 
+2. An interfering node (controlled by `CRTS_interferer`),
+    generating particular noise or interference patterns against which the 
+    CR nodes must operate.
+
+### Scenarios
+
+Scenarios are defined by configuration files in the scenarios/ directory. Each of 
+these files will specify the number of nodes in the experiment and the duration
+of the experiment. Each node will have additional parameters that must be specified. 
+These parameters include but are not limited to:
+- The node's type: CR or interferer.
+- The node's local IP address.
+- If it is a CR node, it further defines:
+    + The type of the CR (e.g. if it uses the ECR or some external CR).
+    + The node's virtual IP address in the CR network.
+    + The virtual IP address of the node it initially communicates with.
+    + If the CR node uses the ECR, it will also specify:
+        * Which cognitive engine to use.
+        * The initial configuration of CR. 
+        * What type of data should be logged.
+- If it is an interferer node, it further defines:
+    + The type of interferer (e.g. AWGN, OFDM, etc.).
+    + The paremeters of the interferer's operation.
+    + What type of data should be logged.
+
+In some cases a user may not care about a particular setting e.g. the forward
+error correcting scheme. In this case, the setting may be neglected in the
+configuration file and the default setting will be used.
+
+The `master_scenario_file.cfg` specifies which scenario(s) should be run for a
+single execution of the `CRTS_controller`. A single scenario can be run multiple
+times if desired.
+
+Examples of scenario files are provided in the `scenarios/` directory of the
+source tree.
+
+### Cognitive Engines
+
+The Extensible Cognitive Radio provides an easy way to implement generic
+cognitive engines. This is accomplished through inheritance i.e. a particular
+cognitive engine can be implemented as a subclass of the cognitive engine 
+base class and seamlessly integrated with the ECR. The general structure is
+such that the cognitive engine has access to any information related to the
+operation of the ECR via get() function calls as well as metrics passed from
+the receiver DSP. It can then control any of the operating parameters of the
+radio using set() function calls defined for the ECR.
+
+Examples of cognitive engines are provided in the `cognitive_engines/` directory.
 
 ##Tutorial:
 
@@ -101,7 +230,7 @@ exchange frames over the air. On the last node:
 
 Observe that the interferer will turn off and on according to the duty cycle that
 was specified in the scenario configuration file. If you look at the EVM
-statistic being printed to the screen by the two cognitive radio nodes you can
+statistic being printed to the screen by the two CR nodes you can
 see that it degrades (becomes less negative) when the interferer is on.
 
 CRTS and the ECR will log all events to a binary file as the scenario runs.
