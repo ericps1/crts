@@ -42,6 +42,7 @@ public:
 
 ///////////////////////////////////////////
 // Custom Cognitive Engine sub classes
+///@cond INTERNAL
 //EDIT START FLAG
 class CE_DSA : public Cognitive_Engine {
 public:
@@ -93,5 +94,6 @@ public:
     void * custom_members;
 };
 //EDIT END FLAG
+///@endcond
 #endif
 

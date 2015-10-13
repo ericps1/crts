@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <net/if.h>
+#include <arpa/inet.h>
 #include <linux/if_tun.h>
 #include <math.h>
 #include <complex>
@@ -66,17 +67,16 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     // Create TUN interface
     dprintf("Creating tun interface\n");
     strcpy(tun_name, "tunCRTS");
-    sprintf(systemCMD, "sudo ip tuntap add dev %s mode tun", tun_name);
+    sprintf(systemCMD, "sudo ip tuntap add dev %s mode tun user ericps1", tun_name);
     system(systemCMD);
-    // TODO: Ignore message "ioctl(TUNSETIFF): Device or resource busy"
-    // which appears if tun interface already exists.
-    dprintf("Connecting to tun interface\n");
-    // Get reference to TUN interface
-    tunfd = tun_alloc(tun_name, IFF_TUN);
-
     dprintf("Bringing up tun interface\n");
+	dprintf("Connecting to tun interface\n");
     sprintf(systemCMD, "sudo ip link set dev %s up", tun_name);
     system(systemCMD);
+    
+	// Get reference to TUN interface
+    tunfd = tun_alloc(tun_name, IFF_TUN);
+
     usleep(1e6);
 
     // create and start rx thread
@@ -126,24 +126,15 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
 // Destructor
 ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 
-    // undo modifications to network interface
-    sprintf(systemCMD, "sudo route del -net 10.0.0.0 netmask 255.255.255.0 dev %s", tun_name);
-    system(systemCMD);
-
-    sprintf(systemCMD, "sudo ip link set dev %s down", tun_name);
-    system(systemCMD);
-    
-    printf("waiting for process to finish...\n");
-
     //if (ce_running) 
 	stop_ce();
 	
 	// signal condition (tell ce worker to continue)
-    printf("destructor signaling ce condition...\n");
+    dprintf("destructor signaling ce condition...\n");
     ce_thread_running = false; 
 	pthread_cond_signal(&CE_cond);
 
-    printf("destructor joining ce thread...\n");
+    dprintf("destructor joining ce thread...\n");
     void * ce_exit_status;
     pthread_join(CE_process, &ce_exit_status);
 
@@ -153,45 +144,57 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 	stop_tx();
 	
 	// signal condition (tell rx worker to continue)
-    printf("destructor signaling rx condition...\n");
+    dprintf("destructor signaling rx condition...\n");
     rx_thread_running = false;
     pthread_cond_signal(&rx_cond);
 
-    printf("destructor joining rx thread...\n");
+    dprintf("destructor joining rx thread...\n");
     void * rx_exit_status;
     pthread_join(rx_process, &rx_exit_status);
 
     // signal condition (tell tx worker to continue)
-    printf("destructor signaling tx condition...\n");
+    dprintf("destructor signaling tx condition...\n");
     tx_thread_running = false; 
 	pthread_cond_signal(&tx_cond);
 
-    printf("destructor joining tx thread...\n");
+    dprintf("destructor joining tx thread...\n");
     void * tx_exit_status;
     pthread_join(tx_process, &tx_exit_status);
 
     // destroy ce threading objects
-    printf("destructor destroying ce mutex...\n");
+    dprintf("destructor destroying ce mutex...\n");
     pthread_mutex_destroy(&CE_mutex);
-    printf("destructor destroying ce condition...\n");
+    dprintf("destructor destroying ce condition...\n");
     pthread_cond_destroy(&CE_cond);
     
     // destroy rx threading objects
-    printf("destructor destroying rx mutex...\n");
+    dprintf("destructor destroying rx mutex...\n");
     pthread_mutex_destroy(&rx_mutex);
-    printf("destructor destroying rx condition...\n");
+    dprintf("destructor destroying rx condition...\n");
     pthread_cond_destroy(&rx_cond);
     
     // destroy tx threading objects
-    printf("destructor destroying tx mutex...\n");
+    dprintf("destructor destroying tx mutex...\n");
     pthread_mutex_destroy(&tx_mutex);
-    printf("destructor destroying tx condition...\n");
+    dprintf("destructor destroying tx condition...\n");
     pthread_cond_destroy(&tx_cond);
     
-    printf("destructor destroying other objects...\n");
+    dprintf("destructor destroying other objects...\n");
     // destroy framing objects
     ofdmflexframegen_destroy(fg);
     ofdmflexframesync_destroy(fs);
+
+	/*sprintf(systemCMD, "sudo ip link set dev %s down", tun_name);
+    system(systemCMD); 
+    printf("%s\n", systemCMD);
+    
+    sprintf(systemCMD, "sudo route del -net 10.0.0.0 netmask 255.255.255.0 dev %s", tun_name);
+    system(systemCMD);
+	printf("%s\n", systemCMD);
+    */
+    sprintf(systemCMD, "sudo ip tuntap del dev %s mode tun", tun_name);
+    system(systemCMD);
+	printf("%s\n", systemCMD);
 
 }
 
@@ -200,6 +203,7 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 ///////////////////////////////////////////////////////////////////////
 
 void ExtensibleCognitiveRadio::set_ce(char *ce){
+///@cond INTERNAL
 //EDIT START FLAG
     if(!strcmp(ce, "CE_DSA"))
         CE = new CE_DSA();
@@ -216,6 +220,7 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
     if(!strcmp(ce, "CE_AMC"))
         CE = new CE_AMC();
 //EDIT END FLAG
+///@endcond
 }
 
 void ExtensibleCognitiveRadio::start_ce(){
@@ -244,11 +249,25 @@ float ExtensibleCognitiveRadio::get_ce_timeout_ms(){
 
 // set the ip address for the virtual network interface
 void ExtensibleCognitiveRadio::set_ip(char *ip){
-    sprintf(systemCMD, "sudo ip addr add %s/24 dev %s", ip, tun_name);
+    sprintf(systemCMD, "sudo ifconfig %s %s netmask 255.255.255.0", tun_name, ip);
     system(systemCMD);
 
-    sprintf(systemCMD, "sudo route add -net 10.0.0.0 netmask 255.255.255.0 dev %s", tun_name);
+	/*char ip_subnet[INET_ADDRSTRLEN];
+	int ip_n, ip_subnet_n;
+	inet_pton(AF_INET, ip, &ip_n);
+	ip_subnet_n = ip_n & 0x00FFFFFF;
+	inet_ntop(AF_INET, &ip_subnet_n, ip_subnet, INET_ADDRSTRLEN);
+
+	printf("%s\n", ip_subnet);
+
+    sprintf(systemCMD, "route add -net %s netmask 255.255.255.0 dev %s", ip_subnet, tun_name);
     system(systemCMD);
+	printf("%s\n", systemCMD);
+	*/
+	
+	system("ifconfig");
+	system("route");
+	
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -552,7 +571,7 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char * _header,
 
     pthread_mutex_lock(&tx_mutex); 
 	
-	tx_header[0] = 'd';
+	tx_header[0] = ExtensibleCognitiveRadio::DATA;
     tx_header[1] = (frame_num >> 8) & 0xff;
     tx_header[2] = (frame_num) & 0xff;
     frame_num++;
@@ -848,7 +867,7 @@ void * ECR_rx_worker(void * _arg)
 
     } // while true
     
-    printf("rx_worker exiting thread\n");
+    dprintf("rx_worker exiting thread\n");
     pthread_exit(NULL);
 }
 
@@ -929,6 +948,7 @@ int rxCallback(unsigned char * _header,
     for (unsigned int i=0; i<_payload_len; i++)
         dprintf("%c", _payload[i]);
     dprintf("\n");
+	
 
     char payload[_payload_len];
     for(unsigned int i=0; i<_payload_len; i++)
@@ -973,17 +993,17 @@ void * ECR_tx_worker(void * _arg)
         pthread_mutex_unlock(&(ECR->tx_mutex));
         
         // condition given; check state: run or exit
-        /*if (!ECR->tx_running) {
+        if (!ECR->tx_running) {
             printf("tx_worker finished\n");
         	break;
-        }*/
-        //printf("Entering transmit loop\n");
-		// run transmitter
-        while (ECR->tx_running) {
-            memset(buffer, 0, buffer_len);
+        }
+        
+		memset(buffer, 0, buffer_len);
             
+        // run transmitter
+        while (ECR->tx_running) {
             // grab data from TUN interface
-            dprintf("Reading from tun interface\n");
+            //dprintf("Reading from tun interface\n");
             nread = cread(ECR->tunfd, (char*)buffer, buffer_len);
             if (nread < 0) {
                 printf("Error reading from interface");
@@ -995,20 +1015,14 @@ void * ECR_tx_worker(void * _arg)
             payload_len = nread;
      
             // transmit frame
-            dprintf("Buffer read from tun interface:\n");
-            for(int i=0; i<buffer_len; i++)
-                dprintf("%c", buffer[i]);
-            dprintf("\n");
-
-            dprintf("Transmitting frame\n");    
-			ECR->transmit_frame(ECR->tx_header,
+            ECR->transmit_frame(ECR->tx_header,
                 payload,
                 payload_len);
         } // while tx_running
         dprintf("tx_worker finished running\n");
     } // while true
     //
-    printf("tx_worker exiting thread\n");
+    dprintf("tx_worker exiting thread\n");
     pthread_exit(NULL);
 }
 
@@ -1052,7 +1066,7 @@ void * ECR_ce_worker(void *_arg){
         	pthread_mutex_unlock(&ECR->CE_mutex);
     	}
 	}
-    printf("ce_worker exiting thread\n");
+    dprintf("ce_worker exiting thread\n");
     pthread_exit(NULL);
 
 }

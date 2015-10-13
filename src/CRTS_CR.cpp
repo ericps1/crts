@@ -354,7 +354,9 @@ int main(int argc, char ** argv){
         time_s = tv.tv_sec;
         if(time_s >= start_time_s) 
             break;
-    }
+    	if(sig_terminate)
+			break;
+	}
 
 	if(np.cr_type == ecr){
         // Start ECR
@@ -413,7 +415,7 @@ int main(int argc, char ** argv){
 
     // clean up ECR/python process
     if(np.cr_type == ecr){
-        //delete ECR;
+        delete ECR;
     }
     else if(np.cr_type == python){
         kill(pid, SIGTERM);
