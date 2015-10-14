@@ -93,15 +93,13 @@ void Initialize_CR(struct node_parameters *np, void * ECR_p){
         ECR->set_ce_timeout_ms(np->ce_timeout_ms);
         strcpy(ECR->rx_log_file, rx_log_file_name);
         strcpy(ECR->tx_log_file, tx_log_file_name);
-        //ECR->set_rx_freq(np->rx_freq-1e6, -1e6);
         ECR->set_rx_freq(np->rx_freq);
         ECR->set_rx_rate(np->rx_rate);
         ECR->set_rx_gain_uhd(np->rx_gain);
         ECR->set_rx_subcarriers(np->rx_subcarriers);
 		ECR->set_rx_cp_len(np->rx_cp_len);
 		ECR->set_rx_taper_len(np->rx_taper_len);
-		//ECR->set_tx_freq(np->tx_freq-1e6, 1e6);
-        ECR->set_tx_freq(np->tx_freq);
+		ECR->set_tx_freq(np->tx_freq);
         ECR->set_tx_rate(np->tx_rate);
         ECR->set_tx_gain_soft(np->tx_gain_soft);
         ECR->set_tx_gain_uhd(np->tx_gain);
@@ -413,15 +411,7 @@ int main(int argc, char ** argv){
     char term_message = 't';
     write(TCP_controller, &term_message, 1);
 
-    // clean up ECR/python process
-    if(np.cr_type == ecr){
-        delete ECR;
-    }
-    else if(np.cr_type == python){
-        kill(pid, SIGTERM);
-    }
-	
-	if(np.generate_octave_logs){
+    if(np.generate_octave_logs){
         char command[50];
         
         if(np.log_CRTS_rx_data){
@@ -447,5 +437,13 @@ int main(int argc, char ** argv){
     close(CRTS_client_sock);
     close(CRTS_server_sock);
     
+	// clean up ECR/python process
+    if(np.cr_type == ecr){
+        delete ECR;
+    }
+    else if(np.cr_type == python){
+        kill(pid, SIGTERM);
+    }
+	
 }
 

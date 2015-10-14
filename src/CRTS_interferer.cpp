@@ -563,6 +563,7 @@ void TransmitInterference(
 // ========================================================================
 void ChangeFrequency(Interferer interfererObj)
   {
+  
   switch (interfererObj.tx_freq_hop_type)
     {
     case (ALTERNATING):
@@ -588,6 +589,7 @@ void ChangeFrequency(Interferer interfererObj)
       currentTxFreq = rand() % freqWidth + interfererObj.tx_freq_hop_min;
       break;
     }
+  printf("Set transmit frequency to %f\n", currentTxFreq);
   interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
   }
 

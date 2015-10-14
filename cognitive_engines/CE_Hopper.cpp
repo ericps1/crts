@@ -39,7 +39,7 @@ void CE_Hopper::execute(void * _args){
 	//Received control frame, switch tx freq
     if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY && ECR->CE_metrics.CE_frame == ExtensibleCognitiveRadio::CONTROL)
     {
-        if(ECR->CE_metrics.header[0] == 'f')
+        if(ECR->CE_metrics.control_info[0] == 'f')
         {
             float* f_payload = (float*)ECR->CE_metrics.payload;
             float new_freq = f_payload[0];
@@ -49,14 +49,14 @@ void CE_Hopper::execute(void * _args){
     }
     else//Timeout or data frame received
     {
-        if( !ECR->CE_metrics.header_valid ||
+        if( !ECR->CE_metrics.control_valid ||
             !ECR->CE_metrics.payload_valid) 
         {
             cm.bad_received++;
             if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
                 printf("timeout, %u\n", cm.bad_received);
-            else if(!ECR->CE_metrics.header_valid)
-                printf("bad header, %u\n", cm.bad_received);
+            else if(!ECR->CE_metrics.control_valid)
+                printf("bad control, %u\n", cm.bad_received);
             else if(!ECR->CE_metrics.payload_valid)
                 printf("bad payload, %u\n", cm.bad_received);
         }
@@ -98,7 +98,7 @@ void SelectNewFrequency(ExtensibleCognitiveRadio* ECR, struct CE_Hopper_members*
 
     //Process samples in some way
     cm->bad_received = 0;
-    unsigned char header[8] = {'f', 0, 0, 0, 0, 0, 0, 0};
+    unsigned char control[8] = {'f', 0, 0, 0, 0, 0, 0, 0};
     unsigned char payload[100];
     float current = ECR->get_rx_freq();
     if(current == cm->freq1)
@@ -129,5 +129,5 @@ void SelectNewFrequency(ExtensibleCognitiveRadio* ECR, struct CE_Hopper_members*
         f_payload[0] = cm->freq3;
         printf("transmitting %f\n", cm->freq3);
     }
-    ECR->transmit_frame(header, payload, 100);
+    ECR->transmit_frame(control, payload, 100);
 }
