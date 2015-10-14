@@ -131,20 +131,20 @@ void Initialize_CR(struct node_parameters *np, void * ECR_p){
     }
 }
 
-void log_rx_data(int bytes){
+void log_rx_data(struct scenario_parameters *sp, struct node_parameters *np, int bytes){
     // update current time
     struct timeval tv;
     gettimeofday(&tv, NULL);
 
     // open file, append parameters, and close
     std::ofstream log_fstream;
-    log_fstream.open(np.CRTS_rx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
+    log_fstream.open(np->CRTS_rx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
     if(log_fstream.is_open()){
         log_fstream.write((char*)&tv, sizeof(tv));
         log_fstream.write((char*)&bytes, sizeof(bytes));
     }
     else
-        printf("Error opening log file: %s\n", np.CRTS_rx_log_file);
+        printf("Error opening log file: %s\n", np->CRTS_rx_log_file);
 
     log_fstream.close();
 }
@@ -311,7 +311,7 @@ int main(int argc, char ** argv){
     memset(&CRTS_server_addr, 0, sizeof(CRTS_server_addr));
     CRTS_server_addr.sin_family = AF_INET;
     // Only receive packets addressed to the CRTS_IP
-    CRTS_server_addr.sin_addr.s_addr = htonl(np.CRTS_IP);
+    CRTS_server_addr.sin_addr.s_addr = inet_addr(np.CRTS_IP);
     CRTS_server_addr.sin_port = htons(port);
     socklen_t clientlen = sizeof(CRTS_server_addr);
     int CRTS_server_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -358,7 +358,7 @@ int main(int argc, char ** argv){
     while(1){
         gettimeofday(&tv, NULL);
         time_s = tv.tv_sec;
-        if(time_s >= sp.utart_time_s) 
+        if(time_s >= sp.start_time_s) 
             break;
     	if(sig_terminate)
 			break;
@@ -408,7 +408,7 @@ int main(int argc, char ** argv){
             for(int j=0; j<recv_len; j++)
                 dprintf("%c", recv_buffer[j]);
             if(np.log_CRTS_rx_data){
-				log_rx_data(recv_len);
+				log_rx_data(&sp, &np, recv_len);
 			}
         }
         

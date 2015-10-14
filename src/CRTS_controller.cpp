@@ -179,8 +179,8 @@ int main(int argc, char ** argv){
             sp.repNumber = scenRepNum;
 
             printf("Number of nodes: %i\n", sp.num_nodes);
-            //printf("Run time: %f\n", sp.run_time);
-            printf("Run time: %l\n", sp.run_time);
+            //printf("Run time: %f\n", sp.runTime);
+            printf("Run time: %lld\n", sp.runTime);
 
             
 
@@ -239,9 +239,9 @@ int main(int argc, char ** argv){
             
                     // append run time 
                     //strcat(command, " -t ");
-                    //char run_time_str[10];
-                    //sprintf(run_time_str, "%f", sp.run_time);
-                    //strcat(command, run_time_str);
+                    //char runTime_str[10];
+                    //sprintf(runTime_str, "%f", sp.runTime);
+                    //strcat(command, runTime_str);
 
                     // append IP Address of controller
                     strcat(command, " -a ");
