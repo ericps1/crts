@@ -70,7 +70,7 @@ struct scenario_parameters read_scenario_parameters(char * scenario_file)
     config_lookup_int(&cfg, "num_nodes", &tmpI);
     sp.num_nodes = tmpI;
     config_lookup_float(&cfg, "run_time", &tmpD);
-    sp.run_time = (float) tmpD;
+    sp.runTime = (time_t) tmpD;
     config_destroy(&cfg);
 
     return sp;

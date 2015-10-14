@@ -29,10 +29,10 @@
 #endif
 
 int sig_terminate;
-time_t start_time_s;
-struct node_parameters np;
+//time_t start_time_s;
+//struct node_parameters np;
     
-void Receive_command_from_controller(int *TCP_controller, struct node_parameters *np){
+void Receive_command_from_controller(int *TCP_controller, struct scenario_parameters *sp, struct node_parameters *np){
     // Listen to socket for message from controller
     char command_buffer[1+sizeof(time_t)+sizeof(struct node_parameters)];
     memset(&command_buffer, 0, sizeof(command_buffer));
@@ -55,10 +55,11 @@ void Receive_command_from_controller(int *TCP_controller, struct node_parameters
     case 's': // settings for upcoming scenario
         printf("CRTS: Received settings for scenario\n");
         // copy start time
-        memcpy((void*)&start_time_s, &command_buffer[1], sizeof(time_t));
+        //memcpy((void*)&start_time_s, &command_buffer[1], sizeof(time_t));
+        memcpy(sp, &command_buffer[1], sizeof(scenario_parameters));
         
         // copy node_parameters
-        memcpy(np ,&command_buffer[1+sizeof(time_t)], sizeof(node_parameters));
+        memcpy(np ,&command_buffer[1+sizeof(scenario_parameters)], sizeof(node_parameters));
         print_node_parameters(np);
         break;
     case 't': // terminate program
@@ -154,8 +155,8 @@ void help_CRTS_CR() {
     printf("CRTS_CR -- Start a cognitive radio node. Only needs to be run explicitly when using CRTS_controller with -m option.\n");
     printf("        -- This program must be run from the main CRTS directory.\n");
     printf(" -h : Help.\n");
-    printf(" -t : Run Time - Length of time this node will run. In seconds.\n");
-    printf("      Default: 20.0 s\n");
+    //printf(" -t : Run Time - Length of time this node will run. In seconds.\n");
+    //printf("      Default: 20.0 s\n");
     printf(" -a : IP Address of node running CRTS_controller.\n");
 }
 
@@ -173,16 +174,17 @@ int main(int argc, char ** argv){
     signal(SIGTERM, terminate);
     
     // timing variables
-    time_t run_time = 20;
+    //time_t runTime = 20;
+
     
     // Default IP address of controller
     char * controller_ipaddr = (char*) "192.168.1.56";
 
     int d;
-    while((d = getopt(argc, argv, "ht:a:")) != EOF){
+    while((d = getopt(argc, argv, "ha:")) != EOF){
         switch(d){
         case 'h': help_CRTS_CR();               return 0;
-        case 't': run_time = atof(optarg);      break;
+        //case 't': runTime = atof(optarg);      break;
         case 'a': controller_ipaddr = optarg;   break;
         }
     }
@@ -216,11 +218,14 @@ int main(int argc, char ** argv){
     // Port to be used by CRTS server and client
     int port = 4444;
 
-    // Create node parameters struct and read scenario info from controller
+    // Create node parameters struct and the scenario parameters struct
+    // and read info from controller
+    struct node_parameters np;
     memset(&np, 0, sizeof(np));
+    struct scenario_parameters sp;
     dprintf("Receiving command from controller...\n");
     sleep(1);
-    Receive_command_from_controller(&TCP_controller, &np);
+    Receive_command_from_controller(&TCP_controller, &sp, &np);
     fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
 	// copy log file name for post processing later
@@ -349,11 +354,11 @@ int main(int argc, char ** argv){
     // Wait for the start-time before beginning the scenario
     struct timeval tv;
     time_t time_s;
-    time_t stop_time_s = start_time_s + run_time;
+    time_t stop_time_s = sp.start_time_s + sp.runTime;
     while(1){
         gettimeofday(&tv, NULL);
         time_s = tv.tv_sec;
-        if(time_s >= start_time_s) 
+        if(time_s >= sp.utart_time_s) 
             break;
     }
 
@@ -371,12 +376,12 @@ int main(int argc, char ** argv){
     while(time_s < stop_time_s && !sig_terminate){
         // Listen for any updates from the controller (non-blocking)
         dprintf("CRTS: Listening to controller for command\n");
-        Receive_command_from_controller(&TCP_controller, &np);
+        Receive_command_from_controller(&TCP_controller, &sp, &np);
 
         // Wait (used for test purposes only)
         //usleep(np.tx_delay_us);
         tx_time_delta += np.tx_delay_us;
-        tx_time.tv_sec = start_time_s + (long int) floorf(tx_time_delta/1e6);
+        tx_time.tv_sec = sp.start_time_s + (long int) floorf(tx_time_delta/1e6);
         tx_time.tv_usec = fmod(tx_time_delta, 1e6);
          while(1){
             gettimeofday(&tv, NULL);

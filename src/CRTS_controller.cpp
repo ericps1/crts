@@ -167,15 +167,22 @@ int main(int argc, char ** argv){
 
     // loop through scenarios
     for (int i = 0; i < num_scenarios; i++){
-        for (unsigned int ii=0; ii<scenario_reps[i]; ii++)
+        for (unsigned int scenRepNum=1; scenRepNum<=scenario_reps[i]; scenRepNum++)
         {
             printf("Scenario %i:\n", i+1);
-            printf("Rep %i:\n", ii+1);
+            printf("Rep %i:\n", scenRepNum);
             printf("Config file: %s\n", &scenario_list[i][0]);
-            // read the number of nodes in scenario    
+            // read the scenario parameters from file
             struct scenario_parameters sp = read_scenario_parameters(&scenario_list[i][0]);
+            // Set the number of scenario  repititions in struct.
+            sp.totalNumReps = scenario_reps[i];
+            sp.repNumber = scenRepNum;
+
             printf("Number of nodes: %i\n", sp.num_nodes);
-            printf("Run time: %f\n", sp.run_time);
+            //printf("Run time: %f\n", sp.run_time);
+            printf("Run time: %l\n", sp.run_time);
+
+            
 
             // determine the start time for the scenario based
             // on the current time and the number of nodes
@@ -201,9 +208,9 @@ int main(int argc, char ** argv){
                 // If scenario is run more than once, append rep# to log file names
                 if (scenario_reps[i]-1)
                 {
-                    snprintf(np[j].rx_log_file+strlen(np[j].rx_log_file), 100-strlen(np[j].rx_log_file), "_rep%d", ii+1);
-                    snprintf(np[j].tx_log_file+strlen(np[j].tx_log_file), 100-strlen(np[j].tx_log_file), "_rep%d", ii+1);
-                    snprintf(np[j].CRTS_rx_log_file+strlen(np[j].CRTS_rx_log_file), 100-strlen(np[j].CRTS_rx_log_file), "_rep%d", ii+1);
+                    snprintf(np[j].rx_log_file+strlen(np[j].rx_log_file), 100-strlen(np[j].rx_log_file), "_rep%d", scenRepNum);
+                    snprintf(np[j].tx_log_file+strlen(np[j].tx_log_file), 100-strlen(np[j].tx_log_file), "_rep%d", scenRepNum);
+                    snprintf(np[j].CRTS_rx_log_file+strlen(np[j].CRTS_rx_log_file), 100-strlen(np[j].CRTS_rx_log_file), "_rep%d", scenRepNum);
                 }
                 
                 // send command to launch executable if not doing so manually
@@ -231,10 +238,10 @@ int main(int argc, char ** argv){
                     }
             
                     // append run time 
-                    strcat(command, " -t ");
-                    char run_time_str[10];
-                    sprintf(run_time_str, "%f", sp.run_time);
-                    strcat(command, run_time_str);
+                    //strcat(command, " -t ");
+                    //char run_time_str[10];
+                    //sprintf(run_time_str, "%f", sp.run_time);
+                    //strcat(command, run_time_str);
 
                     // append IP Address of controller
                     strcat(command, " -a ");
@@ -298,7 +305,7 @@ int main(int argc, char ** argv){
                 printf("\nNode %i has connected. Sending its parameters...\n", j+1);
                 char msg_type = 's';
                 send(client[j], (void*)&msg_type, sizeof(char), 0);
-                send(client[j], (void*)&start_time_s, sizeof(time_t), 0);
+                send(client[j], (void*)&sp, sizeof(struct scenario_parameters), 0);
                 send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);            
             }
 
@@ -313,14 +320,11 @@ int main(int argc, char ** argv){
             if(msg_terminate)
                 printf("Terminating controller because all nodes have sent a termination message\n");
 
-            // if the controller is being terminated, send termination message to other nodes
-            //FIXME: process doesn't end with ctrl+C if hasn't connected to all nodes yet
             if(sig_terminate){
                 char msg = 't';
                 for(int j=0; j<sp.num_nodes; j++){
                     write(client[j], &msg, 1);
                 }
-
             }
 
         }// scenario repition loop

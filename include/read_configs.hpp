@@ -5,8 +5,25 @@
 #include <vector>
 
 struct scenario_parameters{
+
+    // Number of nodes in the scenario
     int num_nodes;
-    float run_time;
+    //float run_time;
+
+    // The start time of the scenario
+    time_t start_time_s;
+
+    // The length of time to run the scenario
+    time_t runTime;
+
+    // Total number of times this scenario
+    // will be run
+    unsigned int totalNumReps;
+
+    // The repetition number of this scenario instance
+    // i.e. 1 <= repNumber <= totalNumReps
+    unsigned int repNumber;
+
 };
 
 int read_scenario_master_file(char scenario_list[30][60], unsigned int scenario_reps[60]);
