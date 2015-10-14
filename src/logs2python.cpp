@@ -79,7 +79,7 @@ int main(int argc, char ** argv){
     
     if(log_type == RXMETRICS){
         fprintf(file_out,   "%st                      = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_Header_valid    = list()\n", node_prefix);
+        fprintf(file_out,   "%sECR_rx_Control_valid    = list()\n", node_prefix);
         fprintf(file_out,   "%sECR_rx_Payload_valid   = list()\n", node_prefix);
         fprintf(file_out,   "%sECR_rx_EVM             = list()\n", node_prefix);
         fprintf(file_out,   "%sECR_rx_RSSI            = list()\n", node_prefix);
@@ -93,7 +93,7 @@ int main(int argc, char ** argv){
         while(fread((char*)&metrics, sizeof(struct ExtensibleCognitiveRadio::metric_s), 1, file_in)){
             fprintf(file_out, "%st.append(%li + %f)\n",                 node_prefix,    metrics.time_spec.get_full_secs(), 
                         metrics.time_spec.get_frac_secs());
-            fprintf(file_out, "%sECR_rx_Header_valid.append(%i)\n",     node_prefix,    metrics.header_valid);
+            fprintf(file_out, "%sECR_rx_Control_valid.append(%i)\n",     node_prefix,    metrics.control_valid);
             fprintf(file_out, "%sECR_rx_Payload_valid.append(%i)\n",    node_prefix,    metrics.payload_valid);
             fprintf(file_out, "%sECR_rx_EVM.append(%f)\n",              node_prefix,    metrics.stats.evm);
             fprintf(file_out, "%sECR_rx_RSSI.append(%f)\n",             node_prefix,    metrics.stats.rssi);

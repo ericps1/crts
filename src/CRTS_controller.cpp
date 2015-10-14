@@ -180,7 +180,7 @@ int main(int argc, char ** argv){
 
             printf("Number of nodes: %i\n", sp.num_nodes);
             //printf("Run time: %f\n", sp.runTime);
-            printf("Run time: %lld\n", sp.runTime);
+            printf("Run time: %lld\n", (long long) sp.runTime);
 
             
 
@@ -191,8 +191,8 @@ int main(int argc, char ** argv){
             gettimeofday(&tv, NULL);
             time_s = tv.tv_sec;
             int pad_s = manual_execution ? 5 : 1;
-            time_t start_time_s = time_s + 3*sp.num_nodes + pad_s;
-            printf("\nScenario start time: %li\n\n", start_time_s);
+            sp.start_time_s = time_s + 3*sp.num_nodes + pad_s;
+            printf("\nScenario start time: %lld\n\n", (long long) sp.start_time_s);
             
             // loop through nodes in scenario
             for (int j = 0; j < sp.num_nodes; j++){

@@ -68,7 +68,7 @@ int main(int argc, char ** argv){
             fread((char*)&rx_params, sizeof(struct ExtensibleCognitiveRadio::rx_parameter_s), 1, file_in);
 			fprintf(file_out, "t(%i) = %li + %f;\n", i, metrics.time_spec.get_full_secs(), metrics.time_spec.get_frac_secs());
             // metrics
-			fprintf(file_out, "ECR_rx_Header_valid(%i) = %i;\n", i, metrics.header_valid);
+			fprintf(file_out, "ECR_rx_Control_valid(%i) = %i;\n", i, metrics.control_valid);
             fprintf(file_out, "ECR_rx_Payload_valid(%i) = %i;\n", i, metrics.payload_valid);
             fprintf(file_out, "ECR_rx_EVM(%i) = %f;\n", i, metrics.stats.evm);
             fprintf(file_out, "ECR_rx_RSSI(%i) = %f;\n", i, metrics.stats.rssi);
