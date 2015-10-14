@@ -305,7 +305,8 @@ int main(int argc, char ** argv){
     struct sockaddr_in CRTS_server_addr;
     memset(&CRTS_server_addr, 0, sizeof(CRTS_server_addr));
     CRTS_server_addr.sin_family = AF_INET;
-    CRTS_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    // Only receive packets addressed to the CRTS_IP
+    CRTS_server_addr.sin_addr.s_addr = htonl(np.CRTS_IP);
     CRTS_server_addr.sin_port = htons(port);
     socklen_t clientlen = sizeof(CRTS_server_addr);
     int CRTS_server_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -394,6 +395,8 @@ int main(int argc, char ** argv){
         recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0, (struct sockaddr *)&CRTS_server_addr, &clientlen);
         // print out received messages
         if(recv_len > 0){
+            // TODO: Say what address message was received from.
+            // (It's in CRTS_server_addr)
             dprintf("\nCRTS received message:\n");
             for(int j=0; j<recv_len; j++)
                 dprintf("%c", recv_buffer[j]);
