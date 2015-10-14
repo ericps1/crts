@@ -35,7 +35,7 @@ Research Group.
 ##Installation:
 ###Dependencies
 
-CRTS is developed on 
+CRTS is being developed on 
 [Ubuntu 14.04](http://releases.ubuntu.com/14.04/)
 but should be compatible with most 
 Linux distributions.
@@ -46,6 +46,9 @@ is being used in CRTS development.
 - [UHD Version 3.8.4](https://github.com/EttusResearch/uhd/releases/tag/release_003_008_004)
 - [liquid-dsp commit a4d7c80d3](https://github.com/jgaeddert/liquid-dsp/commit/a4d7c80d3a3510a453c30e02e58b505d07afb920)
 - libconfig-dev
+
+CRTS also relies on each node having network synchronized clocks. On CORNET this is accomplished
+with NTP. PTP would work as well.
 
 Note to CORNET users: These dependencies are already installed for you on all CORNET nodes.
 
@@ -75,18 +78,18 @@ cognitive engine code, it is not installed like traditional software.
 4. Then configure the system to allow certain networking commands without a password 
     (CORNET users should skip this step):
 
-        $ sudo make setup_env
+        $ sudo make install
 
 The last step should only ever need to be run once. 
 It configures the system to allow all users to run
 certain very specific networking commands which are necessary for CRTS.
 They are required because CRTS creates and 
 tears down a virtual network interface upon each run. 
-The commands may be found in the .crts_sudoers file.
+The commands may be found in the .crts\_sudoers file.
 
 To undo these changes, simply run:
 
-	$ sudo make teardown_env
+	$ sudo make uninstall
 
 #### Latest Development Version
 1. Download the git repository:
@@ -104,18 +107,18 @@ To undo these changes, simply run:
 4. Then configure the system to allow certain networking commands without a password 
     (CORNET users should skip this step):
 
-        $ sudo make setup_env
+        $ sudo make install
 
 The last step should only ever need to be run once. 
 It configures the system to allow all users to run
 certain very specific networking commands which are necessary for CRTS.
 They are required because CRTS creates and 
 tears down a virtual network interface upon each run. 
-The commands may be found in the .crts_sudoers file.
+The commands may be found in the .crts\_sudoers file.
 
 To undo these changes, simply run:
 
-	$ sudo make teardown_env
+	$ sudo make uninstall
 
 ## An Overview
 
@@ -134,6 +137,10 @@ or
     CR nodes must operate.
 
 ### Scenarios
+
+The `master_scenario_file.cfg` specifies which scenario(s) should be run for a
+single execution of the `CRTS_controller`. A single scenario can be run multiple
+times if desired. The syntax scenario\_<#> and reps\_scenario\_<#> must be used.
 
 Scenarios are defined by configuration files in the scenarios/ directory. Each of 
 these files will specify the number of nodes in the experiment and the duration
@@ -158,10 +165,6 @@ In some cases a user may not care about a particular setting e.g. the forward
 error correcting scheme. In this case, the setting may be neglected in the
 configuration file and the default setting will be used.
 
-The `master_scenario_file.cfg` specifies which scenario(s) should be run for a
-single execution of the `CRTS_controller`. A single scenario can be run multiple
-times if desired.
-
 Examples of scenario files are provided in the `scenarios/` directory of the
 source tree.
 
@@ -175,6 +178,17 @@ such that the cognitive engine has access to any information related to the
 operation of the ECR via get() function calls as well as metrics passed from
 the receiver DSP. It can then control any of the operating parameters of the
 radio using set() function calls defined for the ECR.
+
+Variables used to keep track of information from one execution of the cognitive
+engine to the next must be declared as static (otherwise they will fall out of
+scope after the end of the execute function).
+
+One particular function that users should be aware of is ECR.set\_control\_information().
+This provided a generic way for cognitive radios to exchange control information
+without impacting the flow of data. The control information is 6 bytes which are
+placed in the header of the transmitted frame. It can then be extracted in the
+cognitive engine of at the receiving radio.
+
 
 Examples of cognitive engines are provided in the `cognitive_engines/` directory.
 
@@ -203,8 +217,10 @@ file must match the file's name. Once the cognitive engine is defined, run:
 ./config\_CEs from the crts directory. This will actually modify some of the code
 in CRTS to allow the cognitive engine to be used. Now you can modify or create a
 scenario configuration file to have a node that uses the new cognitive engine.
-Variables can be added to the custom member struct which can be accessed in the
-execute function. Users can define other functions that the CE needs as well.
+You will want to create static variables within the cognitive engine execute
+function so that they will persist from one execution to the next. You can look
+at the examples to see how this is done. You can also define other functions that
+can be called from within the cognitive engine execute function.
 
 Now we'll actually run CRTS. On the node you want to use as the controller execute:
 
@@ -220,7 +236,7 @@ In this case you need to make sure that the ips are set up correctly in the scen
 config file being used. Assuming you've launched CRTS manually, on two of the other 
 nodes run:
 
-	$ sudo ./CRTS_CR -a <controller internal ip>
+	$ ./CRTS_CR -a <controller internal ip>
 
 The internal ip will be 192.168.1.<external port number -6990>. Observe that 
 the two nodes have received their operating parameters and will begin to 

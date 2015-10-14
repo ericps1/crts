@@ -179,23 +179,22 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
     dprintf("destructor destroying tx condition...\n");
     pthread_cond_destroy(&tx_cond);
     
-    dprintf("destructor destroying other objects...\n");
     // destroy framing objects
+    dprintf("destructor destroying other objects...\n");
     ofdmflexframegen_destroy(fg);
     ofdmflexframesync_destroy(fs);
 
-	/*sprintf(systemCMD, "sudo ip link set dev %s down", tun_name);
+	// close the TUN interface file descriptor
+	dprintf("destructor closing the TUN interface file descriptor\n");
+	close(tunfd);
+	
+	dprintf("destructor bringing down TUN interface\n");
+	sprintf(systemCMD, "sudo ip link set dev %s down", tun_name);
     system(systemCMD); 
-    printf("%s\n", systemCMD);
     
-    sprintf(systemCMD, "sudo route del -net 10.0.0.0 netmask 255.255.255.0 dev %s", tun_name);
+	dprintf("destructor deleting TUN interface\n");
+	sprintf(systemCMD, "sudo ip tuntap del dev %s mode tun", tun_name);
     system(systemCMD);
-	printf("%s\n", systemCMD);
-    */
-    sprintf(systemCMD, "sudo ip tuntap del dev %s mode tun", tun_name);
-    system(systemCMD);
-	printf("%s\n", systemCMD);
-
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -517,11 +516,11 @@ unsigned int ExtensibleCognitiveRadio::get_tx_taper_len()
 }
 
 // set header data (must have length 8)
-void ExtensibleCognitiveRadio::set_header(unsigned char * _header)
+void ExtensibleCognitiveRadio::set_control_info(unsigned char * _control_info)
 {
     pthread_mutex_lock(&tx_mutex);
-    for(int i=0; i<8; i++)
-        tx_header[i] = _header[i];
+    for(int i=0; i<6; i++)
+        tx_header[i+2] = _control_info[i];
     pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -554,9 +553,8 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char * _header,
 
     pthread_mutex_lock(&tx_mutex); 
 	
-	tx_header[0] = ExtensibleCognitiveRadio::DATA;
-    tx_header[1] = (frame_num >> 8) & 0xff;
-    tx_header[2] = (frame_num) & 0xff;
+	tx_header[0] = (ExtensibleCognitiveRadio::DATA << 6) + ((frame_num >> 8) & 0x3f);
+    tx_header[1] = (frame_num) & 0xff;
     frame_num++;
             
 	// assemble frame
@@ -868,13 +866,13 @@ int rxCallback(unsigned char * _header,
         
     // Store metrics and signal CE thread if using PHY layer metrics
     if (ECR->ce_phy_events){
-        ECR->CE_metrics.header_valid = _header_valid;
+        ECR->CE_metrics.control_valid = _header_valid;
         int j;
-        for (j=0; j<8; j++)
+        for (j=0; j<6; j++)
         {
-            ECR->CE_metrics.header[j] = _header[j];
+            ECR->CE_metrics.control_info[j] = _header[j+2];
         }
-        ECR->CE_metrics.frame_num = (_header[1] << 8 | _header[2]);
+        ECR->CE_metrics.frame_num = ((_header[0]&0x3F) << 8 | _header[1]);
         ECR->CE_metrics.stats = _stats;
         ECR->CE_metrics.time_spec = ECR->metadata_rx.time_spec;
         ECR->CE_metrics.payload_valid = _payload_valid;
@@ -899,14 +897,10 @@ int rxCallback(unsigned char * _header,
         ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::PHY;        // set event type to phy once mutex is locked
         if(_header_valid)
         {
-            if(ExtensibleCognitiveRadio::DATA == _header[0])
-            {
+            if(ExtensibleCognitiveRadio::DATA == ((_header[0] >> 6) & 0x3) )
                 ECR->CE_metrics.CE_frame = ExtensibleCognitiveRadio::DATA;
-            }
             else
-            {
                 ECR->CE_metrics.CE_frame = ExtensibleCognitiveRadio::CONTROL;
-            }
         }
         else
         {
@@ -939,7 +933,7 @@ int rxCallback(unsigned char * _header,
 
     int nwrite = 0;
     if(_payload_valid){
-        if(ExtensibleCognitiveRadio::DATA == _header[0])
+        if(ExtensibleCognitiveRadio::DATA == ((_header[0]>>6) & 0x3) )
         {
             // Pass payload to tun interface
             dprintf("Passing payload to tun interface\n");
@@ -977,30 +971,42 @@ void * ECR_tx_worker(void * _arg)
         
         // condition given; check state: run or exit
         if (!ECR->tx_running) {
-            printf("tx_worker finished\n");
+            dprintf("tx_worker finished\n");
         	break;
         }
         
 		memset(buffer, 0, buffer_len);
             
-        // run transmitter
+        fd_set fds;
+		struct timeval timeout;
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 1000;
+
+		// run transmitter
         while (ECR->tx_running) {
-            // grab data from TUN interface
-            //dprintf("Reading from tun interface\n");
-            nread = cread(ECR->tunfd, (char*)buffer, buffer_len);
-            if (nread < 0) {
-                printf("Error reading from interface");
-                close(ECR->tunfd);
-                exit(1);
-            }
+            FD_ZERO(&fds);
+			FD_SET(ECR->tunfd, &fds);
+			
+			// check if anything is available on the TUN interface
+			if(select(ECR->tunfd+1, &fds, NULL, NULL, &timeout) > 0){
+
+				// grab data from TUN interface
+            	//dprintf("Reading from tun interface\n");
+            	nread = cread(ECR->tunfd, (char*)buffer, buffer_len);
+            	if (nread < 0) {
+            	    printf("Error reading from interface");
+            	    close(ECR->tunfd);
+            	    exit(1);
+            	}
             
-            payload = buffer;
-            payload_len = nread;
+            	payload = buffer;
+            	payload_len = nread;
      
-            // transmit frame
-            ECR->transmit_frame(ECR->tx_header,
-                payload,
-                payload_len);
+            	// transmit frame
+            	ECR->transmit_frame(ECR->tx_header,
+            	    payload,
+            	    payload_len);
+			}
         } // while tx_running
         dprintf("tx_worker finished running\n");
     } // while true
@@ -1056,13 +1062,13 @@ void * ECR_ce_worker(void *_arg){
 
 void ExtensibleCognitiveRadio::print_metrics(ExtensibleCognitiveRadio * ECR){
     printf("\n---------------------------------------------------------\n");
-    if(ECR->CE_metrics.header_valid)
+    if(ECR->CE_metrics.control_valid)
         printf("Received Frame %u metrics:      Received Frame Parameters:\n", ECR->CE_metrics.frame_num);
     else
         printf("Received Frame ? metrics:      Received Frame Parameters:\n");
     printf("---------------------------------------------------------\n");
-    printf("Header Valid:     %-6i      Modulation Scheme:   %s\n", 
-        ECR->CE_metrics.header_valid, modulation_types[ECR->CE_metrics.stats.mod_scheme].name);
+    printf("Control Valid:    %-6i      Modulation Scheme:   %s\n", 
+        ECR->CE_metrics.control_valid, modulation_types[ECR->CE_metrics.stats.mod_scheme].name);
         // See liquid soruce: src/modem/src/modem_utilities.c
         // for definition of modulation_types
     printf("Payload Valid:    %-6i      Modulation bits/sym: %u\n", 

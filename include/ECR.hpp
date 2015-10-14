@@ -155,10 +155,12 @@ public:
         /// \c <a href="http://liquidsdr.org/">liquid-dsp</a>. See the
         /// <a href="http://liquidsdr.org/doc/tutorial_ofdmflexframe.html">Liquid Documentation</a>
         /// for more information.
-        int header_valid;
+        //int header_valid;
+		int control_valid;
 
         /// \brief The raw header data of the received frame.
-        unsigned char header[8];
+        //unsigned char header[8];
+		unsigned char control_info[6];
 
         /// \brief The raw payload data of the received frame.
         unsigned char* payload;
@@ -535,8 +537,13 @@ public:
     /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::taper_len.
     void set_tx_taper_len(unsigned int taper_len);
 
-    void set_header(unsigned char * _header);
+    /// \brief Set the control information used for the next transmit frame.
+    void set_control_info(unsigned char * _control_info);
+    
+	/// \brief Increases the modulation order if possible.
     void increase_tx_mod_order();
+    
+	/// \brief Decreases the modulation order if possible.
     void decrease_tx_mod_order();
     
     /// \brief Return the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
@@ -691,9 +698,7 @@ public:
     
     uhd::usrp::multi_usrp::sptr usrp_rx;
     uhd::rx_metadata_t metadata_rx;
-    
-	pthread_mutex_t rx_mutex;       // receive mutex
-    
+    	
 private:
     
     // cognitive engine objects
@@ -739,6 +744,7 @@ private:
 
     // receiver threading objects
     pthread_t rx_process;           // receive thread
+    pthread_mutex_t rx_mutex;       // receive mutex
     pthread_cond_t  rx_cond;        // receive condition
     bool rx_running;                // is receiver running? (physical receiver)
     bool rx_thread_running;         // is receiver thread running?
