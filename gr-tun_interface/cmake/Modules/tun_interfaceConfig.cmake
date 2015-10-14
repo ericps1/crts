@@ -1,0 +1,30 @@
+INCLUDE(FindPkgConfig)
+PKG_CHECK_MODULES(PC_TUN_INTERFACE tun_interface)
+
+FIND_PATH(
+    TUN_INTERFACE_INCLUDE_DIRS
+    NAMES tun_interface/api.h
+    HINTS $ENV{TUN_INTERFACE_DIR}/include
+        ${PC_TUN_INTERFACE_INCLUDEDIR}
+    PATHS ${CMAKE_INSTALL_PREFIX}/include
+          /usr/local/include
+          /usr/include
+)
+
+FIND_LIBRARY(
+    TUN_INTERFACE_LIBRARIES
+    NAMES gnuradio-tun_interface
+    HINTS $ENV{TUN_INTERFACE_DIR}/lib
+        ${PC_TUN_INTERFACE_LIBDIR}
+    PATHS ${CMAKE_INSTALL_PREFIX}/lib
+          ${CMAKE_INSTALL_PREFIX}/lib64
+          /usr/local/lib
+          /usr/local/lib64
+          /usr/lib
+          /usr/lib64
+)
+
+INCLUDE(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(TUN_INTERFACE DEFAULT_MSG TUN_INTERFACE_LIBRARIES TUN_INTERFACE_INCLUDE_DIRS)
+MARK_AS_ADVANCED(TUN_INTERFACE_LIBRARIES TUN_INTERFACE_INCLUDE_DIRS)
+
