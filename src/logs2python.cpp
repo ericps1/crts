@@ -10,7 +10,7 @@ void help_logs2python() {
         printf(" -p : Optional prefix for Python variable names.\n");
         printf(" -r : Log file contains cognitive radio receive metrics.\n");
         printf(" -t : Log file contains cognitive radio transmit parameters.\n");
-        printf(" -i : Log file contains interferer transmit parameters.");
+        printf(" -i : Log file contains interferer transmit parameters.\n");
 }
 
 int main(int argc, char ** argv){
