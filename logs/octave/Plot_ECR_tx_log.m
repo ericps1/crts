@@ -1,7 +1,7 @@
 ECR_tx_t = ECR_tx_t - ECR_tx_t(1);
 	
 figure;
-plot(ECR_tx_t, ECR_tx_M);
+plot(ECR_tx_t, ECR_tx_numSubcarriers);
 title('Number of subcarriers');	
 xlabel('Time (s)');
 ylabel('Number of Subcarriers');

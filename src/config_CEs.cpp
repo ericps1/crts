@@ -119,8 +119,8 @@ int main(){
                     file_lines.push_back(line_new);
                     line_new = "    virtual void execute(void * _args);\r";
                     file_lines.push_back(line_new);
-                    line_new = "    void * custom_members;\r";
-                    file_lines.push_back(line_new);
+                    /*line_new = "    void * custom_members;\r";
+                    file_lines.push_back(line_new);*/
                     line_new = "};\r";
                     file_lines.push_back(line_new);
                 }

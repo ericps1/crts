@@ -1,6 +1,7 @@
 #include "CE.hpp"
 #include "ECR.hpp"
 #include <stdio.h>
+#include <iostream>
 
 // custom member struct
 struct CE_DSA_members{
@@ -16,80 +17,78 @@ struct CE_DSA_members{
     // Theshold for number of consecutive invalid headers
     int invalid_payloads_thresh;
     int invalid_headers_thresh;
+
+	CE_DSA_members(){
+		cons_invalid_payloads = 0;
+    	cons_invalid_headers = 0;
+    	invalid_payloads_thresh = 3;
+    	invalid_headers_thresh = 1;
+	}
 };
 
 // custom function declarations
 
 // constructor
-CE_DSA::CE_DSA(){
-    struct CE_DSA_members cm;
-    cm.cons_invalid_payloads = 0;
-    cm.cons_invalid_headers = 0;
-    cm.invalid_payloads_thresh = 3;
-    cm.invalid_headers_thresh = 1;
-    custom_members = malloc(sizeof(struct CE_DSA_members));
-    memcpy(custom_members, (void *)&cm, sizeof(struct CE_DSA_members));
-}
+CE_DSA::CE_DSA(){}
 
 // destructor
-CE_DSA::~CE_DSA(){
-    
-}
+CE_DSA::~CE_DSA(){}
 
 // execute function
 void CE_DSA::execute(void * _args){
-    struct CE_DSA_members * cm = (struct CE_DSA_members*) custom_members;
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 
-    // If we recieved a frame and the payload is valid
+    static struct CE_DSA_members cm;
+    
+	// If we recieved a frame and the payload is valid
     if((ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT) && ECR->CE_metrics.payload_valid)
-        cm->cons_invalid_payloads = 0;
+        cm.cons_invalid_payloads = 0;
     else
-        cm->cons_invalid_payloads += 1;
+        cm.cons_invalid_payloads += 1;
 
     // If we recieved a frame and the header is valid
     if((ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT) && ECR->CE_metrics.header_valid)
-        cm->cons_invalid_headers = 0;
+        cm.cons_invalid_headers = 0;
     else
-        cm->cons_invalid_headers += 1;
+        cm.cons_invalid_headers += 1;
     
     float current_rx_freq = ECR->get_rx_freq();
     //printf("Current RX freq: %f\n", current_rx_freq);
     // Check if packets received from other node are very poor 
     // or not being received
-    if (cm->cons_invalid_payloads>cm->invalid_payloads_thresh || 
-        cm->cons_invalid_headers>cm->invalid_headers_thresh || 
+    if (cm.cons_invalid_payloads>cm.invalid_payloads_thresh || 
+        cm.cons_invalid_headers>cm.invalid_headers_thresh || 
         ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
     {
         if (ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
             //std::cout<<"Timed out without receiving any frames."<<std::endl;
-        if (cm->cons_invalid_payloads > cm->invalid_payloads_thresh)
-            //std::cout<<"Received "<<cm->cons_invalid_payloads<<" consecutive invalid payloads."<<std::endl;
-        if (cm->cons_invalid_headers > cm->invalid_headers_thresh)
-            //std::cout<<"Received "<<cm->cons_invalid_headers<<" consecutive invalid headers."<<std::endl;
+        if (cm.cons_invalid_payloads > cm.invalid_payloads_thresh)
+            //std::cout<<"Received "<<cm.cons_invalid_payloads<<" consecutive invalid payloads."<<std::endl;
+        if (cm.cons_invalid_headers > cm.invalid_headers_thresh)
+            //std::cout<<"Received "<<cm.cons_invalid_headers<<" consecutive invalid headers."<<std::endl;
 
         // Reset counter to 0
-        cm->cons_invalid_payloads = 0;
-        cm->cons_invalid_headers = 0;
+        cm.cons_invalid_payloads = 0;
+        cm.cons_invalid_headers = 0;
 
         // Switch to other rx frequency and tell
         // other node to switch their tx frequency likewise.
         //std::cout<<"Switching from rx_freq="<<current_rx_freq<<std::endl;
-        if (current_rx_freq == cm->freq_a)
+        if (current_rx_freq == cm.freq_a)
         {
-            current_rx_freq = cm->freq_b;
+            current_rx_freq = cm.freq_b;
         }
-        else if (current_rx_freq == cm->freq_b)
+        else if (current_rx_freq == cm.freq_b)
         {
-            current_rx_freq = cm->freq_a;
+            current_rx_freq = cm.freq_a;
         }
-        else if (current_rx_freq == cm->freq_x)
+        else if (current_rx_freq == cm.freq_x)
         {
-            current_rx_freq = cm->freq_y;
+            current_rx_freq = cm.freq_y;
         }
-        else if (current_rx_freq == cm->freq_y)
+        else if (current_rx_freq == cm.freq_y)
         {
-            current_rx_freq = cm->freq_x;
+            current_rx_freq = cm.freq_x;
         }
         ECR->set_rx_freq(current_rx_freq);
         //std::cout<<"to rx_freq="<<current_rx_freq<<std::endl;
@@ -116,10 +115,10 @@ void CE_DSA::execute(void * _args){
         
         // This check ensures that the radio didn't accidentally receive it's own transmission
         // due to limited isolation between transmitter/receiver of USRP
-        if( (tx_freq == cm->freq_a && new_tx_freq == cm->freq_b) || 
-            (tx_freq == cm->freq_b && new_tx_freq == cm->freq_a) ||
-            (tx_freq == cm->freq_x && new_tx_freq == cm->freq_y) || 
-            (tx_freq == cm->freq_y && new_tx_freq == cm->freq_x) )
+        if( (tx_freq == cm.freq_a && new_tx_freq == cm.freq_b) || 
+            (tx_freq == cm.freq_b && new_tx_freq == cm.freq_a) ||
+            (tx_freq == cm.freq_x && new_tx_freq == cm.freq_y) || 
+            (tx_freq == cm.freq_y && new_tx_freq == cm.freq_x) )
         {    
             ECR->set_tx_freq(new_tx_freq);
             std::cout<<"Tx freq set to: "<< new_tx_freq << std::endl;

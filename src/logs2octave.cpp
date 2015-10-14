@@ -79,7 +79,7 @@ int main(int argc, char ** argv){
             fprintf(file_out, "ECR_rx_fec0(%i) = %i;\n", i, metrics.stats.fec0);
             fprintf(file_out, "ECR_rx_fec1(%i) = %i;\n\n", i, metrics.stats.fec1);
 			// parameters
-			fprintf(file_out, "ECR_rx_M(%i) = %u;\n", i, rx_params.M);
+			fprintf(file_out, "ECR_rx_numSubcarriers(%i) = %u;\n", i, rx_params.numSubcarriers);
             fprintf(file_out, "ECR_rx_cp_len(%i) = %u;\n", i, rx_params.cp_len);
             fprintf(file_out, "ECR_rx_taper_len(%i) = %u;\n", i, rx_params.taper_len);
             fprintf(file_out, "ECR_rx_gain_uhd(%i) = %f;\n", i, rx_params.rx_gain_uhd);
@@ -95,7 +95,7 @@ int main(int argc, char ** argv){
         while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
             fread((char*)&tx_params, sizeof(struct ExtensibleCognitiveRadio::tx_parameter_s), 1, file_in);
             fprintf(file_out, "ECR_tx_t(%i) = %li + 1e-6*%li;\n", i, log_time.tv_sec, log_time.tv_usec);
-            fprintf(file_out, "ECR_tx_M(%i) = %u;\n", i, tx_params.M);
+            fprintf(file_out, "ECR_tx_numSubcarriers(%i) = %u;\n", i, tx_params.numSubcarriers);
             fprintf(file_out, "ECR_tx_cp_len(%i) = %u;\n", i, tx_params.cp_len);
             fprintf(file_out, "ECR_tx_taper_len(%i) = %u;\n", i, tx_params.taper_len);
             fprintf(file_out, "ECR_tx_gain_uhd(%i) = %f;\n", i, tx_params.tx_gain_uhd);
