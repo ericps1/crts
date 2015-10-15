@@ -50,7 +50,7 @@ int Receive_msg_from_nodes(int *client, int num_nodes){
         // Parse command if received a message
         else{
             switch (msg){
-            case 't': // terminate program
+            case terminate_msg: // terminate program
                 printf("Node %i has sent a termination message...\n", i+1);
                 num_nodes_terminated++;
                 // check if all nodes have terminated
@@ -190,7 +190,7 @@ int main(int argc, char ** argv){
             time_t time_s;
             gettimeofday(&tv, NULL);
             time_s = tv.tv_sec;
-            int pad_s = manual_execution ? 5 : 1;
+            int pad_s = manual_execution ? 120 : 1;
             sp.start_time_s = time_s + 3*sp.num_nodes + pad_s;
             printf("\nScenario start time: %lld\n\n", (long long) sp.start_time_s);
             
@@ -237,12 +237,6 @@ int main(int argc, char ** argv){
                         break;
                     }
             
-                    // append run time 
-                    //strcat(command, " -t ");
-                    //char runTime_str[10];
-                    //sprintf(runTime_str, "%f", sp.runTime);
-                    //strcat(command, runTime_str);
-
                     // append IP Address of controller
                     strcat(command, " -a ");
                     strcat(command, serv_ip_addr);
@@ -301,17 +295,35 @@ int main(int argc, char ** argv){
                 // set socket to non-blocking
                 fcntl(client[j], F_SETFL, O_NONBLOCK);
 
-                // send start time and node parameters
+                // send scenario and node parameters
                 printf("\nNode %i has connected. Sending its parameters...\n", j+1);
-                char msg_type = 's';
+                char msg_type = scenario_params_msg;
                 send(client[j], (void*)&msg_type, sizeof(char), 0);
                 send(client[j], (void*)&sp, sizeof(struct scenario_parameters), 0);
                 send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);            
             }
 
+			// if in manual mode update the start time for all nodes
+            if(manual_execution && !sig_terminate){
+
+				struct timeval tv;
+            	time_t time_s;
+            	gettimeofday(&tv, NULL);
+            	time_s = tv.tv_sec;
+            	int pad_s = 5;
+            	time_t start_time_s = time_s + pad_s;
+            	
+				// send updated start time to all nodes
+				char msg_type = manual_start_msg;
+            	for(int j=0; j<sp.num_nodes; j++){
+					send(client[j], (void*)&msg_type, sizeof(char), 0);
+            		send(client[j], (void*)&start_time_s, sizeof(time_t), 0);
+               	}
+			}
+
             printf("Listening for scenario termination message from nodes\n");
-            
-            int msg_terminate = 0;
+
+			int msg_terminate = 0;
             num_nodes_terminated = 0;
             while((!sig_terminate) && (!msg_terminate)){
                 msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
@@ -321,7 +333,7 @@ int main(int argc, char ** argv){
                 printf("Terminating controller because all nodes have sent a termination message\n");
 
             if(sig_terminate){
-                char msg = 't';
+                char msg = terminate_msg;
                 for(int j=0; j<sp.num_nodes; j++){
                     write(client[j], &msg, 1);
                 }

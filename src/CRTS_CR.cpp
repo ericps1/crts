@@ -29,14 +29,13 @@
 #endif
 
 int sig_terminate;
-//time_t start_time_s;
-//struct node_parameters np;
-    
+time_t stop_time_s;
+
 void Receive_command_from_controller(int *TCP_controller, struct scenario_parameters *sp, struct node_parameters *np){
     // Listen to socket for message from controller
-    char command_buffer[1+sizeof(time_t)+sizeof(struct node_parameters)];
+    char command_buffer[1+sizeof(struct scenario_parameters)+sizeof(struct node_parameters)];
     memset(&command_buffer, 0, sizeof(command_buffer));
-    int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(time_t)+sizeof(struct node_parameters), 0);
+    int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(struct scenario_parameters)+sizeof(struct node_parameters), 0);
     
     dprintf("TCP receive flag: %i\n", rflag);
     int err = errno;
@@ -52,8 +51,8 @@ void Receive_command_from_controller(int *TCP_controller, struct scenario_parame
 
     // Parse command
     switch (command_buffer[0]){
-    case 's': // settings for upcoming scenario
-        printf("CRTS: Received settings for scenario\n");
+    case scenario_params_msg: // settings for upcoming scenario
+        printf("Received settings for scenario\n");
         // copy start time
         //memcpy((void*)&start_time_s, &command_buffer[1], sizeof(time_t));
         memcpy(sp, &command_buffer[1], sizeof(scenario_parameters));
@@ -62,7 +61,12 @@ void Receive_command_from_controller(int *TCP_controller, struct scenario_parame
         memcpy(np ,&command_buffer[1+sizeof(scenario_parameters)], sizeof(node_parameters));
         print_node_parameters(np);
         break;
-    case 't': // terminate program
+    case manual_start_msg: // updated start time (used for manual mode)
+		printf("Received an updated start time\n");
+		memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
+		stop_time_s = sp->start_time_s + sp->runTime;
+    	break;
+	case terminate_msg: // terminate program
         printf("Received termination command from controller\n");
         exit(1);
     }
@@ -153,8 +157,6 @@ void help_CRTS_CR() {
     printf("CRTS_CR -- Start a cognitive radio node. Only needs to be run explicitly when using CRTS_controller with -m option.\n");
     printf("        -- This program must be run from the main CRTS directory.\n");
     printf(" -h : Help.\n");
-    //printf(" -t : Run Time - Length of time this node will run. In seconds.\n");
-    //printf("      Default: 20.0 s\n");
     printf(" -a : IP Address of node running CRTS_controller.\n");
 }
 
@@ -182,7 +184,6 @@ int main(int argc, char ** argv){
     while((d = getopt(argc, argv, "ha:")) != EOF){
         switch(d){
         case 'h': help_CRTS_CR();               return 0;
-        //case 't': runTime = atof(optarg);      break;
         case 'a': controller_ipaddr = optarg;   break;
         }
     }
@@ -352,9 +353,10 @@ int main(int argc, char ** argv){
     // Wait for the start-time before beginning the scenario
     struct timeval tv;
     time_t time_s;
-    time_t stop_time_s = sp.start_time_s + sp.runTime;
+    stop_time_s = sp.start_time_s + sp.runTime;
     while(1){
-        gettimeofday(&tv, NULL);
+        Receive_command_from_controller(&TCP_controller, &sp, &np);
+		gettimeofday(&tv, NULL);
         time_s = tv.tv_sec;
         if(time_s >= sp.start_time_s) 
             break;
@@ -416,11 +418,11 @@ int main(int argc, char ** argv){
     }
 
     printf("CRTS: Reached termination. Sending termination message to controller\n");
-    char term_message = 't';
+    char term_message = terminate_msg;
     write(TCP_controller, &term_message, 1);
 
     if(np.generate_octave_logs){
-        char command[50];
+        char command[100];
         
         if(np.log_CRTS_rx_data){
             strcpy(command, "./logs/logs2octave -c -l ");

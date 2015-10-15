@@ -8,8 +8,7 @@ struct scenario_parameters{
 
     // Number of nodes in the scenario
     int num_nodes;
-    //float run_time;
-
+    
     // The start time of the scenario
     time_t start_time_s;
 
@@ -24,6 +23,12 @@ struct scenario_parameters{
     // i.e. 1 <= repNumber <= totalNumReps
     unsigned int repNumber;
 
+};
+
+enum msg_type{
+	scenario_params_msg = 0,
+	manual_start_msg,
+	terminate_msg
 };
 
 int read_scenario_master_file(char scenario_list[30][60], unsigned int scenario_reps[60]);
