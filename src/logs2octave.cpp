@@ -84,15 +84,19 @@ int main(int argc, char ** argv){
     FILE * file_in = fopen(log_file, "rb");
     FILE * file_out = fopen(output_file, "w");
 
-    struct metric_s metrics = {};
-    struct tx_parameter_s tx_params = {};
+    struct ExtensibleCognitiveRadio::metric_s metrics = {};
+    struct ExtensibleCognitiveRadio::rx_parameter_s rx_params = {};
+    struct ExtensibleCognitiveRadio::tx_parameter_s tx_params = {};
     int i = 1;
     
     // handle ECR rx log
+
     if(log_type == RXMETRICS){
-        while(fread((char*)&metrics, sizeof(struct metric_s), 1, file_in)){
-            fprintf(file_out, "%st(%i) = %li + %f;\n", node_prefix, i, metrics.time_spec.get_full_secs(), metrics.time_spec.get_frac_secs());
-            fprintf(file_out, "%sECR_rx_Header_valid(%i) = %i;\n", node_prefix, i, metrics.header_valid);
+        while(fread((char*)&metrics, sizeof(struct ExtensibleCognitiveRadio::metric_s), 1, file_in)){
+            fread((char*)&rx_params, sizeof(struct ExtensibleCognitiveRadio::rx_parameter_s), 1, file_in);
+	    fprintf(file_out, "%st(%i) = %li + %f;\n", node_prefix, i, metrics.time_spec.get_full_secs(), metrics.time_spec.get_frac_secs());
+            // metrics
+	    fprintf(file_out, "%sECR_rx_Control_valid(%i) = %i;\n", node_prefix, i, metrics.control_valid);
             fprintf(file_out, "%sECR_rx_Payload_valid(%i) = %i;\n", node_prefix, i, metrics.payload_valid);
             fprintf(file_out, "%sECR_rx_EVM(%i) = %f;\n", node_prefix, i, metrics.stats.evm);
             fprintf(file_out, "%sECR_rx_RSSI(%i) = %f;\n", node_prefix, i, metrics.stats.rssi);
@@ -102,6 +106,13 @@ int main(int argc, char ** argv){
             fprintf(file_out, "%sECR_rx_BPS(%i) = %i;\n", node_prefix, i, metrics.stats.mod_bps);
             fprintf(file_out, "%sECR_rx_fec0(%i) = %i;\n", node_prefix, i, metrics.stats.fec0);
             fprintf(file_out, "%sECR_rx_fec1(%i) = %i;\n\n", node_prefix, i, metrics.stats.fec1);
+            // parameters
+            fprintf(file_out, "%sECR_rx_numSubcarriers(%i) = %u;\n", node_prefix, i, rx_params.numSubcarriers);
+            fprintf(file_out, "%sECR_rx_cp_len(%i) = %u;\n", node_prefix, i, rx_params.cp_len);
+            fprintf(file_out, "%sECR_rx_taper_len(%i) = %u;\n", node_prefix, i, rx_params.taper_len);
+            fprintf(file_out, "%sECR_rx_gain_uhd(%i) = %f;\n", node_prefix, i, rx_params.rx_gain_uhd);
+            fprintf(file_out, "%sECR_rx_freq(%i) = %f;\n", node_prefix, i, rx_params.rx_freq - rx_params.rx_dsp_freq);
+            fprintf(file_out, "%sECR_rx_rate(%i) = %f;\n", node_prefix, i, rx_params.rx_rate);    
             i++;
         }
     }
@@ -110,15 +121,15 @@ int main(int argc, char ** argv){
     if(log_type == TXPARAMS){
         struct timeval log_time;
         while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
-            fread((char*)&tx_params, sizeof(struct tx_parameter_s), 1, file_in);
-            fprintf(file_out, "%sECR_tx_t(%i) = %li + 1e-6*%li;\n",  node_prefix, i, log_time.tv_sec, log_time.tv_usec);
-            fprintf(file_out, "%sECR_tx_M(%i) = %u;\n",  node_prefix, i, tx_params.M);
-            fprintf(file_out, "%sECR_tx_cp_len(%i) = %u;\n",  node_prefix, i, tx_params.cp_len);
-            fprintf(file_out, "%sECR_tx_taper_len(%i) = %u;\n",  node_prefix, i, tx_params.taper_len);
-            fprintf(file_out, "%sECR_tx_gain_uhd(%i) = %f;\n",  node_prefix, i, tx_params.tx_gain_uhd);
-            fprintf(file_out, "%sECR_tx_gain_soft(%i) = %f;\n",  node_prefix, i, tx_params.tx_gain_soft);
-            fprintf(file_out, "%sECR_tx_freq(%i) = %f;\n",  node_prefix, i, tx_params.tx_freq);
-            fprintf(file_out, "%sECR_tx_rate(%i) = %f;\n",  node_prefix, i, tx_params.tx_rate);    
+            fread((char*)&tx_params, sizeof(struct ExtensibleCognitiveRadio::tx_parameter_s), 1, file_in);
+            fprintf(file_out, "%sECR_tx_t(%i) = %li + 1e-6*%li;\n", node_prefix, i, log_time.tv_sec, log_time.tv_usec);
+            fprintf(file_out, "%sECR_tx_numSubcarriers(%i) = %u;\n", node_prefix, i, tx_params.numSubcarriers);
+            fprintf(file_out, "%sECR_tx_cp_len(%i) = %u;\n", node_prefix, i, tx_params.cp_len);
+            fprintf(file_out, "%sECR_tx_taper_len(%i) = %u;\n", node_prefix, i, tx_params.taper_len);
+            fprintf(file_out, "%sECR_tx_gain_uhd(%i) = %f;\n", node_prefix, i, tx_params.tx_gain_uhd);
+            fprintf(file_out, "%sECR_tx_gain_soft(%i) = %f;\n", node_prefix, i, tx_params.tx_gain_soft);
+            fprintf(file_out, "%sECR_tx_freq(%i) = %f;\n", node_prefix, i, tx_params.tx_freq + tx_params.tx_dsp_freq);
+            fprintf(file_out, "%sECR_tx_rate(%i) = %f;\n", node_prefix, i, tx_params.tx_rate);    
             i++;
         }
     }

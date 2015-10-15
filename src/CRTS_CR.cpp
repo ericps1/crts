@@ -21,7 +21,7 @@
 #include "read_configs.hpp"
 #include "TUN.hpp"
 
-#define DEBUG 0
+#define DEBUG 0 
 #if DEBUG == 1
 #define dprintf(...) printf(__VA_ARGS__)
 #else
@@ -29,14 +29,13 @@
 #endif
 
 int sig_terminate;
-time_t start_time_s;
-struct node_parameters np;
-    
-void Receive_command_from_controller(int *TCP_controller, struct node_parameters *np){
+time_t stop_time_s;
+
+void Receive_command_from_controller(int *TCP_controller, struct scenario_parameters *sp, struct node_parameters *np){
     // Listen to socket for message from controller
-    char command_buffer[1+sizeof(time_t)+sizeof(struct node_parameters)];
+    char command_buffer[1+sizeof(struct scenario_parameters)+sizeof(struct node_parameters)];
     memset(&command_buffer, 0, sizeof(command_buffer));
-    int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(time_t)+sizeof(struct node_parameters), 0);
+    int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(struct scenario_parameters)+sizeof(struct node_parameters), 0);
     
     dprintf("TCP receive flag: %i\n", rflag);
     int err = errno;
@@ -52,16 +51,22 @@ void Receive_command_from_controller(int *TCP_controller, struct node_parameters
 
     // Parse command
     switch (command_buffer[0]){
-    case 's': // settings for upcoming scenario
-        printf("CRTS: Received settings for scenario\n");
+    case scenario_params_msg: // settings for upcoming scenario
+        printf("Received settings for scenario\n");
         // copy start time
-        memcpy((void*)&start_time_s, &command_buffer[1], sizeof(time_t));
+        //memcpy((void*)&start_time_s, &command_buffer[1], sizeof(time_t));
+        memcpy(sp, &command_buffer[1], sizeof(scenario_parameters));
         
         // copy node_parameters
-        memcpy(np ,&command_buffer[1+sizeof(time_t)], sizeof(node_parameters));
+        memcpy(np ,&command_buffer[1+sizeof(scenario_parameters)], sizeof(node_parameters));
         print_node_parameters(np);
         break;
-    case 't': // terminate program
+    case manual_start_msg: // updated start time (used for manual mode)
+		printf("Received an updated start time\n");
+		memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
+		stop_time_s = sp->start_time_s + sp->runTime;
+    	break;
+	case terminate_msg: // terminate program
         printf("Received termination command from controller\n");
         exit(1);
     }
@@ -93,75 +98,55 @@ void Initialize_CR(struct node_parameters *np, void * ECR_p){
         ECR->set_ce_timeout_ms(np->ce_timeout_ms);
         strcpy(ECR->rx_log_file, rx_log_file_name);
         strcpy(ECR->tx_log_file, tx_log_file_name);
-        ECR->set_tx_freq(np->tx_freq);
         ECR->set_rx_freq(np->rx_freq);
-        ECR->set_tx_rate(np->tx_rate);
         ECR->set_rx_rate(np->rx_rate);
+        ECR->set_rx_gain_uhd(np->rx_gain);
+        ECR->set_rx_subcarriers(np->rx_subcarriers);
+		ECR->set_rx_cp_len(np->rx_cp_len);
+		ECR->set_rx_taper_len(np->rx_taper_len);
+		ECR->set_tx_freq(np->tx_freq);
+        ECR->set_tx_rate(np->tx_rate);
         ECR->set_tx_gain_soft(np->tx_gain_soft);
         ECR->set_tx_gain_uhd(np->tx_gain);
-        ECR->set_rx_gain_uhd(np->rx_gain);
-        ECR->set_tx_modulation(np->tx_modulation);
+        ECR->set_tx_subcarriers(np->tx_subcarriers);
+		ECR->set_tx_cp_len(np->tx_cp_len);
+		ECR->set_tx_taper_len(np->tx_taper_len);
+		ECR->set_tx_modulation(np->tx_modulation);
         ECR->set_tx_crc(np->tx_crc);
         ECR->set_tx_fec0(np->tx_fec0);
         ECR->set_tx_fec1(np->tx_fec1);
-        ECR->set_ce(np->CE);        
-
-        // open rx log file to delete any current contents
-        if (ECR->log_rx_metrics_flag){
-            std::ofstream log_fstream;
-            log_fstream.open(rx_log_file_name, std::ofstream::out | std::ofstream::trunc);
-            if (log_fstream.is_open())
-            {
-                log_fstream.close();
-            }
-            else
-            {
-                std::cout<<"Error opening log file:"<<rx_log_file_name<<std::endl;
-            }
-        }
-        // open tx log file to delete any current contents
-        if (ECR->log_tx_parameters_flag){
-            std::ofstream log_fstream;
-            log_fstream.open(tx_log_file_name, std::ofstream::out | std::ofstream::trunc);
-            if (log_fstream.is_open())
-            {
-                log_fstream.close();
-            }
-            else
-            {
-                std::cout<<"Error opening log file:"<<tx_log_file_name<<std::endl;
-            }
-        }
-       }
+        ECR->set_ce(np->CE);     
+		ECR->reset_log_files();
+	}
     // intialize python radio if applicable
     else if(np->cr_type == python)
     {
         // set IP for TUN interface
         //char command[50];
-        //sprintf(command, "ifconfig tun0 %s", np->CRTS_IP);
-        //system("ip link set dev tun0 up");
-        //sprintf(command, "ip addr add %s/24 dev tun0", np->CRTS_IP);
+        //sprintf(command, "ifconfig tunCRTS %s", np->CRTS_IP);
+        //system("ip link set dev tunCRTS up");
+        //sprintf(command, "ip addr add %s/24 dev tunCRTS", np->CRTS_IP);
         //system(command);
         //printf("Running command: %s\n", command);
-        //system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tun0");
+        //system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
         //system("ifconfig");
     }
 }
 
-void log_rx_data(int bytes){
+void log_rx_data(struct scenario_parameters *sp, struct node_parameters *np, int bytes){
     // update current time
     struct timeval tv;
     gettimeofday(&tv, NULL);
 
     // open file, append parameters, and close
     std::ofstream log_fstream;
-    log_fstream.open(np.CRTS_rx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
+    log_fstream.open(np->CRTS_rx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
     if(log_fstream.is_open()){
         log_fstream.write((char*)&tv, sizeof(tv));
         log_fstream.write((char*)&bytes, sizeof(bytes));
     }
     else
-        std::cerr<<"Error opening log file: "<<np.CRTS_rx_log_file<<std::endl;
+        printf("Error opening log file: %s\n", np->CRTS_rx_log_file);
 
     log_fstream.close();
 }
@@ -172,8 +157,6 @@ void help_CRTS_CR() {
     printf("CRTS_CR -- Start a cognitive radio node. Only needs to be run explicitly when using CRTS_controller with -m option.\n");
     printf("        -- This program must be run from the main CRTS directory.\n");
     printf(" -h : Help.\n");
-    printf(" -t : Run Time - Length of time this node will run. In seconds.\n");
-    printf("      Default: 20.0 s\n");
     printf(" -a : IP Address of node running CRTS_controller.\n");
 }
 
@@ -191,16 +174,16 @@ int main(int argc, char ** argv){
     signal(SIGTERM, terminate);
     
     // timing variables
-    time_t run_time = 20;
+    //time_t runTime = 20;
+
     
     // Default IP address of controller
     char * controller_ipaddr = (char*) "192.168.1.56";
 
     int d;
-    while((d = getopt(argc, argv, "ht:a:")) != EOF){
+    while((d = getopt(argc, argv, "ha:")) != EOF){
         switch(d){
         case 'h': help_CRTS_CR();               return 0;
-        case 't': run_time = atof(optarg);      break;
         case 'a': controller_ipaddr = optarg;   break;
         }
     }
@@ -234,20 +217,28 @@ int main(int argc, char ** argv){
     // Port to be used by CRTS server and client
     int port = 4444;
 
-    // Create node parameters struct and read scenario info from controller
+    // Create node parameters struct and the scenario parameters struct
+    // and read info from controller
+    struct node_parameters np;
     memset(&np, 0, sizeof(np));
+    struct scenario_parameters sp;
     dprintf("Receiving command from controller...\n");
     sleep(1);
-    Receive_command_from_controller(&TCP_controller, &np);
+    Receive_command_from_controller(&TCP_controller, &sp, &np);
     fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
-    // modify log file to location we want
-    char CRTS_rx_log_file[100];
+	// copy log file name for post processing later
+    char CRTS_rx_log_file_cpy[100];
+    strcpy(CRTS_rx_log_file_cpy, np.CRTS_rx_log_file); 
+	
+	// modify log file name in node parameters for logging function
+	char CRTS_rx_log_file[100];
     strcpy(CRTS_rx_log_file, "./logs/bin/");
     strcat(CRTS_rx_log_file, np.CRTS_rx_log_file);
     strcat(CRTS_rx_log_file, ".log");
-
-    // open CRTS rx log file to delete any current contents
+	strcpy(np.CRTS_rx_log_file, CRTS_rx_log_file);
+	
+	// open CRTS rx log file to delete any current contents
     if (np.log_CRTS_rx_data){
         std::ofstream log_fstream;
         log_fstream.open(CRTS_rx_log_file, std::ofstream::out | std::ofstream::trunc);
@@ -318,7 +309,8 @@ int main(int argc, char ** argv){
     struct sockaddr_in CRTS_server_addr;
     memset(&CRTS_server_addr, 0, sizeof(CRTS_server_addr));
     CRTS_server_addr.sin_family = AF_INET;
-    CRTS_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    // Only receive packets addressed to the CRTS_IP
+    CRTS_server_addr.sin_addr.s_addr = inet_addr(np.CRTS_IP);
     CRTS_server_addr.sin_port = htons(port);
     socklen_t clientlen = sizeof(CRTS_server_addr);
     int CRTS_server_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -361,20 +353,23 @@ int main(int argc, char ** argv){
     // Wait for the start-time before beginning the scenario
     struct timeval tv;
     time_t time_s;
-    time_t stop_time_s = start_time_s + run_time;
+    stop_time_s = sp.start_time_s + sp.runTime;
     while(1){
-        gettimeofday(&tv, NULL);
+        Receive_command_from_controller(&TCP_controller, &sp, &np);
+		gettimeofday(&tv, NULL);
         time_s = tv.tv_sec;
-        if(time_s >= start_time_s) 
+        if(time_s >= sp.start_time_s) 
             break;
-    }
+    	if(sig_terminate)
+			break;
+	}
 
-    if(np.cr_type == ecr){
+	if(np.cr_type == ecr){
         // Start ECR
         dprintf("Starting ECR object...\n");
         ECR->start_rx();
-        ECR->start_tx();
-        ECR->start_ce();
+		ECR->start_tx();
+		ECR->start_ce();
     }
     
     // main loop
@@ -383,12 +378,12 @@ int main(int argc, char ** argv){
     while(time_s < stop_time_s && !sig_terminate){
         // Listen for any updates from the controller (non-blocking)
         dprintf("CRTS: Listening to controller for command\n");
-        Receive_command_from_controller(&TCP_controller, &np);
+        Receive_command_from_controller(&TCP_controller, &sp, &np);
 
         // Wait (used for test purposes only)
         //usleep(np.tx_delay_us);
         tx_time_delta += np.tx_delay_us;
-        tx_time.tv_sec = start_time_s + (long int) floorf(tx_time_delta/1e6);
+        tx_time.tv_sec = sp.start_time_s + (long int) floorf(tx_time_delta/1e6);
         tx_time.tv_usec = fmod(tx_time_delta, 1e6);
          while(1){
             gettimeofday(&tv, NULL);
@@ -407,12 +402,14 @@ int main(int argc, char ** argv){
         recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0, (struct sockaddr *)&CRTS_server_addr, &clientlen);
         // print out received messages
         if(recv_len > 0){
+            // TODO: Say what address message was received from.
+            // (It's in CRTS_server_addr)
             dprintf("\nCRTS received message:\n");
             for(int j=0; j<recv_len; j++)
                 dprintf("%c", recv_buffer[j]);
-            dprintf("\n");
-            if(np.log_CRTS_rx_data)
-                log_rx_data(recv_len);
+            if(np.log_CRTS_rx_data){
+				log_rx_data(&sp, &np, recv_len);
+			}
         }
         
         // Update the current time
@@ -421,15 +418,15 @@ int main(int argc, char ** argv){
     }
 
     printf("CRTS: Reached termination. Sending termination message to controller\n");
-    char term_message = 't';
+    char term_message = terminate_msg;
     write(TCP_controller, &term_message, 1);
 
     if(np.generate_octave_logs){
-        char command[50];
+        char command[100];
         
         if(np.log_CRTS_rx_data){
             strcpy(command, "./logs/logs2octave -c -l ");
-            strcat(command, np.CRTS_rx_log_file);
+            strcat(command, CRTS_rx_log_file_cpy);
             system(command);
         }
 
@@ -450,13 +447,13 @@ int main(int argc, char ** argv){
     close(CRTS_client_sock);
     close(CRTS_server_sock);
     
-    // clean up ECR/python process
+	// clean up ECR/python process
     if(np.cr_type == ecr){
         delete ECR;
     }
     else if(np.cr_type == python){
         kill(pid, SIGTERM);
     }
-
-    }
+	
+}
 

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <iostream>
 #include <net/if.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -88,7 +89,7 @@ static inline void Receive_command_from_controller(Interferer * inter,
       inter->tx_rate = np->tx_rate;
       inter->usrp_tx->set_tx_gain(np->tx_gain);
       inter->interference_type = np->interference_type;
-      inter->period_duration = np->period_duration;
+      inter->period = np->period;
       inter->duty_cycle = np->duty_cycle;
 
       // set freq hopping parameters
@@ -429,7 +430,7 @@ void BuildOFDMTransmission()
   unsigned int num_subcarriers = 0; 
   unsigned int cp_len = 0;
   unsigned int taper_len = 0;
-  unsigned char * p = NULL;
+  unsigned char * subcarrierAlloc = NULL;
   int frame_complete = 0; 
   ofdmflexframegenprops_s fgprops;
   ofdmflexframegen ofdm_fg;
@@ -437,13 +438,13 @@ void BuildOFDMTransmission()
   num_subcarriers = 2*(unsigned int)(np.tx_rate/30e3);
   cp_len = OFDM_CP_LENGTH; 
   taper_len = OFDM_TAPER_LENGTH; 
-  p = NULL;
+  subcarrierAlloc = NULL;
   frame_complete = OFDM_FRAME_COMPLETE_INITIAL_STATE; 
   ofdmflexframegenprops_init_default(&fgprops);
   ofdm_fg = ofdmflexframegen_create(num_subcarriers, 
                                     cp_len, 
                                     taper_len, 
-                                    p, 
+                                    subcarrierAlloc, 
                                     &fgprops);
 
 
@@ -562,6 +563,7 @@ void TransmitInterference(
 // ========================================================================
 void ChangeFrequency(Interferer interfererObj)
   {
+  
   switch (interfererObj.tx_freq_hop_type)
     {
     case (ALTERNATING):
@@ -587,6 +589,7 @@ void ChangeFrequency(Interferer interfererObj)
       currentTxFreq = rand() % freqWidth + interfererObj.tx_freq_hop_min;
       break;
     }
+  printf("Set transmit frequency to %f\n", currentTxFreq);
   interfererObj.usrp_tx->set_tx_freq(currentTxFreq);
   }
 
@@ -763,10 +766,10 @@ int main(int argc, char ** argv)
     case (ALTERNATING):
     case (SWEEP):
     case (RANDOM):
-      if (interfererObj.period_duration != run_time)
+      if (interfererObj.period != run_time)
         {
         printf("NOTICE:  Config Override, setting period to run_time \n"); 
-        interfererObj.period_duration = run_time; 
+        interfererObj.period = run_time; 
         }
       if (interfererObj.duty_cycle != 1.0)
     {  
@@ -780,8 +783,8 @@ int main(int argc, char ** argv)
   // BEGIN: Main Service Loop 
   // ================================================================
   sig_terminate = 0;
-  float time_onCycle = (interfererObj.period_duration * interfererObj.duty_cycle); 
-  float time_offCycle = (interfererObj.period_duration * (1 - interfererObj.duty_cycle)); 
+  float time_onCycle = (interfererObj.period * interfererObj.duty_cycle); 
+  float time_offCycle = (interfererObj.period * (1 - interfererObj.duty_cycle)); 
 
   // wait for start time and calculate stop time
   struct timeval tv;

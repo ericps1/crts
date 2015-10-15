@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 #include <net/if.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -49,7 +50,7 @@ int Receive_msg_from_nodes(int *client, int num_nodes){
         // Parse command if received a message
         else{
             switch (msg){
-            case 't': // terminate program
+            case terminate_msg: // terminate program
                 printf("Node %i has sent a termination message...\n", i+1);
                 num_nodes_terminated++;
                 // check if all nodes have terminated
@@ -89,8 +90,8 @@ int main(int argc, char ** argv){
 	int manual_execution = 0;
 
     // Use current username as default username for ssh
-    char ssh_uname[100];
-    getlogin_r(ssh_uname, 100);
+    char ssh_uname[LOGIN_NAME_MAX+1];
+    getlogin_r(ssh_uname, LOGIN_NAME_MAX+1);
 
     // Use currnet location of CRTS Directory as defualt for ssh
     char crts_dir[1000];
@@ -166,15 +167,22 @@ int main(int argc, char ** argv){
 
     // loop through scenarios
     for (int i = 0; i < num_scenarios; i++){
-        for (unsigned int ii=0; ii<scenario_reps[i]; ii++)
+        for (unsigned int scenRepNum=1; scenRepNum<=scenario_reps[i]; scenRepNum++)
         {
             printf("Scenario %i:\n", i+1);
-            printf("Rep %i:\n", ii+1);
+            printf("Rep %i:\n", scenRepNum);
             printf("Config file: %s\n", &scenario_list[i][0]);
-            // read the number of nodes in scenario    
+            // read the scenario parameters from file
             struct scenario_parameters sp = read_scenario_parameters(&scenario_list[i][0]);
+            // Set the number of scenario  repititions in struct.
+            sp.totalNumReps = scenario_reps[i];
+            sp.repNumber = scenRepNum;
+
             printf("Number of nodes: %i\n", sp.num_nodes);
-            printf("Run time: %f\n", sp.run_time);
+            //printf("Run time: %f\n", sp.runTime);
+            printf("Run time: %lld\n", (long long) sp.runTime);
+
+            
 
             // determine the start time for the scenario based
             // on the current time and the number of nodes
@@ -182,9 +190,9 @@ int main(int argc, char ** argv){
             time_t time_s;
             gettimeofday(&tv, NULL);
             time_s = tv.tv_sec;
-            int pad_s = 10; //manual_execution ? 10 : 5;
-            time_t start_time_s = time_s + 3*sp.num_nodes + pad_s;
-            printf("\nScenario start time: %li\n\n", start_time_s);
+            int pad_s = manual_execution ? 120 : 1;
+            sp.start_time_s = time_s + 3*sp.num_nodes + pad_s;
+            printf("\nScenario start time: %lld\n\n", (long long) sp.start_time_s);
             
             // loop through nodes in scenario
             for (int j = 0; j < sp.num_nodes; j++){
@@ -200,9 +208,9 @@ int main(int argc, char ** argv){
                 // If scenario is run more than once, append rep# to log file names
                 if (scenario_reps[i]-1)
                 {
-                    snprintf(np[j].rx_log_file+strlen(np[j].rx_log_file), 100-strlen(np[j].rx_log_file), "_rep%d", ii+1);
-                    snprintf(np[j].tx_log_file+strlen(np[j].tx_log_file), 100-strlen(np[j].tx_log_file), "_rep%d", ii+1);
-                    snprintf(np[j].CRTS_rx_log_file+strlen(np[j].CRTS_rx_log_file), 100-strlen(np[j].CRTS_rx_log_file), "_rep%d", ii+1);
+                    snprintf(np[j].rx_log_file+strlen(np[j].rx_log_file), 100-strlen(np[j].rx_log_file), "_rep%d", scenRepNum);
+                    snprintf(np[j].tx_log_file+strlen(np[j].tx_log_file), 100-strlen(np[j].tx_log_file), "_rep%d", scenRepNum);
+                    snprintf(np[j].CRTS_rx_log_file+strlen(np[j].CRTS_rx_log_file), 100-strlen(np[j].CRTS_rx_log_file), "_rep%d", scenRepNum);
                 }
                 
                 // send command to launch executable if not doing so manually
@@ -221,19 +229,14 @@ int main(int argc, char ** argv){
                     // add appropriate executable
                     switch (np[j].type){
                     case CR:
-                        strcat(command, " && sudo ./CRTS_CR");
+                        //strcat(command, " && sudo ./CRTS_CR");
+                        strcat(command, " && ./CRTS_CR");
                         break;
                     case interferer:
                         strcat(command, " && ./CRTS_interferer");
                         break;
                     }
             
-                    // append run time 
-                    strcat(command, " -t ");
-                    char run_time_str[10];
-                    sprintf(run_time_str, "%f", sp.run_time);
-                    strcat(command, run_time_str);
-
                     // append IP Address of controller
                     strcat(command, " -a ");
                     strcat(command, serv_ip_addr);
@@ -292,17 +295,35 @@ int main(int argc, char ** argv){
                 // set socket to non-blocking
                 fcntl(client[j], F_SETFL, O_NONBLOCK);
 
-                // send start time and node parameters
+                // send scenario and node parameters
                 printf("\nNode %i has connected. Sending its parameters...\n", j+1);
-                char msg_type = 's';
+                char msg_type = scenario_params_msg;
                 send(client[j], (void*)&msg_type, sizeof(char), 0);
-                send(client[j], (void*)&start_time_s, sizeof(time_t), 0);
+                send(client[j], (void*)&sp, sizeof(struct scenario_parameters), 0);
                 send(client[j], (void*)&np[j], sizeof(struct node_parameters), 0);            
             }
 
+			// if in manual mode update the start time for all nodes
+            if(manual_execution && !sig_terminate){
+
+				struct timeval tv;
+            	time_t time_s;
+            	gettimeofday(&tv, NULL);
+            	time_s = tv.tv_sec;
+            	int pad_s = 5;
+            	time_t start_time_s = time_s + pad_s;
+            	
+				// send updated start time to all nodes
+				char msg_type = manual_start_msg;
+            	for(int j=0; j<sp.num_nodes; j++){
+					send(client[j], (void*)&msg_type, sizeof(char), 0);
+            		send(client[j], (void*)&start_time_s, sizeof(time_t), 0);
+               	}
+			}
+
             printf("Listening for scenario termination message from nodes\n");
-            
-            int msg_terminate = 0;
+
+			int msg_terminate = 0;
             num_nodes_terminated = 0;
             while((!sig_terminate) && (!msg_terminate)){
                 msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
@@ -311,14 +332,11 @@ int main(int argc, char ** argv){
             if(msg_terminate)
                 printf("Terminating controller because all nodes have sent a termination message\n");
 
-            // if the controller is being terminated, send termination message to other nodes
-            //FIXME: process doesn't end with ctrl+C if hasn't connected to all nodes yet
             if(sig_terminate){
-                char msg = 't';
+                char msg = terminate_msg;
                 for(int j=0; j<sp.num_nodes; j++){
                     write(client[j], &msg, 1);
                 }
-
             }
 
         }// scenario repition loop

@@ -15,7 +15,7 @@ public:
     float tx_freq;
     float tx_rate;
 
-    float period_duration;
+    float period;
     float duty_cycle;
 
     int   tx_freq_hop_type; 

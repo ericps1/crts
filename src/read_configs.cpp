@@ -70,7 +70,7 @@ struct scenario_parameters read_scenario_parameters(char * scenario_file)
     config_lookup_int(&cfg, "num_nodes", &tmpI);
     sp.num_nodes = tmpI;
     config_lookup_float(&cfg, "run_time", &tmpD);
-    sp.run_time = (float) tmpD;
+    sp.runTime = (time_t) tmpD;
     config_destroy(&cfg);
 
     return sp;
@@ -111,15 +111,17 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
     strcat(nodestr, node_num.c_str());
     config_setting_t *node_config = config_lookup(&cfg, nodestr);
 
-    //printf("Read node %i config\n", node);
-
     // read CORNET IP address for the node
     if (config_setting_lookup_string(node_config, "TARGET_IP", &tmpS))
         strcpy(np.TARGET_IP, tmpS);
+	else
+		strcpy(np.TARGET_IP, "10.0.0.3");
 
     // read CORNET IP address for the node
     if (config_setting_lookup_string(node_config, "CORNET_IP", &tmpS))
         strcpy(np.CORNET_IP, tmpS);
+	else
+		strcpy(np.CORNET_IP, "192.168.1.12");
 
     // read type of node
     if (config_setting_lookup_string(node_config, "type", &tmpS))
@@ -170,6 +172,10 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
                 {
                     if (config_setting_lookup_string(node_config, "CE", &tmpS))
                         strcpy(np.CE, tmpS);
+					else{
+						printf("Configuration of a node did not specify a cognitive engine");
+						exit(1);
+					}
                 }
             }
         }
@@ -179,6 +185,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
     // read all possible node settings
     if (config_setting_lookup_string(node_config, "CRTS_IP", &tmpS))
         strcpy(np.CRTS_IP, tmpS);
+	else
+		strcpy(np.CRTS_IP, "10.0.0.2");
 
     if (config_setting_lookup_int(node_config, "print_metrics", &tmpI))
         np.print_metrics = (int)tmpI;
@@ -214,33 +222,73 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
         if(!strcmp(tmpS, "FDD")) np.duplex = FDD;
         else if(!strcmp(tmpS, "TDD")) np.duplex = TDD;
         else if(!strcmp(tmpS, "HD")) np.duplex = HD;
+		else np.duplex = FDD;
     }
-
-    if (config_setting_lookup_float(node_config, "tx_freq", &tmpD))
-        np.tx_freq = tmpD;
 
     if (config_setting_lookup_float(node_config, "rx_freq", &tmpD))
         np.rx_freq = tmpD;
 
-    if (config_setting_lookup_float(node_config, "tx_rate", &tmpD))
-        np.tx_rate = tmpD;
-
     if (config_setting_lookup_float(node_config, "rx_rate", &tmpD))
         np.rx_rate = tmpD;
-
-    if (config_setting_lookup_float(node_config, "tx_gain_soft", &tmpD))
-        np.tx_gain_soft = tmpD;
-
-    if (config_setting_lookup_float(node_config, "tx_gain", &tmpD))
-        np.tx_gain = tmpD;
+	else
+		np.rx_rate = 1e6;
 
     if (config_setting_lookup_float(node_config, "rx_gain", &tmpD))
         np.rx_gain = tmpD;
+	else
+		np.rx_gain = 20.0;
 
+    if (config_setting_lookup_int(node_config, "rx_subcarriers", &tmpI))
+        np.rx_subcarriers = (int)tmpI;
+   	else
+		np.rx_subcarriers = 64;
+
+    if (config_setting_lookup_int(node_config, "rx_cp_len", &tmpI))
+        np.rx_cp_len = (int)tmpI;
+   	else
+		np.rx_cp_len = 16;
+
+    if (config_setting_lookup_int(node_config, "rx_taper_len", &tmpI))
+        np.rx_taper_len = (int)tmpI;
+   	else
+		np.rx_taper_len = 4;
+
+    if (config_setting_lookup_float(node_config, "tx_freq", &tmpD))
+        np.tx_freq = tmpD;
+
+    if (config_setting_lookup_float(node_config, "tx_rate", &tmpD))
+        np.tx_rate = tmpD;
+	else
+		np.rx_rate = 1e6;
+
+    if (config_setting_lookup_float(node_config, "tx_gain_soft", &tmpD))
+        np.tx_gain_soft = tmpD;
+	else
+		np.tx_gain_soft = -12.0;
+
+    if (config_setting_lookup_float(node_config, "tx_gain", &tmpD))
+        np.tx_gain = tmpD;
+	else
+		np.tx_gain = 20.0;
+
+    if (config_setting_lookup_int(node_config, "tx_subcarriers", &tmpI))
+        np.tx_subcarriers = (int)tmpI;
+   	else
+		np.tx_subcarriers = 64;
+
+    if (config_setting_lookup_int(node_config, "tx_cp_len", &tmpI))
+        np.tx_cp_len = (int)tmpI;
+   	else
+		np.tx_cp_len = 16;
+
+    if (config_setting_lookup_int(node_config, "tx_taper_len", &tmpI))
+        np.tx_taper_len = (int)tmpI;
+   	else
+		np.tx_taper_len = 4;
+
+    // default tx modulation is BPSK
+    np.tx_modulation = LIQUID_MODEM_BPSK;
     if (config_setting_lookup_string(node_config, "tx_modulation", &tmpS)){
-
-        // In case modulation scheme isn't found, set to unkown
-        np.tx_modulation = LIQUID_MODEM_UNKNOWN;;
 
         // Iterate through every liquid modulation scheme 
         // and if the string matches, then assign that scheme.
@@ -250,12 +298,12 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
             if(!strcmp(tmpS, modulation_types[k].name))
                 np.tx_modulation = modulation_types[k].scheme;
         }
-    }
+	}
 
+	
+    // default tx CRC32
+    np.tx_crc = LIQUID_CRC_32;
     if (config_setting_lookup_string(node_config, "tx_crc", &tmpS)){
-
-        // In case CRC isn't found, set to unkown
-        np.tx_crc = LIQUID_CRC_UNKNOWN;
 
         // Iterate through every liquid CRC
         // and if the string matches, then assign that CRC.
@@ -267,10 +315,9 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
         }
     }
 
+    // default tx FEC0 is Hamming 12/8
+    np.tx_fec0 = LIQUID_FEC_HAMMING128;
     if (config_setting_lookup_string(node_config, "tx_fec0", &tmpS)){
-
-        // In case FEC isn't found, set to unkown
-        np.tx_fec0 = LIQUID_FEC_UNKNOWN;
 
         // Iterate through every liquid FEC
         // and if the string matches, then assign that FEC.
@@ -282,10 +329,9 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
         }
     }
 
+    // default rx FEC1 is none
+    np.tx_fec1 = LIQUID_FEC_NONE;
     if (config_setting_lookup_string(node_config, "tx_fec1", &tmpS)){
-
-        // In case FEC isn't found, set to unkown
-        np.tx_fec1 = LIQUID_FEC_UNKNOWN;
 
         // Iterate through every liquid FEC
         // and if the string matches, then assign that FEC.
@@ -298,6 +344,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
     }
     if (config_setting_lookup_float(node_config, "tx_delay_us", &tmpD))
         np.tx_delay_us = tmpD;
+	else
+		np.tx_delay_us = 1e4;
 
     if (config_setting_lookup_string(node_config, "interference_type", &tmpS)){
         if(!strcmp(tmpS, "CW"))
@@ -312,8 +360,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
             np.interference_type = OFDM;
     }
     
-    if (config_setting_lookup_float(node_config, "period_duration", &tmpD))
-        np.period_duration = tmpD;
+    if (config_setting_lookup_float(node_config, "period", &tmpD))
+        np.period = tmpD;
 
     if (config_setting_lookup_float(node_config, "duty_cycle", &tmpD))
         np.duty_cycle = tmpD;
@@ -385,7 +433,7 @@ void print_node_parameters(struct node_parameters * np)
   printf("--------------------------------------------------------------\n");
   printf("-                    node parameters                         -\n");
   printf("--------------------------------------------------------------\n");
-  printf("General:\n");
+  printf("General Settings:\n");
   char node_type[15] = "UNKNOWN";
   if(np->type == CR) 
     {
@@ -405,19 +453,42 @@ void print_node_parameters(struct node_parameters * np)
       printf("    CR type:                           %-s\n", cr_type);
   }
   printf("    CORNET IP:                         %-s\n", np->CORNET_IP);
+  //
   if(np->type != interferer)
     {
+    printf("\nVirtual Network Interface Settings:\n");
     printf("    CRTS IP:                           %-s\n", np->CRTS_IP);
     printf("    Target IP:                         %-s\n", np->TARGET_IP);
-    printf("    Cognitive Engine:                  %-s\n", np->CE);
+    //
+	printf("\nCognitive Engine Settings:\n");
+	printf("    Cognitive Engine:                  %-s\n", np->CE);
+    printf("    CE timeout:                        %-.2f\n", np->ce_timeout_ms);
     }
-  printf("    Rx log file:                       %-s\n", np->rx_log_file);
+  //
+  printf("\nLog/Report Settings:\n");
+  if(np->type != interferer)
+    printf("    Rx log file:                       %-s\n", np->rx_log_file);
   printf("    Tx log file:                       %-s\n", np->tx_log_file);
-  printf("    CE timeout:                        %-.2f\n", np->ce_timeout_ms);
-  printf("RF:\n");
+  if(np->type != interferer)
+    printf("    CRTS Rx log file:                  %-s\n", np->CRTS_rx_log_file);
+  printf("    Generate octave logs:              %i\n", np->generate_octave_logs);
+  printf("    Generate python logs:              %i\n", np->generate_python_logs);
+  //
+  printf("\nInitial USRP Settings:\n");
   if(np->type != interferer)
     {
-    char duplex[4] = "FDD";
+    printf("    Receive frequency:                 %-.2e\n", np->rx_freq);
+    printf("    Receive rate:                      %-.2e\n", np->rx_rate);
+    printf("    Receive gain:                      %-.2f\n", np->rx_gain);
+  	}
+  printf("    Transmit frequency:                %-.2e\n", np->tx_freq);
+  printf("    Transmit rate:                     %-.2e\n", np->tx_rate);
+  printf("    Transmit gain:                     %-.2f\n", np->tx_gain);
+  //
+  if(np->type != interferer && np->cr_type == ecr)
+    {
+    printf("\nInitial Liquid OFDM Settings\n");
+	char duplex[4] = "FDD";
     switch(np->duplex)
       {
       case (FDD): strcpy(duplex, "FDD"); break;
@@ -425,31 +496,23 @@ void print_node_parameters(struct node_parameters * np)
       case (HD): strcpy(duplex, "HD"); break;
       }
     printf("    Duplex scheme:                     %-s\n", duplex);
-    }
-
-  printf("    Transmit frequency:                %-.2e\n", np->tx_freq);
-  if(np->type != interferer)
-    {
-    printf("    Receive frequency:                 %-.2e\n", np->rx_freq);
-    }
-  printf("    Transmit rate:                     %-.2e\n", np->tx_rate);
-  if(np->type != interferer)
-    {
-    printf("    Receive rate:                      %-.2e\n", np->rx_rate);
-    }
-  if(np->type != interferer)
-    {
+    printf("    Receive subcarriers:               %i\n", np->tx_subcarriers);
+    printf("    Receive cyclic prefix length:      %i\n", np->tx_cp_len);
+    printf("    Receive taper length:              %i\n", np->tx_taper_len);
+    printf("    Transmit subcarriers:              %i\n", np->tx_subcarriers);
+    printf("    Transmit cyclic prefix length:     %i\n", np->tx_cp_len);
+    printf("    Transmit taper length:             %i\n", np->tx_taper_len);
     printf("    Transmit soft gain:                %-.2f\n", np->tx_gain_soft);
-    }
-  printf("    Transmit gain:                     %-.2f\n", np->tx_gain);
-  if(np->type != interferer)
-    {
-    printf("    Receive gain:                      %-.2f\n", np->rx_gain);
-    }
+    printf("    Transmit modulation:               %s\n", modulation_types[np->tx_modulation].name);
+    printf("    Transmit CRC:                      %s\n", crc_scheme_str[np->tx_crc][0]);
+    printf("    Transmit FEC0:                     %s\n", fec_scheme_str[np->tx_fec0][0]); 
+	printf("    Transmit FEC1:                     %s\n", fec_scheme_str[np->tx_fec1][0]); 
+	}
 
   if(np->type == interferer)
     {
-    char interference_type[5] = "NONE";
+    printf("\nInitial Interference Settings:\n");
+	char interference_type[5] = "NONE";
     char tx_freq_hop_type[6] = "NONE"; 
     switch(np->interference_type)
       {
@@ -467,7 +530,7 @@ void print_node_parameters(struct node_parameters * np)
       case (RANDOM): strcpy(tx_freq_hop_type, "RANDOM"); break;
       }
     printf("    Interference type:                 %-s\n", interference_type);
-    printf("    Interference period_duration:       %-.2f\n", np->period_duration);
+    printf("    Interference period:       %-.2f\n", np->period);
     printf("    Interference duty cycle:           %-.2f\n", np->duty_cycle);
     printf("\n"); 
     printf("    tx freq hop type:                  %-s\n", tx_freq_hop_type);
