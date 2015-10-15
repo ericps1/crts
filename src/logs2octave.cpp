@@ -5,7 +5,6 @@ void help_post_process_logs() {
         printf("post_process_logs -- Create Octave .m file to visualize logs.\n");
         printf(" -h : Help.\n");
         printf(" -l : Name of log file to process (required).\n");
-	printf(" -o : Name of output file (required).\n");
         printf(" -r : Log file contains cognitive radio receive metrics.\n");
         printf(" -t : Log file contains cognitive radio transmit parameters.\n");
         printf(" -i : Log file contains interferer transmit parameters.\n");
@@ -16,44 +15,40 @@ int main(int argc, char ** argv){
     
     char log_file[100]; 
     char output_file[100];
-    char node_prefix[50];  // Added by Mo 151014
-    strcpy(node_prefix, "");  // Added by Mo 151012
+    char node_prefix[50];  
+    node_prefix[0] = '\0';
 
     enum log_t {
         RXMETRICS = 0,
         TXPARAMS,
         INTPARAMS,
-	CRPARAMS
-    }; // Added by Mo 151012
+        CRPARAMS
+    }; 
 
     log_t log_type = RXMETRICS;
-
     
     strcpy(log_file, "logs/bin/");
     strcpy(output_file, "logs/octave/");
     
     // default log type is receive metrics
-    /*int log_type = 0;*/  // Blocked by Mo 151012
 
     // Option flags
     int l_opt = 0;
-    int o_opt = 0;  // Added by Mo 151012
     
     int d;
     //while((d = getopt(argc, argv, "hl:rtic")) != EOF){
-    while((d = getopt(argc, argv, "hl:o:p:rtic")) != EOF){  // Added by Mo 151012
+    while((d = getopt(argc, argv, "hl:p:rtic")) != EOF){  
         switch(d){
         case 'h': help_post_process_logs();                 return 0;
         case 'l': 
-            /*strcat(log_file, optarg); 
+            strcat(log_file, optarg); 
             strcat(log_file, ".log");
             strcat(output_file, optarg);
-            strcat(output_file, ".m");*/  // Blocked by Mo 151012
-            strcpy(log_file, optarg);
-	    l_opt = 1;      
+            strcat(output_file, ".m");  
+            l_opt = 1;      
             break;
-	case 'o': strcpy(output_file, optarg); o_opt = 1;	   break;
-	case 'p': strcpy(node_prefix, optarg);
+	    //case 'o': strcpy(output_file, optarg); o_opt = 1;	   break;
+	    case 'p': strcpy(node_prefix, optarg);
 		    strcat(node_prefix, "_");           	   break;
         case 'r':                    		                   break;
         case 't': log_type = TXPARAMS;                             break;
@@ -70,14 +65,6 @@ int main(int argc, char ** argv){
         return 1;
     }
 
-    // Added by Mo 151012
-    if (!o_opt)
-    {
-        printf("Please give -o option.\n\n");
-        help_post_process_logs();
-        return 1;
-    }
-    
     printf("Log file name: %s\n", log_file);
     printf("Output file name: %s\n", output_file);
 

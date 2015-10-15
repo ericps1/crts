@@ -424,20 +424,28 @@ int main(int argc, char ** argv){
     if(np.generate_octave_logs){
         char command[100];
         
+        char prefixStr[20];
+        if (sp.totalNumReps > 1)
+        {
+            sprintf(prefixStr, "-p rep%d", sp.repNumber);
+        }
+        else
+        {
+            prefixStr[0] = '\0';
+        }
+
         if(np.log_CRTS_rx_data){
-            strcpy(command, "./logs/logs2octave -c -l ");
-            strcat(command, CRTS_rx_log_file_cpy);
+            sprintf(command, "./logs/logs2octave -c -l %s %s", CRTS_rx_log_file_cpy, prefixStr);
             system(command);
         }
 
         if(np.log_rx_metrics){
-            strcpy(command, "./logs/logs2octave -r -l ");
-            strcat(command, np.rx_log_file);
+            sprintf(command, "./logs/logs2octave -r -l %s %s", np.rx_log_file, prefixStr);
             system(command);
         }
 
         if(np.log_tx_parameters){
-            strcpy(command, "./logs/logs2octave -t -l ");
+            sprintf(command, "./logs/logs2octave -t -l %s %s", np.tx_log_file, prefixStr);
             strcat(command, np.tx_log_file);
             system(command);
         }
