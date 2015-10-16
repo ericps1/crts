@@ -53,12 +53,11 @@ void Receive_command_from_controller(int *TCP_controller, struct scenario_parame
     switch (command_buffer[0]){
     case scenario_params_msg: // settings for upcoming scenario
         printf("Received settings for scenario\n");
-        // copy start time
-        //memcpy((void*)&start_time_s, &command_buffer[1], sizeof(time_t));
-        memcpy(sp, &command_buffer[1], sizeof(scenario_parameters));
+        // copy scenario parameters
+        memcpy(sp, &command_buffer[1], sizeof(struct scenario_parameters));
         
         // copy node_parameters
-        memcpy(np ,&command_buffer[1+sizeof(scenario_parameters)], sizeof(node_parameters));
+        memcpy(np ,&command_buffer[1+sizeof(struct scenario_parameters)], sizeof(struct node_parameters));
         print_node_parameters(np);
         break;
     case manual_start_msg: // updated start time (used for manual mode)
@@ -333,10 +332,10 @@ int main(int argc, char ** argv){
     // Define a buffer for receiving and a temporary message for sending
     int recv_buffer_len = 8192*2;
     char recv_buffer[recv_buffer_len];
-    char message[128]; 
+    char message[256]; 
     strcpy(message, "Test Message from "); 
     strcat(message, np.CRTS_IP);    
-    for(int i = 0; i < 128; i++)
+    for(int i = 0; i < 256; i++)
         message[i] = rand() & 0xff;
     
     // initialize sig_terminate flag and check return from socket call
@@ -423,22 +422,29 @@ int main(int argc, char ** argv){
 
     if(np.generate_octave_logs){
         char command[100];
-        
+        char prefixStr[20];
+        if (sp.totalNumReps > 1)
+        {
+            sprintf(prefixStr, "-p rep%d", sp.repNumber);
+        }
+        else
+        {
+            prefixStr[0] = '\0';
+        }
+
         if(np.log_net_rx){
-            strcpy(command, "./logs/logs2octave -c -l ");
-            strcat(command, net_rx_log_file_cpy);
+            sprintf(command, "./logs/logs2octave -c -l %s %s", net_rx_log_file_cpy, prefixStr);
             system(command);
         }
 
         if(np.log_phy_rx){
-            strcpy(command, "./logs/logs2octave -r -l ");
-            strcat(command, np.phy_rx_log_file);
+            sprintf(command, "./logs/logs2octave -r -l %s %s", np.phy_rx_log_file, prefixStr);
             system(command);
         }
 
         if(np.log_phy_tx){
-            strcpy(command, "./logs/logs2octave -t -l ");
-            strcat(command, np.phy_tx_log_file);
+            sprintf(command, "./logs/logs2octave -t -l %s %s", np.phy_tx_log_file, prefixStr);
+            //strcat(command, np.phy_tx_log_file);
             system(command);
         }
     }

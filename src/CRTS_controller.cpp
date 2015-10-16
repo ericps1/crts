@@ -224,12 +224,10 @@ int main(int argc, char ** argv){
                     strcat(command, " 'sleep 1 && ");
                     strcat(command, " cd ");
                     strcat(command, crts_dir);
-                    //strcat(command, " && ./");
-                
-                    // add appropriate executable
+                    
+					// add appropriate executable
                     switch (np[j].type){
                     case CR:
-                        //strcat(command, " && sudo ./CRTS_CR");
                         strcat(command, " && ./CRTS_CR");
                         break;
                     case interferer:
@@ -249,7 +247,7 @@ int main(int argc, char ** argv){
                     strcat(command, node_id);
                     strcat(command, ".SYSOUT &");
                     ssh_return = system(command);
-                    printf("Command executed: %s\n", command);
+                    //printf("Command executed: %s\n", command);
                     //printf("Return value: %i\n", ssh_return);
                 }
 

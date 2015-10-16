@@ -1,5 +1,5 @@
 # Example Cognitive Engines
-## 1. CE\_2\_Channel\_DSA\_Link\_Reliability
+## 1. CE\_Two\_Channel\_DSA\_Link\_Reliability
 
 This CE is intended for the 2 Channel DSA scenario. It operates by switching channels
 whenever it detects that the link is bad, assuming the source of error to be from the
@@ -7,12 +7,12 @@ interferer. Once the decision is made at the receiver, the node will update cont
 information transmitted to the other node, indicating the new frequency it should
 transmit on.
 
-## 2. CE\_2\_Channel\_DSA\_PU
+## 2. CE\_Two\_Channel\_DSA\_PU
 
 This CE is used to create a primary user for the 2 Channel DSA PU scenario. The PU
 will simply switch it's operating frequencies at some regular interval.
 
-## 3. CE\_2\_Channel\_DSA\_Spectrum\_Sensing
+## 3. CE\_Two\_Channel\_DSA\_Spectrum\_Sensing
 
 This CE is similar to the fist CE listed, but makes its adaptations based on measured
 channel power rather than based on reliability of the link.

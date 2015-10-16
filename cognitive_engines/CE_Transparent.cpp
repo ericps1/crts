@@ -2,10 +2,10 @@
 #include "ECR.hpp"
 
 // custom member struct
-struct CE_Example_members{
+struct CE_Transparent_members{
     float example_ce_metric;
 
-	CE_Example_members(){
+	CE_Transparent_members(){
 		example_ce_metric = 125.0;
 	}
 };
@@ -13,18 +13,18 @@ struct CE_Example_members{
 // custom function declarations
 
 // constructor
-CE_Example::CE_Example(){}
+CE_Transparent::CE_Transparent(){}
 
 // destructor
-CE_Example::~CE_Example() {}
+CE_Transparent::~CE_Transparent() {}
 
 // execute function
-void CE_Example::execute(void * _args){
+void CE_Transparent::execute(void * _args){
     // type cast pointer to cognitive radio object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
     
 	// create a static struct to maintain variables from one execution to another
-	static struct CE_Example_members cm;
+	static struct CE_Transparent_members cm;
     
 	if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT) printf("CE execution was triggered by a timeout\n");
     else if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY) printf("CE execution was triggered by a physical layer event\n");

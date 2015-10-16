@@ -18,7 +18,7 @@ int main(){
     dpdf = opendir("./cognitive_engines");
     if (dpdf != NULL){
         while ((epdf = readdir(dpdf))){
-            if(epdf->d_name[0]!='.' ){
+			if(epdf->d_name[0]!='.' && epdf->d_name[strlen(epdf->d_name)-1] == 'p'){
                 // Copy filename into list of CE names
                 ce_list[num_ces].assign(epdf->d_name);
                 // Strip the extension from the name

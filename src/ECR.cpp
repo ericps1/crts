@@ -204,16 +204,16 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 void ExtensibleCognitiveRadio::set_ce(char *ce){
 ///@cond INTERNAL
 //EDIT START FLAG
-    if(!strcmp(ce, "CE_2_Channel_DSA_Spectrum_Sensing"))
-        CE = new CE_2_Channel_DSA_Spectrum_Sensing();
-    if(!strcmp(ce, "CE_2_Channel_DSA_Link_Reliability"))
-        CE = new CE_2_Channel_DSA_Link_Reliability();
     if(!strcmp(ce, "CE_Mod_Adaptation"))
         CE = new CE_Mod_Adaptation();
+    if(!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
+        CE = new CE_Two_Channel_DSA_Spectrum_Sensing();
+    if(!strcmp(ce, "CE_Two_Channel_DSA_PU"))
+        CE = new CE_Two_Channel_DSA_PU();
     if(!strcmp(ce, "CE_FEC_Adaptation"))
         CE = new CE_FEC_Adaptation();
-    if(!strcmp(ce, "CE_2_Channel_DSA_PU"))
-        CE = new CE_2_Channel_DSA_PU();
+    if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
+        CE = new CE_Two_Channel_DSA_Link_Reliability();
     if(!strcmp(ce, "CE_Transparent"))
         CE = new CE_Transparent();
 //EDIT END FLAG

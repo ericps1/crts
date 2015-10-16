@@ -10,7 +10,7 @@
 #define EVM_buff_len 5    
 
 // custom member struct
-struct CE_AMC_members{
+struct CE_Mod_Adaptation_members{
     float EVM_buff[EVM_buff_len];
     float EVM_avg;
     int ind;
@@ -19,17 +19,17 @@ struct CE_AMC_members{
 // custom function declarations
 
 // constructor
-CE_AMC::CE_AMC(){}
+CE_Mod_Adaptation::CE_Mod_Adaptation(){}
 
 // destructor
-CE_AMC::~CE_AMC() {}
+CE_Mod_Adaptation::~CE_Mod_Adaptation() {}
 
 // execute function
-void CE_AMC::execute(void * _args){
+void CE_Mod_Adaptation::execute(void * _args){
     // type cast pointer to cognitive radio object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
     
-	static struct CE_AMC_members cm;    
+	static struct CE_Mod_Adaptation_members cm;    
 
     // only update/validate EVM when the CE was triggered by a physical layer event
     if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY){

@@ -14,7 +14,7 @@
 #endif
 
 // custom member struct
-struct CE_Sensing_members{
+struct CE_Two_Channel_DSA_Spectrum_Sensing_members{
 	// measured noise power and flag
     float noise_floor;
     int noise_floor_measured;
@@ -64,7 +64,7 @@ struct CE_Sensing_members{
 	float _Complex buffer[512];
 	float _Complex buffer_F[512];
 
-	CE_Sensing_members(){
+	CE_Two_Channel_DSA_Spectrum_Sensing_members(){
 		tx_is_on = 1;
 		t1 = timer_create();
 		timer_tic(t1);
@@ -72,21 +72,21 @@ struct CE_Sensing_members{
 };
 
 // custom function declarations
-int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Sensing_members* cm);
-void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Sensing_members* cm);
+int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectrum_Sensing_members* cm);
+void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectrum_Sensing_members* cm);
 
 // constructor
-CE_Sensing::CE_Sensing(){}
+CE_Two_Channel_DSA_Spectrum_Sensing::CE_Two_Channel_DSA_Spectrum_Sensing(){}
 
 // destructor
-CE_Sensing::~CE_Sensing() {}
+CE_Two_Channel_DSA_Spectrum_Sensing::~CE_Two_Channel_DSA_Spectrum_Sensing() {}
 
 // execute function
-void CE_Sensing::execute(void * _args){
+void CE_Two_Channel_DSA_Spectrum_Sensing::execute(void * _args){
     // type cast pointer to cognitive radio object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
     // type cast custom members void pointer to custom member struct
-    static struct CE_Sensing_members cm; 
+    static struct CE_Two_Channel_DSA_Spectrum_Sensing_members cm; 
 	
 	// If the noise floor hasn't been measured yet, do so now.
     if (cm.noise_floor_measured == 0) 
@@ -263,7 +263,7 @@ void CE_Sensing::execute(void * _args){
 
 // Check if current channel power is signficantly higher than measured noise power.
 // Return 0 if channel is empty
-int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Sensing_members* cm)
+int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectrum_Sensing_members* cm)
 {
     // set up receive buffers to sense for time specified by cm.sensingPeriod_ms
     const size_t max_samps_per_packet = ECR->usrp_rx->get_device()->get_max_recv_samps_per_packet();
@@ -331,7 +331,7 @@ int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Sensing_members* cm)
 }
 
 // Try to evaluate the noise floor power
-void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Sensing_members* cm)
+void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectrum_Sensing_members* cm)
 {
     // set up receive buffers to sense for time specified by cm.sensingPeriod_ms
     const size_t max_samps_per_packet = ECR->usrp_rx->get_device()->get_max_recv_samps_per_packet();

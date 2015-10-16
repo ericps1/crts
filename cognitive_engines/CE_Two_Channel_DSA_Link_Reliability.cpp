@@ -4,7 +4,7 @@
 #include <iostream>
 
 // custom member struct
-struct CE_DSA_members{
+struct CE_Two_Channel_DSA_Link_Reliability_members{
     static const float freq_a = 770e6;
     static const float freq_b = 769e6;
     static const float freq_x = 870e6;
@@ -18,7 +18,7 @@ struct CE_DSA_members{
     int invalid_payloads_thresh;
     int invalid_control_thresh;
 
-	CE_DSA_members(){
+	CE_Two_Channel_DSA_Link_Reliability_members(){
 		cons_invalid_payloads = 0;
     	cons_invalid_control = 0;
     	invalid_payloads_thresh = 3;
@@ -29,16 +29,16 @@ struct CE_DSA_members{
 // custom function declarations
 
 // constructor
-CE_DSA::CE_DSA(){}
+CE_Two_Channel_DSA_Link_Reliability::CE_Two_Channel_DSA_Link_Reliability(){}
 
 // destructor
-CE_DSA::~CE_DSA(){}
+CE_Two_Channel_DSA_Link_Reliability::~CE_Two_Channel_DSA_Link_Reliability(){}
 
 // execute function
-void CE_DSA::execute(void * _args){
+void CE_Two_Channel_DSA_Link_Reliability::execute(void * _args){
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 
-    static struct CE_DSA_members cm;
+    static struct CE_Two_Channel_DSA_Link_Reliability_members cm;
     
 	// If we recieved a frame and the payload is valid
     if((ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT) && ECR->CE_metrics.payload_valid)

@@ -10,7 +10,7 @@ void help_logs2python() {
         printf(" -p : Optional prefix for Python variable names.\n");
         printf(" -r : Log file contains cognitive radio receive metrics.\n");
         printf(" -t : Log file contains cognitive radio transmit parameters.\n");
-        printf(" -i : Log file contains interferer transmit parameters.");
+        printf(" -i : Log file contains interferer transmit parameters.\n");
 }
 
 int main(int argc, char ** argv){
@@ -79,54 +79,54 @@ int main(int argc, char ** argv){
     
     if(log_type == RXMETRICS){
         fprintf(file_out,   "%st                      = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_Control_valid    = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_Payload_valid   = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_EVM             = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_RSSI            = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_CFO             = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_num_syms        = list()\n", node_prefix);    
-        fprintf(file_out,   "%sECR_rx_mod_scheme      = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_BPS             = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_fec0            = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_fec1            = list()\n", node_prefix);
+        fprintf(file_out,   "%sphy_rx_Control_valid    = list()\n", node_prefix);
+        fprintf(file_out,   "%sphy_rx_Payload_valid   = list()\n", node_prefix);
+        fprintf(file_out,   "%sphy_rx_EVM             = list()\n", node_prefix);
+        fprintf(file_out,   "%sphy_rx_RSSI            = list()\n", node_prefix);
+        fprintf(file_out,   "%sphy_rx_CFO             = list()\n", node_prefix);
+        fprintf(file_out,   "%sphy_rx_num_syms        = list()\n", node_prefix);    
+        fprintf(file_out,   "%sphy_rx_mod_scheme      = list()\n", node_prefix);
+        fprintf(file_out,   "%sphy_rx_BPS             = list()\n", node_prefix);
+        fprintf(file_out,   "%sphy_rx_fec0            = list()\n", node_prefix);
+        fprintf(file_out,   "%sphy_rx_fec1            = list()\n", node_prefix);
 
         while(fread((char*)&metrics, sizeof(struct ExtensibleCognitiveRadio::metric_s), 1, file_in)){
             fprintf(file_out, "%st.append(%li + %f)\n",                 node_prefix,    metrics.time_spec.get_full_secs(), 
                         metrics.time_spec.get_frac_secs());
-            fprintf(file_out, "%sECR_rx_Control_valid.append(%i)\n",     node_prefix,    metrics.control_valid);
-            fprintf(file_out, "%sECR_rx_Payload_valid.append(%i)\n",    node_prefix,    metrics.payload_valid);
-            fprintf(file_out, "%sECR_rx_EVM.append(%f)\n",              node_prefix,    metrics.stats.evm);
-            fprintf(file_out, "%sECR_rx_RSSI.append(%f)\n",             node_prefix,    metrics.stats.rssi);
-            fprintf(file_out, "%sECR_rx_CFO.append(%f)\n",              node_prefix,    metrics.stats.cfo);
-            fprintf(file_out, "%sECR_rx_num_syms.append(%i)\n",         node_prefix,    metrics.stats.num_framesyms);    
-            fprintf(file_out, "%sECR_rx_mod_scheme.append(%i)\n",       node_prefix,    metrics.stats.mod_scheme);
-            fprintf(file_out, "%sECR_rx_BPS.append(%i)\n",              node_prefix,    metrics.stats.mod_bps);
-            fprintf(file_out, "%sECR_rx_fec0.append(%i)\n",             node_prefix,    metrics.stats.fec0);
-            fprintf(file_out, "%sECR_rx_fec1.append(%i)\n",             node_prefix,    metrics.stats.fec1);
+            fprintf(file_out, "%sphy_rx_Control_valid.append(%i)\n",     node_prefix,    metrics.control_valid);
+            fprintf(file_out, "%sphy_rx_Payload_valid.append(%i)\n",    node_prefix,    metrics.payload_valid);
+            fprintf(file_out, "%sphy_rx_EVM.append(%f)\n",              node_prefix,    metrics.stats.evm);
+            fprintf(file_out, "%sphy_rx_RSSI.append(%f)\n",             node_prefix,    metrics.stats.rssi);
+            fprintf(file_out, "%sphy_rx_CFO.append(%f)\n",              node_prefix,    metrics.stats.cfo);
+            fprintf(file_out, "%sphy_rx_num_syms.append(%i)\n",         node_prefix,    metrics.stats.num_framesyms);    
+            fprintf(file_out, "%sphy_rx_mod_scheme.append(%i)\n",       node_prefix,    metrics.stats.mod_scheme);
+            fprintf(file_out, "%sphy_rx_BPS.append(%i)\n",              node_prefix,    metrics.stats.mod_bps);
+            fprintf(file_out, "%sphy_rx_fec0.append(%i)\n",             node_prefix,    metrics.stats.fec0);
+            fprintf(file_out, "%sphy_rx_fec1.append(%i)\n",             node_prefix,    metrics.stats.fec1);
             i++;
         }
     }
     else if(log_type == TXPARAMS){
-        fprintf(file_out, "%sECR_tx_t         = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_numSubcarriers         = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_cp_len    = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_taper_len = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_gain_uhd  = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_gain_soft = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_freq      = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_rate      = list()\n", node_prefix);    
+        fprintf(file_out, "%sphy_tx_t         = list()\n", node_prefix);
+        fprintf(file_out, "%sphy_tx_numSubcarriers         = list()\n", node_prefix);
+        fprintf(file_out, "%sphy_tx_cp_len    = list()\n", node_prefix);
+        fprintf(file_out, "%sphy_tx_taper_len = list()\n", node_prefix);
+        fprintf(file_out, "%sphy_tx_gain_uhd  = list()\n", node_prefix);
+        fprintf(file_out, "%sphy_tx_gain_soft = list()\n", node_prefix);
+        fprintf(file_out, "%sphy_tx_freq      = list()\n", node_prefix);
+        fprintf(file_out, "%sphy_tx_rate      = list()\n", node_prefix);    
 
         struct timeval log_time;
         while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
             fread((char*)&tx_params, sizeof(struct ExtensibleCognitiveRadio::tx_parameter_s), 1, file_in);
-            fprintf(file_out, "%sECR_tx_t.append(%li + 1e-6*%li)\n", node_prefix, log_time.tv_sec, log_time.tv_usec);
-            fprintf(file_out, "%sECR_tx_numSubcarriers.append(%u)\n",              node_prefix, tx_params.numSubcarriers);
-            fprintf(file_out, "%sECR_tx_cp_len.append(%u)\n",         node_prefix, tx_params.cp_len);
-            fprintf(file_out, "%sECR_tx_taper_len.append(%u)\n",      node_prefix, tx_params.taper_len);
-            fprintf(file_out, "%sECR_tx_gain_uhd.append(%f)\n",       node_prefix, tx_params.tx_gain_uhd);
-            fprintf(file_out, "%sECR_tx_gain_soft.append(%f)\n",      node_prefix, tx_params.tx_gain_soft);
-            fprintf(file_out, "%sECR_tx_freq.append(%f)\n",           node_prefix, tx_params.tx_freq);
-            fprintf(file_out, "%sECR_tx_rate.append(%f)\n",           node_prefix, tx_params.tx_rate);    
+            fprintf(file_out, "%sphy_tx_t.append(%li + 1e-6*%li)\n", node_prefix, log_time.tv_sec, log_time.tv_usec);
+            fprintf(file_out, "%sphy_tx_numSubcarriers.append(%u)\n",              node_prefix, tx_params.numSubcarriers);
+            fprintf(file_out, "%sphy_tx_cp_len.append(%u)\n",         node_prefix, tx_params.cp_len);
+            fprintf(file_out, "%sphy_tx_taper_len.append(%u)\n",      node_prefix, tx_params.taper_len);
+            fprintf(file_out, "%sphy_tx_gain_uhd.append(%f)\n",       node_prefix, tx_params.tx_gain_uhd);
+            fprintf(file_out, "%sphy_tx_gain_soft.append(%f)\n",      node_prefix, tx_params.tx_gain_soft);
+            fprintf(file_out, "%sphy_tx_freq.append(%f)\n",           node_prefix, tx_params.tx_freq);
+            fprintf(file_out, "%sphy_tx_rate.append(%f)\n",           node_prefix, tx_params.tx_rate);    
             i++;
         }
     }

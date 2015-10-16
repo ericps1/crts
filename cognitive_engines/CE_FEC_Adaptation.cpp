@@ -2,11 +2,11 @@
 #include "ECR.hpp"
 
 // custom member struct
-struct CE_FEC_members{
+struct CE_FEC_Adaptation_members{
     float example_ce_metric;
     int num_received;
 
-	CE_FEC_members(){
+	CE_FEC_Adaptation_members(){
 		example_ce_metric = 15.0;
     	num_received = 0;
 	}
@@ -15,17 +15,17 @@ struct CE_FEC_members{
 // custom function declarations
 
 // constructor
-CE_FEC::CE_FEC(){}
+CE_FEC_Adaptation::CE_FEC_Adaptation(){}
 
 // destructor
-CE_FEC::~CE_FEC() {}
+CE_FEC_Adaptation::~CE_FEC_Adaptation() {}
 
 // execute function
-void CE_FEC::execute(void * _args){
+void CE_FEC_Adaptation::execute(void * _args){
     // type cast pointer to cognitive radio object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
     
-	static struct CE_FEC_members cm;
+	static struct CE_FEC_Adaptation_members cm;
     
 	if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT) printf("CE execution was triggered by a timeout\n");
     else if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY)

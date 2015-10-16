@@ -5,7 +5,7 @@
 #include <sys/time.h>
 
 // custom member struct
-struct CE_DSA_PU_members{
+struct CE_Two_Channel_DSA_PU_members{
 	static const float freq_a = 770e6;
     static const float freq_b = 769e6;
     static const float freq_x = 760e6;
@@ -17,7 +17,7 @@ struct CE_DSA_PU_members{
 	int period_s;
 	int first_execution;
 
-	CE_DSA_PU_members(){
+	CE_Two_Channel_DSA_PU_members(){
 		period_s = 5;
 		first_execution = 1;
 	}
@@ -27,16 +27,16 @@ struct CE_DSA_PU_members{
 // custom function declarations
 
 // constructor
-CE_DSA_PU::CE_DSA_PU(){}
+CE_Two_Channel_DSA_PU::CE_Two_Channel_DSA_PU(){}
 
 // destructor
-CE_DSA_PU::~CE_DSA_PU(){}
+CE_Two_Channel_DSA_PU::~CE_Two_Channel_DSA_PU(){}
 
 // execute function
-void CE_DSA_PU::execute(void * _args){
+void CE_Two_Channel_DSA_PU::execute(void * _args){
 	ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 
-	struct CE_DSA_PU_members cm;
+	struct CE_Two_Channel_DSA_PU_members cm;
 	
 	gettimeofday(&cm.tv, NULL);
 	

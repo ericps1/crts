@@ -24,8 +24,15 @@
 #include "read_configs.hpp"
 #include "timer.h"
 
+#define DEBUG 0
+# if DEBUG == 1
+#define dprintf(...) printf(__VA_ARGS__)
+#else
+#define dprintf(...) /*__VA_ARGS__*/
+#endif
+
 // global variables
-time_t start_time_s;
+time_t stop_time_s;
 int    sig_terminate;
 float  currentTxFreq; 
 float  freqIncrement; 
@@ -35,17 +42,22 @@ int    TCP_controller;
 int    log_phy_tx_flag;
 char   phy_tx_log_file[30];
 
+FILE * GMSK_log;
+FILE * GMSK2_log;
+FILE * GMSKA_log;
+
 // ========================================================================
 //  FUNCTION:  Receive_command_from_controller
 // ========================================================================
 static inline void Receive_command_from_controller(Interferer * inter, 
-                                                   struct node_parameters *np)
+                                                   struct node_parameters *np,
+												   struct scenario_parameters *sp)
   {
   // Listen to socket for message from controller
-  char command_buffer[500+sizeof(struct node_parameters)];
+  char command_buffer[1+sizeof(struct scenario_parameters)+sizeof(struct node_parameters)];
   int rflag = recv(TCP_controller, 
                    command_buffer, 
-                   1+sizeof(time_t)+sizeof(struct node_parameters), 
+                   1+sizeof(struct scenario_parameters)+sizeof(struct node_parameters), 
                    0);
   int err = errno;
   if (rflag <= 0)
@@ -65,14 +77,14 @@ static inline void Receive_command_from_controller(Interferer * inter,
   // Parse command
   switch (command_buffer[0])
     {
-    case 's': // settings for upcoming scenario
+    case scenario_params_msg: // settings for upcoming scenario
       printf("Received settings for scenario\n");
       
-      // copy start time
-      memcpy((void*)&start_time_s ,&command_buffer[1], sizeof(time_t));
+      // copy scenario parameters
+      memcpy(sp ,&command_buffer[1], sizeof(struct scenario_parameters));
             
       // copy node_parameters
-      memcpy(np ,&command_buffer[1+sizeof(time_t)], sizeof(node_parameters));
+      memcpy(np ,&command_buffer[1+sizeof(struct scenario_parameters)], sizeof(struct node_parameters));
       print_node_parameters(np);
       
       // set interferer parameters
@@ -131,7 +143,12 @@ static inline void Receive_command_from_controller(Interferer * inter,
 
       break;
 
-    case 't': // terminate program
+    case manual_start_msg: // updated start time (used for manual mode)
+	  printf("Received an updated start time\n");
+	  memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
+	  stop_time_s = sp->start_time_s + sp->runTime;
+	  break;
+	case terminate_msg: // terminate program
       printf("Received termination command from controller\n");
       exit(1);
       break; 
@@ -202,9 +219,9 @@ unsigned int BuildGMSKTransmission(
   std::vector<std::complex<float> > &tx_buffer,
   Interferer InterfererObj)
   {
-       printf("\n"); 
-       printf("============================================== \n"); 
-       printf("--> BuildGMSKTransmission \n"); 
+       dprintf("\n"); 
+       dprintf("============================================== \n"); 
+       dprintf("--> BuildGMSKTransmission \n"); 
   std::vector<std::complex<float> > tempBuffer; 
 
   // Allocate and set GMSK Variable defaults
@@ -259,7 +276,7 @@ unsigned int BuildGMSKTransmission(
 
   // calculate tx rate
   double tx_rate = 4.0 * gmskBandWidth; 
-    printf("tx rate %e \n", tx_rate); 
+    dprintf("tx rate %e \n", tx_rate); 
   unsigned int interp_rate = (unsigned int)(DAC_RATE / tx_rate); 
   interp_rate = (interp_rate >> 2) << 2; 
   interp_rate += 4; 
@@ -268,7 +285,7 @@ unsigned int BuildGMSKTransmission(
   usrp_tx_rate = InterfererObj.usrp_tx->get_tx_rate(); 
 
   double tx_resamp_rate = usrp_tx_rate / tx_rate; 
-   printf("resample rate for arbitrary resampler: %f \n", tx_resamp_rate); 
+   dprintf("resample rate for arbitrary resampler: %f \n", tx_resamp_rate); 
 
   // half-band resampler
   resamp2_crcf interp = resamp2_crcf_create(7,0.0f,40.0f);
@@ -304,10 +321,10 @@ unsigned int BuildGMSKTransmission(
   
   unsigned int frameLen = gmskframegen_getframelen(gmsk_fg); 
 
-    printf("header length:   %d \n", gmskHeaderLength); 
-    printf("payload length:  %d \n", gmskPayloadLength); 
-    printf("bandwidth:       %-.2e \n", gmskBandWidth); 
-    printf("frame length:    %d \n", frameLen); 
+    dprintf("header length:   %d \n", gmskHeaderLength); 
+    dprintf("payload length:  %d \n", gmskPayloadLength); 
+    dprintf("bandwidth:       %-.2e \n", gmskBandWidth); 
+    dprintf("frame length:    %d \n", frameLen); 
 
   tempBuffer.resize(frameLen + 1); 
   int frame_complete = 0;
@@ -324,31 +341,53 @@ unsigned int BuildGMSKTransmission(
   float g = powf(10.0f, gmskTxGainDb/20.0f); 
 
   // generate frame
+  int n1 = 1;
+  int n2 = 1;
+  int n3 = 1;
   while (!frame_complete) 
     {
     // generate k samples
     frame_complete = gmskframegen_write_samples(gmsk_fg, buffer);
 
-    // interpolate by 2
+    fprintf(GMSK_log, "x(%i) = %f + 1i*%f;\n", n1, buffer[0].real(), buffer[0].imag());
+	n1++;
+    fprintf(GMSK_log, "x(%i) = %f + 1i*%f;\n", n1, buffer[1].real(), buffer[1].imag());
+	n1++;
+    
+	// interpolate by 2
     for (unsigned int j=0; j<k; j++)
       {
       resamp2_crcf_interp_execute(interp, buffer[j], &buffer_interp[2*j]);
-      }
+      fprintf(GMSK2_log, "x(%i) = %f + 1i*%f;\n", n2, buffer_interp[2*j].real(), buffer_interp[2*j].imag());
+	  n2++;
+	  fprintf(GMSK2_log, "x(%i) = %f + 1i*%f;\n", n2, buffer_interp[2*j+1].real(), buffer_interp[2*j+1].imag());
+	  n2++;
+	  }
 
     // resample
     unsigned int nw;
     unsigned int n=0;
     for (unsigned int j=0; j<2*k; j++) 
       {
-      resamp_crcf_execute(resamp, buffer_interp[j], &buffer_resamp[n], &nw);
+      
+	  tx_buffer[tx_buffer_samples++] = g * buffer_interp[j];
+	  
+	  /*resamp_crcf_execute(resamp, buffer_interp[j], &buffer_resamp[n], &nw);
       n += nw;
-      }
 
-    // push onto buffer with software gain
-    for (unsigned int j=0; j<n; j++)
-      {
-        tx_buffer[tx_buffer_samples++] = g * buffer_resamp[j]; 
+      for(unsigned int m=0; m<nw; m++){
+        fprintf(GMSKA_log, "x(%i) = %f + 1i*%f;\n", n3, buffer_resamp[m].real(), buffer_resamp[m].imag());
+	    n3++;
+	  }*/
+
       }
+    
+    // push onto buffer with software gain
+    /*for (unsigned int j=0; j<n; j++)
+      {
+        //tx_buffer[tx_buffer_samples++] = g * buffer_resamp[j]; 
+        tx_buffer[tx_buffer_samples++] = g * buffer_resamp[j]; 
+      }*/
     }
 
   //    for (unsigned int j = 0; j < tx_buffer_samples; j++)
@@ -356,9 +395,16 @@ unsigned int BuildGMSKTransmission(
   //     tx_buffer[j] = buff[j]; 
   //      }
 
-    printf("frame interpolated and resampled \n"); 
-    printf("final buffer length for frame:  %d \n", tx_buffer_samples); 
-    printf("============================================== \n"); 
+    dprintf("frame interpolated and resampled \n"); 
+    dprintf("final buffer length for frame:  %d \n", tx_buffer_samples); 
+    dprintf("============================================== \n"); 
+ 
+  fclose(GMSK_log);
+  fclose(GMSK2_log);
+  fclose(GMSKA_log);
+
+  exit(1);
+    
   return tx_buffer_samples; 
   }
 
@@ -522,7 +568,8 @@ void TransmitInterference(
   Interferer interfererObj, 
   std::vector<std::complex<float> > & tx_buffer,
   int samplesInBuffer,
-  node_parameters  np
+  node_parameters  np,
+  scenario_parameters sp
   )
   {
   int tx_samp_count = 0;//samps_to_transmit;    
@@ -548,7 +595,7 @@ void TransmitInterference(
                 
     // update number of tx samples remaining
     tx_samp_count += USRP_BUFFER_LENGTH;
-    Receive_command_from_controller(&interfererObj, &np);
+    Receive_command_from_controller(&interfererObj, &np, &sp);
     if (sig_terminate) 
       {
       break;
@@ -598,8 +645,9 @@ void ChangeFrequency(Interferer interfererObj)
 //  FUNCTION:  Perform Duty Cycle ON
 // ========================================================================
 void PerformDutyCycle_On( Interferer interfererObj,
-              node_parameters np,
-                          float time_onCycle)
+                          node_parameters np,
+                          scenario_parameters sp, 
+						  float time_onCycle)
   {
   std::vector<std::complex<float> > tx_buffer(TX_BUFFER_LENGTH);
   unsigned int samplesInBuffer = 0; 
@@ -609,7 +657,7 @@ void PerformDutyCycle_On( Interferer interfererObj,
   timer dwellTimer = timer_create(); 
   timer_tic(onTimer); 
   timer_tic(dwellTimer); 
-
+  
   while (timer_toc(onTimer) < time_onCycle)
     {
     // determine if we need to freq hop 
@@ -648,13 +696,13 @@ void PerformDutyCycle_On( Interferer interfererObj,
       //          break; 
       }// interference type switch
 
-    Receive_command_from_controller(&interfererObj, &np);
+    Receive_command_from_controller(&interfererObj, &np, &sp);
     if (sig_terminate) 
       {
       break;
       }
-    TransmitInterference(interfererObj, tx_buffer, samplesInBuffer, np); 
-    Receive_command_from_controller(&interfererObj, &np);
+    TransmitInterference(interfererObj, tx_buffer, samplesInBuffer, np, sp); 
+    Receive_command_from_controller(&interfererObj, &np, &sp);
     if (sig_terminate) 
       {
       break;
@@ -672,6 +720,7 @@ void PerformDutyCycle_On( Interferer interfererObj,
 
 void PerformDutyCycle_Off(Interferer interfererObj, 
                           node_parameters np,
+                          scenario_parameters sp, 
                           float time_offCycle)
   {
   timer offTimer = timer_create(); 
@@ -679,7 +728,7 @@ void PerformDutyCycle_Off(Interferer interfererObj,
   while (timer_toc(offTimer) < time_offCycle)
       {
       usleep(100); 
-      Receive_command_from_controller(&interfererObj, &np);
+      Receive_command_from_controller(&interfererObj, &np, &sp);
       if (sig_terminate) 
         {
         break;
@@ -748,6 +797,7 @@ int main(int argc, char ** argv)
 
   // Create node parameters struct and interferer object
   struct node_parameters np;
+  struct scenario_parameters sp;
   Interferer interfererObj;
 
   // Set metadata for interferer
@@ -756,7 +806,8 @@ int main(int argc, char ** argv)
   interfererObj.metadata_tx.has_time_spec = false;
 
   // Read initial scenario info from controller
-  Receive_command_from_controller(&interfererObj, &np);
+  printf("Receiving command from controller\n");
+  Receive_command_from_controller(&interfererObj, &np, &sp);
   fcntl(TCP_controller, F_SETFL, O_NONBLOCK);
 
   // for some interference types, transmit all of the time
@@ -779,6 +830,10 @@ int main(int argc, char ** argv)
       break;
     }
 
+  GMSK_log = fopen("GMSK_log.m", "w");
+  GMSK2_log = fopen("GMSK_log2.m", "w");;
+  GMSKA_log = fopen("GMSK_logA.m", "w");;
+
   // ================================================================
   // BEGIN: Main Service Loop 
   // ================================================================
@@ -789,27 +844,32 @@ int main(int argc, char ** argv)
   // wait for start time and calculate stop time
   struct timeval tv;
   time_t time_s;
-  time_t stop_time_s = start_time_s + run_time;
+  stop_time_s = sp.start_time_s + run_time;
   while(1){
+    Receive_command_from_controller(&interfererObj, &np, &sp);
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;
-    if(time_s >= start_time_s)
+    if(time_s >= sp.start_time_s)
       break;
   }
-  
+ 
+  printf("Entering main loop\n");
+
   while (time_s < stop_time_s)
     {
-    Receive_command_from_controller(&interfererObj, &np);
+    Receive_command_from_controller(&interfererObj, &np, &sp);
     if (sig_terminate) 
       {
       break;
       }
     PerformDutyCycle_On(interfererObj,
                         np, 
-                        time_onCycle); 
+                        sp,
+						time_onCycle); 
     PerformDutyCycle_Off(interfererObj,
                          np,
-                         time_offCycle); 
+                         sp,
+						 time_offCycle); 
     if (sig_terminate) 
       {
       break;
@@ -825,7 +885,7 @@ int main(int argc, char ** argv)
   // ================================================================
 
   printf("Sending termination message to controller\n");
-  char term_message = 't';
+  char term_message = terminate_msg;
   write(TCP_controller, &term_message, 1);
   }
 
