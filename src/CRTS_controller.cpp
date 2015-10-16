@@ -208,9 +208,9 @@ int main(int argc, char ** argv){
                 // If scenario is run more than once, append rep# to log file names
                 if (scenario_reps[i]-1)
                 {
-                    snprintf(np[j].rx_log_file+strlen(np[j].rx_log_file), 100-strlen(np[j].rx_log_file), "_rep%d", scenRepNum);
-                    snprintf(np[j].tx_log_file+strlen(np[j].tx_log_file), 100-strlen(np[j].tx_log_file), "_rep%d", scenRepNum);
-                    snprintf(np[j].CRTS_rx_log_file+strlen(np[j].CRTS_rx_log_file), 100-strlen(np[j].CRTS_rx_log_file), "_rep%d", scenRepNum);
+                    snprintf(np[j].phy_rx_log_file+strlen(np[j].phy_rx_log_file), 100-strlen(np[j].phy_rx_log_file), "_rep%d", scenRepNum);
+                    snprintf(np[j].phy_tx_log_file+strlen(np[j].phy_tx_log_file), 100-strlen(np[j].phy_tx_log_file), "_rep%d", scenRepNum);
+                    snprintf(np[j].net_rx_log_file+strlen(np[j].net_rx_log_file), 100-strlen(np[j].net_rx_log_file), "_rep%d", scenRepNum);
                 }
                 
                 // send command to launch executable if not doing so manually

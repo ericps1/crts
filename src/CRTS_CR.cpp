@@ -80,24 +80,24 @@ void Initialize_CR(struct node_parameters *np, void * ECR_p){
         ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *) ECR_p;
         
         // append relative locations for log files
-        char rx_log_file_name[100];
-        strcpy(rx_log_file_name, "./logs/bin/");
-        strcat(rx_log_file_name, np->rx_log_file);
-        strcat(rx_log_file_name, ".log");
+        char phy_rx_log_file_name[100];
+        strcpy(phy_rx_log_file_name, "./logs/bin/");
+        strcat(phy_rx_log_file_name, np->phy_rx_log_file);
+        strcat(phy_rx_log_file_name, ".log");
         
-		char tx_log_file_name[100];
-        strcpy(tx_log_file_name, "./logs/bin/");
-        strcat(tx_log_file_name, np->tx_log_file);
-        strcat(tx_log_file_name, ".log");
+		char phy_tx_log_file_name[100];
+        strcpy(phy_tx_log_file_name, "./logs/bin/");
+        strcat(phy_tx_log_file_name, np->phy_tx_log_file);
+        strcat(phy_tx_log_file_name, ".log");
         
         // set cognitive radio parameters
         ECR->set_ip(np->CRTS_IP);
         ECR->print_metrics_flag = np->print_metrics;
-        ECR->log_rx_metrics_flag = np->log_rx_metrics;
-        ECR->log_tx_parameters_flag = np->log_tx_parameters;
+        ECR->log_phy_rx_flag = np->log_phy_rx;
+        ECR->log_phy_tx_flag = np->log_phy_tx;
         ECR->set_ce_timeout_ms(np->ce_timeout_ms);
-        strcpy(ECR->rx_log_file, rx_log_file_name);
-        strcpy(ECR->tx_log_file, tx_log_file_name);
+        strcpy(ECR->phy_rx_log_file, phy_rx_log_file_name);
+        strcpy(ECR->phy_tx_log_file, phy_tx_log_file_name);
         ECR->set_rx_freq(np->rx_freq);
         ECR->set_rx_rate(np->rx_rate);
         ECR->set_rx_gain_uhd(np->rx_gain);
@@ -140,13 +140,13 @@ void log_rx_data(struct scenario_parameters *sp, struct node_parameters *np, int
 
     // open file, append parameters, and close
     std::ofstream log_fstream;
-    log_fstream.open(np->CRTS_rx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
+    log_fstream.open(np->net_rx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
     if(log_fstream.is_open()){
         log_fstream.write((char*)&tv, sizeof(tv));
         log_fstream.write((char*)&bytes, sizeof(bytes));
     }
     else
-        printf("Error opening log file: %s\n", np->CRTS_rx_log_file);
+        printf("Error opening log file: %s\n", np->net_rx_log_file);
 
     log_fstream.close();
 }
@@ -228,27 +228,27 @@ int main(int argc, char ** argv){
     fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 
 	// copy log file name for post processing later
-    char CRTS_rx_log_file_cpy[100];
-    strcpy(CRTS_rx_log_file_cpy, np.CRTS_rx_log_file); 
+    char net_rx_log_file_cpy[100];
+    strcpy(net_rx_log_file_cpy, np.net_rx_log_file); 
 	
 	// modify log file name in node parameters for logging function
-	char CRTS_rx_log_file[100];
-    strcpy(CRTS_rx_log_file, "./logs/bin/");
-    strcat(CRTS_rx_log_file, np.CRTS_rx_log_file);
-    strcat(CRTS_rx_log_file, ".log");
-	strcpy(np.CRTS_rx_log_file, CRTS_rx_log_file);
+	char net_rx_log_file[100];
+    strcpy(net_rx_log_file, "./logs/bin/");
+    strcat(net_rx_log_file, np.net_rx_log_file);
+    strcat(net_rx_log_file, ".log");
+	strcpy(np.net_rx_log_file, net_rx_log_file);
 	
 	// open CRTS rx log file to delete any current contents
-    if (np.log_CRTS_rx_data){
+    if (np.log_net_rx){
         std::ofstream log_fstream;
-        log_fstream.open(CRTS_rx_log_file, std::ofstream::out | std::ofstream::trunc);
+        log_fstream.open(net_rx_log_file, std::ofstream::out | std::ofstream::trunc);
         if (log_fstream.is_open())
         {
             log_fstream.close();
         }
         else
         {
-            std::cout<<"Error opening log file:"<<CRTS_rx_log_file<<std::endl;
+            std::cout<<"Error opening log file:"<<net_rx_log_file<<std::endl;
         }
     }
 
@@ -407,7 +407,7 @@ int main(int argc, char ** argv){
             dprintf("\nCRTS received message:\n");
             for(int j=0; j<recv_len; j++)
                 dprintf("%c", recv_buffer[j]);
-            if(np.log_CRTS_rx_data){
+            if(np.log_net_rx){
 				log_rx_data(&sp, &np, recv_len);
 			}
         }
@@ -424,21 +424,21 @@ int main(int argc, char ** argv){
     if(np.generate_octave_logs){
         char command[100];
         
-        if(np.log_CRTS_rx_data){
+        if(np.log_net_rx){
             strcpy(command, "./logs/logs2octave -c -l ");
-            strcat(command, CRTS_rx_log_file_cpy);
+            strcat(command, net_rx_log_file_cpy);
             system(command);
         }
 
-        if(np.log_rx_metrics){
+        if(np.log_phy_rx){
             strcpy(command, "./logs/logs2octave -r -l ");
-            strcat(command, np.rx_log_file);
+            strcat(command, np.phy_rx_log_file);
             system(command);
         }
 
-        if(np.log_tx_parameters){
+        if(np.log_phy_tx){
             strcpy(command, "./logs/logs2octave -t -l ");
-            strcat(command, np.tx_log_file);
+            strcat(command, np.phy_tx_log_file);
             system(command);
         }
     }

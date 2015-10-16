@@ -204,20 +204,18 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 void ExtensibleCognitiveRadio::set_ce(char *ce){
 ///@cond INTERNAL
 //EDIT START FLAG
-    if(!strcmp(ce, "CE_DSA"))
-        CE = new CE_DSA();
-    if(!strcmp(ce, "CE_Example"))
-        CE = new CE_Example();
-    if(!strcmp(ce, "CE_FEC"))
-        CE = new CE_FEC();
-    if(!strcmp(ce, "CE_Hopper"))
-        CE = new CE_Hopper();
-    if(!strcmp(ce, "CE_Sensing"))
-        CE = new CE_Sensing();
-    if(!strcmp(ce, "CE_DSA_PU"))
-        CE = new CE_DSA_PU();
-    if(!strcmp(ce, "CE_AMC"))
-        CE = new CE_AMC();
+    if(!strcmp(ce, "CE_2_Channel_DSA_Spectrum_Sensing"))
+        CE = new CE_2_Channel_DSA_Spectrum_Sensing();
+    if(!strcmp(ce, "CE_2_Channel_DSA_Link_Reliability"))
+        CE = new CE_2_Channel_DSA_Link_Reliability();
+    if(!strcmp(ce, "CE_Mod_Adaptation"))
+        CE = new CE_Mod_Adaptation();
+    if(!strcmp(ce, "CE_FEC_Adaptation"))
+        CE = new CE_FEC_Adaptation();
+    if(!strcmp(ce, "CE_2_Channel_DSA_PU"))
+        CE = new CE_2_Channel_DSA_PU();
+    if(!strcmp(ce, "CE_Transparent"))
+        CE = new CE_Transparent();
 //EDIT END FLAG
 ///@endcond
 }
@@ -535,7 +533,7 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char * _header,
                    unsigned char * _payload,
                    unsigned int    _payload_len)
 {
-    if(log_tx_parameters_flag){
+    if(log_phy_tx_flag){
         //printf("\nLogging transmit parameters\n\n");
         log_tx_parameters();
     }
@@ -915,7 +913,7 @@ int rxCallback(unsigned char * _header,
 
         // Pass metrics to controller if required
         // Log metrics locally if required
-        if(ECR->log_rx_metrics_flag)
+        if(ECR->log_phy_rx_flag)
             ECR->log_rx_metrics();
     
     }
@@ -1089,7 +1087,7 @@ void ExtensibleCognitiveRadio::log_rx_metrics(){
     
     // open file, append metrics, and close
     std::ofstream log_fstream;
-    log_fstream.open(rx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
+    log_fstream.open(phy_rx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
     if (log_fstream.is_open())
     {
         log_fstream.write((char*)&CE_metrics, sizeof(struct metric_s));
@@ -1097,7 +1095,7 @@ void ExtensibleCognitiveRadio::log_rx_metrics(){
     }
     else
     {
-        std::cerr<<"Error opening log file:"<<rx_log_file<<std::endl;
+        std::cerr<<"Error opening log file:"<<phy_rx_log_file<<std::endl;
     }
 
     log_fstream.close();
@@ -1111,7 +1109,7 @@ void ExtensibleCognitiveRadio::log_tx_parameters(){
     
     // open file, append parameters, and close
     std::ofstream log_fstream;
-    log_fstream.open(tx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
+    log_fstream.open(phy_tx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
     if (log_fstream.is_open())
     {
         log_fstream.write((char*)&tv, sizeof(tv));
@@ -1119,7 +1117,7 @@ void ExtensibleCognitiveRadio::log_tx_parameters(){
     }
     else
     {
-        std::cerr<<"Error opening log file:"<<tx_log_file<<std::endl;
+        std::cerr<<"Error opening log file:"<<phy_tx_log_file<<std::endl;
     }
 
     log_fstream.close();
@@ -1127,22 +1125,22 @@ void ExtensibleCognitiveRadio::log_tx_parameters(){
 
 void ExtensibleCognitiveRadio::reset_log_files(){
 
-	if (log_rx_metrics_flag){
+	if (log_phy_rx_flag){
         std::ofstream log_fstream;
-		log_fstream.open(rx_log_file, std::ofstream::out | std::ofstream::trunc);
+		log_fstream.open(phy_rx_log_file, std::ofstream::out | std::ofstream::trunc);
 		if(log_fstream.is_open())
 			log_fstream.close();
         else
-			printf("Error opening rx log file: %s\n", rx_log_file);
+			printf("Error opening rx log file: %s\n", phy_rx_log_file);
 	}
 
-	if (log_tx_parameters_flag){
+	if (log_phy_tx_flag){
         std::ofstream log_fstream;
-		log_fstream.open(tx_log_file, std::ofstream::out | std::ofstream::trunc);
+		log_fstream.open(phy_tx_log_file, std::ofstream::out | std::ofstream::trunc);
 		if(log_fstream.is_open())
 			log_fstream.close();
         else
-			printf("Error opening tx log file: %s\n", tx_log_file);
+			printf("Error opening tx log file: %s\n", phy_tx_log_file);
 	}
 }
 

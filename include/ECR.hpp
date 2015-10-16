@@ -686,10 +686,10 @@ public:
     int print_metrics_flag;
     void log_rx_metrics();
     void log_tx_parameters();
-    int log_rx_metrics_flag;
-    int log_tx_parameters_flag;
-    char rx_log_file[100];
-    char tx_log_file[100];
+    int log_phy_rx_flag;
+    int log_phy_tx_flag;
+    char phy_rx_log_file[100];
+    char phy_tx_log_file[100];
 	void reset_log_files();
 
     // USRP objects accessible to user for now

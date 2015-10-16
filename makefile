@@ -5,7 +5,7 @@ LIBS = lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 CRTS_PATH = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 #EDIT START FLAG
-CEs = src/CE.cpp cognitive_engines/CE_DSA.cpp cognitive_engines/CE_Example.cpp cognitive_engines/CE_FEC.cpp cognitive_engines/CE_Hopper.cpp cognitive_engines/CE_Sensing.cpp cognitive_engines/CE_DSA_PU.cpp cognitive_engines/CE_AMC.cpp
+CEs = src/CE.cpp cognitive_engines/CE_2_Channel_DSA_Spectrum_Sensing.cpp cognitive_engines/CE_2_Channel_DSA_Link_Reliability.cpp cognitive_engines/CE_Mod_Adaptation.cpp cognitive_engines/CE_FEC_Adaptation.cpp cognitive_engines/CE_2_Channel_DSA_PU.cpp cognitive_engines/CE_Transparent.cpp
 #EDIT END FLAG
 
 all: lib/TUN.o lib/read_configs.o config_CEs lib/ECR.o logs/logs2python logs/logs2octave CRTS_CR lib/interferer.o CRTS_interferer CRTS_controller

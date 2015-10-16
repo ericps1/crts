@@ -191,23 +191,23 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
     if (config_setting_lookup_int(node_config, "print_metrics", &tmpI))
         np.print_metrics = (int)tmpI;
     
-    if (config_setting_lookup_int(node_config, "log_rx_metrics", &tmpI))
-        np.log_rx_metrics = (int)tmpI;
+    if (config_setting_lookup_int(node_config, "log_phy_rx", &tmpI))
+        np.log_phy_rx = (int)tmpI;
 
-    if (config_setting_lookup_int(node_config, "log_tx_parameters", &tmpI))
-        np.log_tx_parameters = (int)tmpI;
+    if (config_setting_lookup_int(node_config, "log_phy_tx", &tmpI))
+        np.log_phy_tx = (int)tmpI;
     
-    if (config_setting_lookup_int(node_config, "log_CRTS_rx_data", &tmpI))
-        np.log_CRTS_rx_data = (int)tmpI;
+    if (config_setting_lookup_int(node_config, "log_net_rx", &tmpI))
+        np.log_net_rx = (int)tmpI;
     
-    if (config_setting_lookup_string(node_config, "rx_log_file", &tmpS))
-        strcpy(np.rx_log_file, tmpS);
+    if (config_setting_lookup_string(node_config, "phy_rx_log_file", &tmpS))
+        strcpy(np.phy_rx_log_file, tmpS);
 
-    if (config_setting_lookup_string(node_config, "tx_log_file", &tmpS))
-        strcpy(np.tx_log_file, tmpS);
+    if (config_setting_lookup_string(node_config, "phy_tx_log_file", &tmpS))
+        strcpy(np.phy_tx_log_file, tmpS);
 
-    if (config_setting_lookup_string(node_config, "CRTS_rx_log_file", &tmpS))
-        strcpy(np.CRTS_rx_log_file, tmpS);
+    if (config_setting_lookup_string(node_config, "net_rx_log_file", &tmpS))
+        strcpy(np.net_rx_log_file, tmpS);
 
     if (config_setting_lookup_int(node_config, "generate_octave_logs", &tmpI))
         np.generate_octave_logs = (int)tmpI;
@@ -467,10 +467,10 @@ void print_node_parameters(struct node_parameters * np)
   //
   printf("\nLog/Report Settings:\n");
   if(np->type != interferer)
-    printf("    Rx log file:                       %-s\n", np->rx_log_file);
-  printf("    Tx log file:                       %-s\n", np->tx_log_file);
+    printf("    PHY Rx log file:                   %-s\n", np->phy_rx_log_file);
+  printf("    PHY Tx log file:                   %-s\n", np->phy_tx_log_file);
   if(np->type != interferer)
-    printf("    CRTS Rx log file:                  %-s\n", np->CRTS_rx_log_file);
+    printf("    NET Rx log file:                   %-s\n", np->net_rx_log_file);
   printf("    Generate octave logs:              %i\n", np->generate_octave_logs);
   printf("    Generate python logs:              %i\n", np->generate_python_logs);
   //

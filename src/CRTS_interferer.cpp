@@ -32,8 +32,8 @@ float  freqIncrement;
 int    freqCoeff; 
 int    freqWidth; 
 int    TCP_controller; 
-int    log_tx_parameters_flag;
-char   tx_log_file[30];
+int    log_phy_tx_flag;
+char   phy_tx_log_file[30];
 
 // ========================================================================
 //  FUNCTION:  Receive_command_from_controller
@@ -109,15 +109,15 @@ static inline void Receive_command_from_controller(Interferer * inter,
       inter->gmsk_payload_length = np->gmsk_payload_length; 
       inter->gmsk_bandwidth = np->gmsk_bandwidth; 
 
-      log_tx_parameters_flag = np->log_tx_parameters;
-      strcpy(tx_log_file, np->tx_log_file);
+      log_phy_tx_flag = np->log_phy_tx;
+      strcpy(phy_tx_log_file, np->phy_tx_log_file);
 
       // open tx log file to delete any current contents
-      if(log_tx_parameters_flag){
+      if(log_phy_tx_flag){
         std::ofstream log_file;
         char log_file_name[50];
         strcpy(log_file_name, "./logs/");
-        strcat(log_file_name, tx_log_file);
+        strcat(log_file_name, phy_tx_log_file);
         log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
         if (log_file.is_open())
         {
@@ -497,7 +497,7 @@ void log_tx_parameters(){
     // create string of actual file location
     char file_name[50];
     strcpy(file_name, "./logs/");
-    strcat(file_name, tx_log_file);
+    strcat(file_name, phy_tx_log_file);
 
     // open file, append parameters, and close
     std::ofstream log_file;
@@ -528,7 +528,7 @@ void TransmitInterference(
   int tx_samp_count = 0;//samps_to_transmit;    
   int usrp_samps = USRP_BUFFER_LENGTH; 
 
-  if(log_tx_parameters_flag)
+  if(log_phy_tx_flag)
       log_tx_parameters();
   
   while(tx_samp_count < samplesInBuffer) 

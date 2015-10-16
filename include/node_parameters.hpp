@@ -49,12 +49,12 @@ struct node_parameters{
     char TARGET_IP[20];
     char CE[30];
     int print_metrics;
-    int log_rx_metrics;
-    int log_tx_parameters;
-    int log_CRTS_rx_data;
-    char rx_log_file[100];
-    char tx_log_file[100];
-    char CRTS_rx_log_file[100];
+    int log_phy_rx;
+    int log_phy_tx;
+    int log_net_rx;
+    char phy_rx_log_file[100];
+    char phy_tx_log_file[100];
+    char net_rx_log_file[100];
     float ce_timeout_ms;
     int generate_octave_logs;
     int generate_python_logs;

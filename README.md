@@ -192,6 +192,23 @@ cognitive engine of at the receiving radio.
 
 Examples of cognitive engines are provided in the `cognitive_engines/` directory.
 
+### Logs
+
+CRTS will automatically log data from several points in the system (provided that
+the log file options are appropriately specified in the scenario configuration
+file). These logs include the parameters used by the ECR to create each phyiscal
+layer frame that is transmitted, the metrics and parameters of each of the physical
+layer frames received by the ECR, as well as the data received at the network
+layer (the data read from the virtual network interface by CRTS\_CR). Each log
+entry will include a timestamp to keep events referenced to a common timeline
+The logs are written as raw binary files in the /logs/bin directory, but will 
+automatically be converted to either Octave/Matlab or Python scripts after the 
+scenario has finished and placed in the logs/Octave or logs/Python directories 
+respectively. This again assumes that the appropriate options were set in the 
+scenario configuration file). These scripts provide the user with an easy way to 
+analyze the results of the experiment. There are some basic Octave/Matlab scripts 
+provided to plot the contents of the logs as a function of time.
+
 ##Tutorial:
 
 Begin by opening four ssh sessions on CORNET using the following command:

@@ -44,54 +44,41 @@ public:
 // Custom Cognitive Engine sub classes
 ///@cond INTERNAL
 //EDIT START FLAG
-class CE_DSA : public Cognitive_Engine {
+class CE_2_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
 public:
-    CE_DSA();
-    ~CE_DSA();
+    CE_2_Channel_DSA_Spectrum_Sensing();
+    ~CE_2_Channel_DSA_Spectrum_Sensing();
     virtual void execute(void * _args);
-    void * custom_members;
 };
-class CE_Example : public Cognitive_Engine {
+class CE_2_Channel_DSA_Link_Reliability : public Cognitive_Engine {
 public:
-    CE_Example();
-    ~CE_Example();
+    CE_2_Channel_DSA_Link_Reliability();
+    ~CE_2_Channel_DSA_Link_Reliability();
     virtual void execute(void * _args);
-    void * custom_members;
 };
-class CE_FEC : public Cognitive_Engine {
+class CE_Mod_Adaptation : public Cognitive_Engine {
 public:
-    CE_FEC();
-    ~CE_FEC();
+    CE_Mod_Adaptation();
+    ~CE_Mod_Adaptation();
     virtual void execute(void * _args);
-    void * custom_members;
 };
-class CE_Hopper : public Cognitive_Engine {
+class CE_FEC_Adaptation : public Cognitive_Engine {
 public:
-    CE_Hopper();
-    ~CE_Hopper();
+    CE_FEC_Adaptation();
+    ~CE_FEC_Adaptation();
     virtual void execute(void * _args);
-    void * custom_members;
 };
-class CE_Sensing : public Cognitive_Engine {
+class CE_2_Channel_DSA_PU : public Cognitive_Engine {
 public:
-    CE_Sensing();
-    ~CE_Sensing();
+    CE_2_Channel_DSA_PU();
+    ~CE_2_Channel_DSA_PU();
     virtual void execute(void * _args);
-    void * custom_members;
 };
-class CE_DSA_PU : public Cognitive_Engine {
+class CE_Transparent : public Cognitive_Engine {
 public:
-    CE_DSA_PU();
-    ~CE_DSA_PU();
+    CE_Transparent();
+    ~CE_Transparent();
     virtual void execute(void * _args);
-    void * custom_members;
-};
-class CE_AMC : public Cognitive_Engine {
-public:
-    CE_AMC();
-    ~CE_AMC();
-    virtual void execute(void * _args);
-    void * custom_members;
 };
 //EDIT END FLAG
 ///@endcond
