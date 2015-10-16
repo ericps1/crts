@@ -404,18 +404,18 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
         np.tx_freq_hop_increment = tmpD;
 
 
-        // ======================================================
-        // process GMSK interference parameters
-        // ======================================================
-    if (config_setting_lookup_float(node_config, 
+    // ======================================================
+    // process GMSK interference parameters
+    // ======================================================
+    if (config_setting_lookup_int(node_config, 
                                     "gmsk_header_length", 
-                                    &tmpD))
-        np.gmsk_header_length = tmpD;
+                                    &tmpI))
+        np.gmsk_header_length = tmpI;
 
-    if (config_setting_lookup_float(node_config, 
+    if (config_setting_lookup_int(node_config, 
                                     "gmsk_payload_length", 
-                                    &tmpD))
-        np.gmsk_payload_length = tmpD;
+                                    &tmpI))
+        np.gmsk_payload_length = tmpI;
 
     if (config_setting_lookup_float(node_config, 
                                     "gmsk_bandwidth", 
@@ -530,7 +530,7 @@ void print_node_parameters(struct node_parameters * np)
       case (RANDOM): strcpy(tx_freq_hop_type, "RANDOM"); break;
       }
     printf("    Interference type:                 %-s\n", interference_type);
-    printf("    Interference period:       %-.2f\n", np->period);
+    printf("    Interference period:               %-.2f\n", np->period);
     printf("    Interference duty cycle:           %-.2f\n", np->duty_cycle);
     printf("\n"); 
     printf("    tx freq hop type:                  %-s\n", tx_freq_hop_type);
