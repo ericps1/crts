@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "ECR.hpp"
 
-void help_post_process_logs() {
+void help_logs2octave() {
         printf("post_process_logs -- Create Octave .m file to visualize logs.\n");
         printf(" -h : Help.\n");
         printf(" -l : Name of log file to process (required).\n");
@@ -39,7 +39,7 @@ int main(int argc, char ** argv){
     //while((d = getopt(argc, argv, "hl:rtic")) != EOF){
     while((d = getopt(argc, argv, "hl:p:rtic")) != EOF){  
         switch(d){
-        case 'h': help_post_process_logs();                 return 0;
+        case 'h': help_logs2octave();                 return 0;
         case 'l': 
             strcat(log_file, optarg); 
             strcat(log_file, ".log");
@@ -61,7 +61,7 @@ int main(int argc, char ** argv){
     if (!l_opt)
     {
         printf("Please give -l option.\n\n");
-        help_post_process_logs();
+        help_logs2octave();
         return 1;
     }
 
