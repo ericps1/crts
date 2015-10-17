@@ -1,27 +1,31 @@
 # CRTS
 ##About:
 
-The Cognitive Radio Test System (CRTS) is intended to provide a flexible framework for 
-over the air test and evaluation of cognitive radio (CR) networks. 
-Users can configure networks of CRs that use intelligent
-algorithms defined in a cognitive engine to optimize their performance and that
-of the network. 
+The Cognitive Radio Test System (CRTS) provides a flexible framework for over the 
+air test and evaluation of cognitive radio (CR) networks. Users can rapidly define
+new testing scenarios involving a large number of CR's and interferers while customizing
+the behavior of each node individually. Execution of these scenarios is simple
+and the results can be quickly visualized using octave/matlab logs that are kept
+throughout the experiment.
 
-In time, CRTS will be able to connect with any CR with only 
-few modifications. As of now, CRTS can run with any custom cognitive engine developed 
-through the provided Extensible Cognitive Radio (ECR) API.
+CRTS evaluates the performance of CR networks by generating network layer traffic at
+each CR node and logging metrics based on the received packets. Each CR node will
+create a virtual network interface so that CRTS can treat it as a standard network
+device. Part of the motivation for this is to enable evaluation of UDP and TCP network
+connections. The CR object/process can be anything with such an interface. We are
+currently working on examples of this in standard SDR frameworks e.g. GNU Radio. 
 
-Through the ECR, developers can deploy real cognitive radios built from their custom 
-cognitive engines and then evaluate their performance with CRTS. 
-By providing accessible and customizable waveforms, the ECR enables developers to focus 
-on their cognitive engine algorithms, without being bogged in implementation of 
-every aspect of the signal processing.
+A particular CR has been developed with the goal of providing a flexible generic structure
+to enable rapid development and evaluation of cognitive engine (CE) algorithms. This
+CR is being called the Extensible Cognitive Radio (ECR). In this structure, a CE is
+fed data and metrics relating to the current operating point of the radio. It can then
+make decisions and exert control over the radio to improve its performance.
 
-The waveforms of the ECR are based on the
+The ECR uses the  
 [OFDM Frame Generator](http://liquidsdr.org/doc/tutorial_ofdmflexframe.html)
 of
 [liquid-dsp](http://liquidsdr.org/)
-and are designed for use with an 
+and uses an 
 [Ettus](http://www.ettus.com/)
 Univeral Software Radio Peripheral (USRP).
 
@@ -123,11 +127,9 @@ To undo these changes, simply run:
 ## An Overview
 
 CRTS is designed to run on a local network of machines, each 
-with their own dedicated USRP 
-(though CRTS could also be run on a single machine with multiple USRPs).
-Through the main program, `CRTS_controller`,
-CRTS facilitates fast and effiecient CR experimentation
-by automatically launching each radio node in the emulated environment or scenario.
+with their own dedicated USRP. A single node, the `CRTS_controller`, 
+will automatically launch each radio node for a given scenario and
+communicate with it as the scenario progresses.
 
 Each radio node could be 
 1. A member of a CR network (controlled by `CRTS_CR`) 
@@ -168,7 +170,20 @@ configuration file and the default setting will be used.
 Examples of scenario files are provided in the `scenarios/` directory of the
 source tree.
 
-### Cognitive Engines
+### The Extensible Cognitive Radio
+
+As mentioned above the ECR uses an OFDM based waveform defined by liquid-dsp. The
+cognitive engine will be able to control the parameters of this waveform such as
+number of subcarriers, subcarrier allocation, cyclic prefix length, modulation
+scheme, and more. The cognitive engine will also be able to control the settings 
+of the RF front-end USRP including its gains, sampling rate, center frequency,
+and digital mixing frequency. See the code documentation for more details.
+
+Currently the ECR does not support much in the way of MAC layer functionality,
+e.g. there is no ARQ or packet segmentation/concatenation. This is planned for
+future development.
+
+### Cognitive Engines in the ECR
 
 The Extensible Cognitive Radio provides an easy way to implement generic
 cognitive engines. This is accomplished through inheritance i.e. a particular
@@ -191,6 +206,15 @@ cognitive engine of at the receiving radio.
 
 
 Examples of cognitive engines are provided in the `cognitive_engines/` directory.
+
+### Interferers
+
+The testing scenarios for CRTS may involve generic interferers. There are a number
+of parameters that can be set to define the behavior of these interferers. They
+may generate CW, GMSK, RRC, OFDM, or Noise waveforms. Their behavior can be defined
+in terms of when they turn off and on by the period and duty cycle settings, and 
+there frequency behavior can be defined based on its type, range, dwell time, and
+increment.
 
 ### Logs
 

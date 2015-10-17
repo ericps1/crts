@@ -351,7 +351,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
         if(!strcmp(tmpS, "CW"))
             np.interference_type = CW;
         if(!strcmp(tmpS, "AWGN")) 
-            np.interference_type = AWGN;
+            np.interference_type = NOISE;
         if(!strcmp(tmpS, "GMSK"))
             np.interference_type = GMSK;
         if(!strcmp(tmpS, "RRC")) 
@@ -402,28 +402,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
                                     "tx_freq_hop_increment", 
                                     &tmpD))
         np.tx_freq_hop_increment = tmpD;
-
-
-    // ======================================================
-    // process GMSK interference parameters
-    // ======================================================
-    if (config_setting_lookup_int(node_config, 
-                                    "gmsk_header_length", 
-                                    &tmpI))
-        np.gmsk_header_length = tmpI;
-
-    if (config_setting_lookup_int(node_config, 
-                                    "gmsk_payload_length", 
-                                    &tmpI))
-        np.gmsk_payload_length = tmpI;
-
-    if (config_setting_lookup_float(node_config, 
-                                    "gmsk_bandwidth", 
-                                    &tmpD))
-        np.gmsk_bandwidth = tmpD;
-
-
-
+ 
     return np;
 }
 
@@ -517,7 +496,7 @@ void print_node_parameters(struct node_parameters * np)
     switch(np->interference_type)
       {
       case (CW): strcpy(interference_type, "CW"); break;
-      case (AWGN): strcpy(interference_type, "AWGN"); break;
+      case (NOISE): strcpy(interference_type, "AWGN"); break;
       case (GMSK): strcpy(interference_type, "GMSK"); break;
       case (RRC): strcpy(interference_type, "RRC"); break;
       case (OFDM): strcpy(interference_type, "OFDM"); break;
@@ -540,9 +519,6 @@ void print_node_parameters(struct node_parameters * np)
     printf("    tx freq hop increment:             %-.2e\n", np->tx_freq_hop_increment);
 
     printf("\n"); 
-    printf("    GMSK header length:                %-.2d\n", np->gmsk_header_length);
-    printf("    GMSK payload length:               %-.2d\n", np->gmsk_payload_length);
-    printf("    GMSK bandwidth:                    %-.2e\n", np->gmsk_bandwidth);
     }
   printf("--------------------------------------------------------------\n");
   }

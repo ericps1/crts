@@ -132,11 +132,6 @@ static inline void Receive_command_from_controller(Interferer * Int,
 						}
 						freqWidth = floor(np->tx_freq_hop_max - np->tx_freq_hop_min); 
 
-						// set gmsk parameters 
-						Int->gmsk_header_length = np->gmsk_header_length; 
-						Int->gmsk_payload_length = np->gmsk_payload_length; 
-						Int->gmsk_bandwidth = np->gmsk_bandwidth; 
-
 						log_phy_tx_flag = np->log_phy_tx;
 						strcpy(phy_tx_log_file, np->phy_tx_log_file);
 
@@ -240,32 +235,31 @@ unsigned int BuildGMSKTransmission(
 		fec_scheme gmskFecSchemeOuter = LIQUID_FEC_HAMMING74; 
 
 		// header and payload for frame generators
-		unsigned char header[Int.gmsk_header_length]; 
-		unsigned char payload[Int.gmsk_payload_length];
+		unsigned char header[GMSK_HEADER_LENGTH]; 
+		unsigned char payload[GMSK_PAYLOAD_LENGTH];
 
 		// generate a random header
-		for(unsigned int j = 0; j < Int.gmsk_header_length; j++)
+		for(unsigned int j = 0; j < GMSK_HEADER_LENGTH; j++)
 		{
 				header[j] = rand() & 0xff;
 		}
 
 		// generate a random payload
-		for(unsigned int j=0; j < Int.gmsk_payload_length; j++)
+		for(unsigned int j=0; j < GMSK_PAYLOAD_LENGTH; j++)
 		{
 				payload[j] = rand() & 0xff;
 		}
 
 		// generate frame
+		int plen = GMSK_PAYLOAD_LENGTH; 		
 		gmskframegen_assemble(gmsk_fg, 
 						header, 
-						payload, 
-						Int.gmsk_payload_length, 
+						payload,
+						plen,
 						gmskCrcScheme, 
 						gmskFecSchemeInner, 
 						gmskFecSchemeOuter); 
-
-		int frame_complete = 0;
-
+        
 		// set up framing buffers 
 		unsigned int k = 2; 
 		std::complex<float> buffer[k];
@@ -275,6 +269,8 @@ unsigned int BuildGMSKTransmission(
 
 		// calculate soft gain
 		float g = powf(10.0f, Int.tx_gain_soft/20.0f); 
+
+		int frame_complete = 0;
 
 		// generate frame
 		while (!frame_complete) 
@@ -330,21 +326,17 @@ unsigned int BuildGMSKTransmission(
 unsigned int BuildRRCTransmission(std::vector<std::complex<float> > &tx_buffer)
 
 {
-		unsigned int samplesInBuffer = 0;
-		
-		unsigned int k = RRC_K_VALUE;
-		unsigned int m = RRC_M_VALUE;
-		unsigned int h_len = 2*k*m+1;
-		
+		unsigned int samplesInBuffer = 0;	
 		unsigned int samps_to_transmit = 10000;
 		std::complex<float> complex_symbol;
-
+        unsigned int h_len = 2*RRC_SAMPS_PER_SYM*RRC_FILTER_SEMILENGTH+1;
+		
 		for(unsigned int j=0; j < samps_to_transmit; j++)
 		{
 				//samplesAddedToBuffer++;
 				samplesInBuffer++; 
 				// generate a random QPSK symbol until within a filter length of the end
-				if((j%k == 0) && (samplesInBuffer < tx_buffer.size()-2*h_len))
+				if((j%RRC_SAMPS_PER_SYM == 0) && (samplesInBuffer < tx_buffer.size()-2*h_len))
 				{
 						complex_symbol.real(0.5*(float)roundf((float)rand()/(float)RAND_MAX)-0.25);
 						complex_symbol.imag(0.5*(float)roundf((float)rand()/(float)RAND_MAX)-0.25);
@@ -368,43 +360,44 @@ unsigned int BuildRRCTransmission(std::vector<std::complex<float> > &tx_buffer)
 
 int BuildOFDMTransmission(
 				std::vector<std::complex<float> > &tx_buffer,
-				Interferer Int)
+				Interferer Int,
+				struct node_parameters *np)
 
 {
-		unsigned int num_subcarriers = 64; 
-		unsigned int cp_len = 16;
+		unsigned int num_subcarriers = 2*(unsigned int)(np->tx_rate/30e3);
+		unsigned int cp_len = OFDM_CP_LENGTH; 
 		
 		// header and payload for frame generators
 		unsigned char header[OFDM_HEADER_LENGTH]; 
 		unsigned char payload[OFDM_PAYLOAD_LENGTH];
         
-		int frame_complete = 0;
-
 		ofdmflexframegen_assemble(ofdm_fg, 
 								header, 
 								payload, 
 								OFDM_PAYLOAD_LENGTH);
 		
 		int samps_to_transmit = 0;
-
-		for(int j=0; j<floor(TX_BUFFER_LENGTH/(num_subcarriers+cp_len)); j++)
+		int frame_complete = 0;
+        int j=0;
+		while(!frame_complete && (unsigned int) samps_to_transmit < TX_BUFFER_LENGTH-num_subcarriers-OFDM_CP_LENGTH)
 		{
 				frame_complete = ofdmflexframegen_writesymbol(ofdm_fg, 
 								&tx_buffer[j*(num_subcarriers+cp_len)]);
-				samps_to_transmit += num_subcarriers+cp_len;
-				if(frame_complete) 
-				{
-						break;
-				}
+				samps_to_transmit += num_subcarriers+cp_len;	
+		        j++;
 		}
 
 		// calculate soft gain
 		float g = powf(10.0f, Int.tx_gain_soft/20.0f); 
 
 		// reduce amplitude of signal to avoid clipping
-		for(int j=0; j<samps_to_transmit; j++)
+		float max_real = 0.0f;
+		for(int j=0; j<samps_to_transmit; j++){
 		        tx_buffer[j] *= g;	
-		
+				if(tx_buffer[j].real() > max_real)
+				    max_real = tx_buffer[j].real();
+		}
+		printf("Max real: %f\n", max_real);
 		return samps_to_transmit;
 }
 
@@ -540,7 +533,7 @@ void PerformDutyCycle_On( Interferer Int,
 		std::vector<std::complex<float> > tx_buffer(2*TX_BUFFER_LENGTH);
 		unsigned int samplesInBuffer = 0; 
 		unsigned int randomFlag = 
-				(Int.interference_type == (AWGN)) ? 1 : 0; 
+				(Int.interference_type == (NOISE)) ? 1 : 0; 
 		timer_tic(onTimer); 
 
 		while (timer_toc(onTimer) < time_onCycle)
@@ -561,24 +554,23 @@ void PerformDutyCycle_On( Interferer Int,
 				switch(Int.interference_type)
 				{
 						case(CW):
-						case(AWGN):
-								FillBufferForTransmission(randomFlag,
-												tx_buffer); 
+						case(NOISE):
+								FillBufferForTransmission(randomFlag, tx_buffer); 
 								samplesInBuffer = tx_buffer.size(); 
 								break;
 
 						case(GMSK):
-								samplesInBuffer = BuildGMSKTransmission(tx_buffer,
-												Int); 
+								samplesInBuffer = BuildGMSKTransmission(tx_buffer, Int); 
 								break; 
 
 						case(RRC):
 								samplesInBuffer = BuildRRCTransmission(tx_buffer); 
 								break; 
+
 						case(OFDM):
-						        samplesInBuffer = BuildOFDMTransmission(tx_buffer,
-								                Int); 
+						        samplesInBuffer = BuildOFDMTransmission(tx_buffer, Int, &np); 
 						        break; 
+
 				}// interference type switch
 
 				Receive_command_from_controller(&Int, &np, &sp);
@@ -677,10 +669,10 @@ int main(int argc, char ** argv)
 		Interferer Int;
 
 		// Set metadata for interferer
-		Int.metadata_tx.start_of_burst = false;
-		Int.metadata_tx.end_of_burst = false;
-		Int.metadata_tx.has_time_spec = false;
-
+		//Int.metadata_tx.start_of_burst = false;
+		//Int.metadata_tx.end_of_burst = false;
+		//Int.metadata_tx.has_time_spec = false;
+        
 		// Read initial scenario info from controller
 		printf("Receiving command from controller\n");
 		Receive_command_from_controller(&Int, &np, &sp);
@@ -690,44 +682,16 @@ int main(int argc, char ** argv)
 		// Set up GMSK objects
 		//===================================================================
 
-		// Allocate and set GMSK Variable defaults
-		float gmskMinBandwidth = 0.25f * (DAC_RATE / 256.0); 
-		float gmskMaxBandwidth = 0.25f * (DAC_RATE / 4.0); 
-		//float gmskBandWidth = 100e3;        // [Hz]
-		//unsigned int gmskHeaderLength = INTERFERER_HEADER_LENGTH; 
-		unsigned int gmskPayloadLength = INTERFERER_PAYLOAD_LENGTH; 
-
-		// allocate memory for GMSK Frame Generator 
-		dprintf("Creating GMSK frame gen\n");
+		// gmsk frame generator
+		dprintf("Creating GMSK frame generator\n");
 		gmsk_fg = gmskframegen_create();
-
-		// assert values for GMSK transmission 
-		if (Int.gmsk_bandwidth > gmskMaxBandwidth) 
-		{
-				fprintf(stderr,"error: Interferer GMSK maximum bandwidth exceeded (%8.4f MHz)\n", gmskMaxBandwidth*1e-6);
-				return 1;
-		} 
-		else if (Int.gmsk_bandwidth < gmskMinBandwidth) 
-		{
-				fprintf(stderr,"error: Interferer GMSK minimum bandwidth exceeded (%8.4f kHz)\n", gmskMinBandwidth*1e-3);
-				return 1;
-		}
-		else if (gmskPayloadLength > (1<<16))
-		{
-				fprintf(stderr,"error: Interferer GMSK maximum payload length exceeded: %u > %u\n", gmskPayloadLength, 1<<16);
-				return 1;
-		}  
-
-		// calculate tx rate
-		Int.tx_rate = 4.0 * Int.gmsk_bandwidth; 
-		dprintf("Tx rate %e \n", Int.tx_rate); 
-		Int.usrp_tx->set_tx_rate(Int.tx_rate);
+		
 		//usrp_tx_rate = Int.usrp_tx->get_tx_rate(); 
 
 		//double tx_resamp_rate = usrp_tx_rate / tx_rate; 
 		// dprintf("resample rate for arbitrary resampler: %f \n", tx_resamp_rate); 
 
-		// half-band resampler
+		// half-band interpolator
 		dprintf("Creating interpolator\n");
 		interp = resamp2_crcf_create(7,0.0f,40.0f);
 
@@ -738,35 +702,20 @@ int main(int argc, char ** argv)
 		// ================================================================
 		// Set up RRC transmit
 		// ================================================================
-		unsigned int k = 0;
-		unsigned int m = 0; 
-		float beta = 0.0f;
-		unsigned int h_len = 0.0f; 
-
-		k = RRC_K_VALUE;
-		m = RRC_M_VALUE;
-		beta = RRC_BETA_VALUE; 
-		h_len = 2*k*m+1;
+		unsigned int h_len = 2*RRC_SAMPS_PER_SYM*RRC_FILTER_SEMILENGTH+1;
 		float h[h_len];
-		liquid_firdes_rrcos(k, m, beta, 0.0, h);
+		liquid_firdes_rrcos(RRC_SAMPS_PER_SYM, RRC_FILTER_SEMILENGTH, RRC_BETA, 0.0, h);
 		rrc_filt = firfilt_crcf_create(h, h_len);
 
 		// ================================================================
 		// Set up OFDM transmit
 		// ================================================================
-		unsigned int num_subcarriers = 64; 
-		unsigned int cp_len = 16;
-		unsigned int taper_len = 4;
+		unsigned int num_subcarriers = 2*(unsigned int)(np.tx_rate/30e3);
 		unsigned char * subcarrierAlloc = NULL;
-		
-		num_subcarriers = 2*(unsigned int)(np.tx_rate/30e3);
-		cp_len = OFDM_CP_LENGTH; 
-		taper_len = OFDM_TAPER_LENGTH; 
-		subcarrierAlloc = NULL;
 		ofdmflexframegenprops_init_default(&fgprops);
 		ofdm_fg = ofdmflexframegen_create(num_subcarriers, 
-						cp_len, 
-						taper_len, 
+						OFDM_CP_LENGTH, 
+						OFDM_TAPER_LENGTH, 
 						subcarrierAlloc, 
 						&fgprops);
 

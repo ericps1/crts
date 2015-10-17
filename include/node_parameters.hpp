@@ -5,27 +5,27 @@
 #include<liquid/liquid.h>
 
 enum type{
-    CR = 0,        // user equipment node type
-    interferer        // interferer node type
+    CR = 0,       // user equipment node type
+    interferer    // interferer node type
 };
 
 enum cr_type{
-    python = 0, //third party python radios
-    ecr      //Radios created using ECR
+    python = 0,   //third party python radios
+    ecr           //Radios created using ECR
 };
 
 enum duplex{
-    FDD = 0,        // frequency division duplexing
-    TDD,        // time division duplexing (not implemented)
+    FDD = 0,      // frequency division duplexing
+    TDD,          // time division duplexing (not implemented)
     HD            // half-duplex
 };
 
 enum interference_type{
-    CW= 0,       // continuous-wave interference
-    AWGN,       // additive white gaussian noise interference
-    GMSK,     // gaussian minimum-shift keying inteference
-    RRC,     // root-raised cosine interference (as in WCDMA)
-    OFDM     // orthogonal frequency division multiplexing interference
+    CW= 0,        // continuous-wave interference
+    NOISE,        // random noise interference
+    GMSK,         // gaussian minimum-shift keying inteference
+    RRC,          // root-raised cosine interference (as in WCDMA)
+    OFDM          // orthogonal frequency division multiplexing interference
 };
 
 
@@ -96,13 +96,6 @@ struct node_parameters{
     float tx_freq_hop_dwell_time;      // seconds at a given freq
     float tx_freq_hop_increment;       // for SWEEP, increment hop amount 
     
-    // gmsk interferer properties 
-    unsigned int gmsk_header_length;
-    unsigned int gmsk_payload_length; 
-    float        gmsk_bandwidth;       // note tx_rate is ignored and 
-                                       // calcualted from gmsk_bandwidth 
-                                       // (default = 4.0f * bandwidth)
-
 };
 
 #endif
