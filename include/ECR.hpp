@@ -361,6 +361,8 @@ public:
         /// This value is passed directly to 
         /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
         float tx_rate;
+
+		unsigned int payload_sym_length;
     };
         
     // rx parameter struct
@@ -537,9 +539,15 @@ public:
     /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::taper_len.
     void set_tx_taper_len(unsigned int taper_len);
 
-    /// \brief Set the control information used for the next transmit frame.
-    void set_control_info(unsigned char * _control_info);
+    /// \brief Set the control information used for future transmit frames.
+    void set_tx_control_info(unsigned char * _control_info);
     
+	/// \brief Set the number of symbols transmitted in each frame payload.
+	/// For now since the ECR does not have any segmentation/concatenation capabilities,
+	/// the actual payload will be an integer number of IP packets, so this value really
+	/// provides a lower bound for the payload length in symbols.
+	void set_tx_payload_sym_len(unsigned int len);
+	
 	/// \brief Increases the modulation order if possible.
     void increase_tx_mod_order();
     
@@ -588,8 +596,7 @@ public:
     /// \breif Return the value of ExtensibleCognitiveRadio::tx_parameter_s::taper_len.
     unsigned int get_tx_taper_len();
 
-    void get_header(unsigned char *h);
-    
+	void get_tx_control_info(unsigned char *_control_info); 
 
     void start_tx();
     void stop_tx();
@@ -675,6 +682,8 @@ public:
     /// \brief Return the value of ExtensibleCognitiveRadio::rx_parameter_s::taper_len.
     unsigned int get_rx_taper_len();
     
+    void get_rx_control_info(unsigned char *_control_info); 
+
     void reset_rx();
     void start_rx();
     void stop_rx();

@@ -30,7 +30,7 @@ void CE_Mod_Adaptation::execute(void * _args){
 	int desired_tx_mod;
 	int desired_rx_mod = LIQUID_MODEM_QAM4;
 
-	// control info to signal modulation change at other node's transmitter
+	// character array to write/read control information for the ECR
     unsigned char control_info[6];
 
 	// only update average EVM  or tx modulation for physical layer events
@@ -67,15 +67,18 @@ void CE_Mod_Adaptation::execute(void * _args){
 
         // set control info to update the transmitter modulation scheme
         memcpy(control_info, &desired_rx_mod, sizeof(int));
-		ECR->set_control_info(control_info);
+		ECR->set_tx_control_info(control_info);
 
 		// increment the EVM buffer index and wrap around
         ind++;
         if(ind >= EVM_buff_len)
             ind = 0;
     
-	    // update transmitter modulation if necessary
-		desired_tx_mod = *(int *)ECR->CE_metrics.control_info;
+	    // obtain the desired tx modulation based on the received control information
+		ECR->get_rx_control_info(control_info);
+		desired_tx_mod = *(int *)control_info;
+		
+		// update transmitter modulation if necessary
 		if(ECR->CE_metrics.control_valid       && 
 		   current_tx_mod != desired_tx_mod    &&
 		   desired_tx_mod >= LIQUID_MODEM_QAM4 &&

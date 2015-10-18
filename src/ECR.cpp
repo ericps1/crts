@@ -31,6 +31,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     tx_params.cp_len = 16;
     tx_params.taper_len = 4; 
     tx_params.subcarrierAlloc = NULL;   // subcarrier allocation (default)
+	tx_params.payload_sym_length = 256*8;
     rx_params.numSubcarriers = 64;
     rx_params.cp_len = 16;
     rx_params.taper_len = 4; 
@@ -184,6 +185,10 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
     ofdmflexframegen_destroy(fg);
     ofdmflexframesync_destroy(fs);
 
+	// free memory for subcarrier allocation if necessary
+	if(tx_params.subcarrierAlloc)
+		free(tx_params.subcarrierAlloc);
+	
 	// close the TUN interface file descriptor
 	dprintf("destructor closing the TUN interface file descriptor\n");
 	close(tunfd);
@@ -204,6 +209,8 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 void ExtensibleCognitiveRadio::set_ce(char *ce){
 ///@cond INTERNAL
 //EDIT START FLAG
+    if(!strcmp(ce, "CE_Subcarrier_Alloc"))
+        CE = new CE_Subcarrier_Alloc();
     if(!strcmp(ce, "CE_Mod_Adaptation"))
         CE = new CE_Mod_Adaptation();
     if(!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
@@ -444,7 +451,7 @@ int ExtensibleCognitiveRadio::get_tx_fec1()
 // set number of subcarriers
 void ExtensibleCognitiveRadio::set_tx_subcarriers(unsigned int _numSubcarriers)
 {
-    // destroy frame gen, set cp length, recreate frame gen
+    // destroy frame gen, set number of subcarriers, recreate frame gen
     pthread_mutex_lock(&tx_mutex);
     ofdmflexframegen_destroy(fg);
 	tx_params.numSubcarriers = _numSubcarriers;
@@ -457,17 +464,22 @@ void ExtensibleCognitiveRadio::set_tx_subcarriers(unsigned int _numSubcarriers)
 // get number of subcarriers
 unsigned int ExtensibleCognitiveRadio::get_tx_subcarriers()
 {
-    return tx_params.numSubcarriers;    
+	return tx_params.numSubcarriers;
 }
-
-// set subcarrier allocation
 void ExtensibleCognitiveRadio::set_tx_subcarrier_alloc(char *_subcarrierAlloc)
 {
-    // destroy frame gen, set cp length, recreate frame gen
+    // destroy frame gen, set subcarrier allocation, recreate frame gen
     pthread_mutex_lock(&tx_mutex);
     ofdmflexframegen_destroy(fg);
-    memcpy(tx_params.subcarrierAlloc, _subcarrierAlloc, tx_params.numSubcarriers);
-    fg = ofdmflexframegen_create(tx_params.numSubcarriers, tx_params.cp_len, tx_params.taper_len, tx_params.subcarrierAlloc, &tx_params.fgprops);
+    if(_subcarrierAlloc){
+	    tx_params.subcarrierAlloc = (unsigned char*) realloc((void*)tx_params.subcarrierAlloc, tx_params.numSubcarriers);
+		memcpy(tx_params.subcarrierAlloc, _subcarrierAlloc, tx_params.numSubcarriers);
+	}
+	else{
+	    free(tx_params.subcarrierAlloc);
+		tx_params.subcarrierAlloc = NULL;
+	}
+	fg = ofdmflexframegen_create(tx_params.numSubcarriers, tx_params.cp_len, tx_params.taper_len, tx_params.subcarrierAlloc, &tx_params.fgprops);
     pthread_mutex_unlock(&tx_mutex);
 }
 
@@ -513,22 +525,38 @@ unsigned int ExtensibleCognitiveRadio::get_tx_taper_len()
     return tx_params.taper_len;
 }
 
-// set header data (must have length 8)
-void ExtensibleCognitiveRadio::set_control_info(unsigned char * _control_info)
+// set control info (must have length 6)
+void ExtensibleCognitiveRadio::set_tx_control_info(unsigned char * _control_info)
 {
     pthread_mutex_lock(&tx_mutex);
 	for(int i=0; i<6; i++)
         tx_header[i+2] = _control_info[i];
-    pthread_mutex_unlock(&tx_mutex);
+    memcpy(_control_info, &tx_header[2], 6*sizeof(unsigned char)); 
+	pthread_mutex_unlock(&tx_mutex);
 }
 
-// get header data
-void ExtensibleCognitiveRadio::get_header(unsigned char *h)
+// get control info
+void ExtensibleCognitiveRadio::get_tx_control_info(unsigned char *_control_info)
 {
-    memcpy(tx_header, h, 8*sizeof(unsigned char)); 
+    pthread_mutex_lock(&tx_mutex);
+	memcpy(&tx_header[2], _control_info, 6*sizeof(unsigned char)); 
+	pthread_mutex_unlock(&tx_mutex);
 }
 
-// transmit a frame
+// set tx payload length
+void ExtensibleCognitiveRadio::set_tx_payload_sym_len(unsigned int len)
+{
+	pthread_mutex_lock(&tx_mutex);
+	tx_params.payload_sym_length = len;
+	pthread_mutex_unlock(&tx_mutex);
+}
+
+// get control info
+void ExtensibleCognitiveRadio::get_rx_control_info(unsigned char *_control_info)
+{
+    memcpy(_control_info, CE_metrics.control_info, 6*sizeof(unsigned char)); 
+}
+
 void ExtensibleCognitiveRadio::transmit_frame(unsigned char * _header,
                    unsigned char * _payload,
                    unsigned int    _payload_len)
@@ -954,7 +982,7 @@ void * ECR_tx_worker(void * _arg)
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio*)_arg;
 
     // set up transmit buffer
-    int buffer_len = 1024;
+    int buffer_len = 256*8*2;
     unsigned char buffer[buffer_len];
     unsigned char *payload;
     unsigned int payload_len;
@@ -982,29 +1010,35 @@ void * ECR_tx_worker(void * _arg)
 
 		// run transmitter
         while (ECR->tx_running) {
-            FD_ZERO(&fds);
-			FD_SET(ECR->tunfd, &fds);
-			
-			// check if anything is available on the TUN interface
-			if(select(ECR->tunfd+1, &fds, NULL, NULL, &timeout) > 0){
+            nread = 0;
+			int bps = modulation_types[ECR->tx_params.fgprops.mod_scheme].bps;
+			int payload_sym_length = ECR->tx_params.payload_sym_length;
+			int payload_byte_length = (int)ceilf((float)(payload_sym_length*bps)/8.0);
 
-				// grab data from TUN interface
-            	//dprintf("Reading from tun interface\n");
-            	nread = cread(ECR->tunfd, (char*)buffer, buffer_len);
-            	if (nread < 0) {
-            	    printf("Error reading from interface");
-            	    close(ECR->tunfd);
-            	    exit(1);
-            	}
+			while(nread <= payload_byte_length && ECR->tx_running){
+				FD_ZERO(&fds);
+			    FD_SET(ECR->tunfd, &fds);
+			
+			    // check if anything is available on the TUN interface
+				if(select(ECR->tunfd+1, &fds, NULL, NULL, &timeout) > 0){
+         
+					// grab data from TUN interface
+            		nread += cread(ECR->tunfd, (char*)(&buffer[nread]), buffer_len);
+            		if (nread < 0) {
+            	    	printf("Error reading from interface");
+            	    	close(ECR->tunfd);
+            	    	exit(1);
+            		}
+				}
+			}
             
-            	payload = buffer;
-            	payload_len = nread;
+            payload = buffer;
+            payload_len = nread;
      
-            	// transmit frame
-            	ECR->transmit_frame(ECR->tx_header,
+            // transmit frame
+            ECR->transmit_frame(ECR->tx_header,
             	    payload,
             	    payload_len);
-			}
         } // while tx_running
         dprintf("tx_worker finished running\n");
     } // while true
@@ -1097,16 +1131,15 @@ void ExtensibleCognitiveRadio::log_rx_metrics(){
     {
         std::cerr<<"Error opening log file:"<<phy_rx_log_file<<std::endl;
     }
-
     log_fstream.close();
 }
 
 void ExtensibleCognitiveRadio::log_tx_parameters(){
-    
+															    
     // update current time
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    
+																					    
     // open file, append parameters, and close
     std::ofstream log_fstream;
     log_fstream.open(phy_tx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
@@ -1119,7 +1152,6 @@ void ExtensibleCognitiveRadio::log_tx_parameters(){
     {
         std::cerr<<"Error opening log file:"<<phy_tx_log_file<<std::endl;
     }
-
     log_fstream.close();
 }
 

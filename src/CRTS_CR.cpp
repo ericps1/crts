@@ -35,49 +35,58 @@ void Receive_command_from_controller(int *TCP_controller, struct scenario_parame
     // Listen to socket for message from controller
     char command_buffer[1+sizeof(struct scenario_parameters)+sizeof(struct node_parameters)];
     memset(&command_buffer, 0, sizeof(command_buffer));
-    int rflag = recv(*TCP_controller, command_buffer, 1, 0);
     
-    //dprintf("TCP receive flag: %i\n", rflag);
-    int err = errno;
-    if(rflag <= 0){
-        if ((err == EAGAIN) || (err == EWOULDBLOCK))
-            return;
-        else{
-            close(*TCP_controller);
-            printf("Socket failure\n");
-            exit(1);
-        }
-    }
+	// setup file descriptor to listen for data on TCP controller link.
+	fd_set fds;
+	struct timeval timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 100;
+	FD_ZERO(&fds);
+	FD_SET(*TCP_controller, &fds);
 
-	int flags;
+    // if data is available, read it in
+	if(select(*TCP_controller+1, &fds, NULL, NULL, &timeout)){
+		// read the first byte which designates the message type
+		int rflag = recv(*TCP_controller, command_buffer, 1, 0);
+    
+    	int err = errno;
+    	if(rflag <= 0){
+    	    if ((err == EAGAIN) || (err == EWOULDBLOCK))
+    	        return;
+    	    else{
+    	        close(*TCP_controller);
+    	        printf("Socket failure\n");
+    	        sig_terminate = 1;
+    	    }
+    	}
 
-    // Parse command
-    switch (command_buffer[0]){
-    case scenario_params_msg: // settings for upcoming scenario
-        printf("Received settings for scenario\n");
-        // receive and copy scenario parameters
-        rflag = recv(*TCP_controller, &command_buffer[1], sizeof(struct scenario_parameters), 0);
-        memcpy(sp, &command_buffer[1], sizeof(struct scenario_parameters));
+		//int flags;
+
+    	// Parse command based on the message type
+    	switch (command_buffer[0]){
+    	case scenario_params_msg: // settings for upcoming scenario
+    	    printf("Received settings for scenario\n");
+    	    // receive and copy scenario parameters
+    	    rflag = recv(*TCP_controller, &command_buffer[1], sizeof(struct scenario_parameters), 0);
+    	    memcpy(sp, &command_buffer[1], sizeof(struct scenario_parameters));
         
-        // receive and copy node_parameters
-        rflag = recv(*TCP_controller, &command_buffer[1+sizeof(struct scenario_parameters)], sizeof(struct node_parameters), 0);
-        memcpy(np ,&command_buffer[1+sizeof(struct scenario_parameters)], sizeof(struct node_parameters));
-        print_node_parameters(np);
-        break;
-    case manual_start_msg: // updated start time (used for manual mode)
-		flags = fcntl(*TCP_controller, F_GETFL, 0);
-		flags &= ~O_NONBLOCK;
-		fcntl(*TCP_controller, F_SETFL, flags); 
-		rflag = recv(*TCP_controller, &command_buffer[1], sizeof(time_t), 0);
-        fcntl(*TCP_controller, F_SETFL, O_NONBLOCK); 
-		
-		memcpy(&sp->start_time_s , &command_buffer[1], sizeof(time_t));
-		stop_time_s = sp->start_time_s + sp->runTime;
-    	break;
-	case terminate_msg: // terminate program
-        printf("Received termination command from controller\n");
-        exit(1);
-    }
+    	    // receive and copy node_parameters
+    	    rflag = recv(*TCP_controller, &command_buffer[1+sizeof(struct scenario_parameters)], 
+				         sizeof(struct node_parameters), 0);
+    	    memcpy(np , &command_buffer[1+sizeof(struct scenario_parameters)], 
+				   sizeof(struct node_parameters));
+    	    print_node_parameters(np);
+    	    break;
+    	case manual_start_msg: // updated start time (used for manual mode)
+			rflag = recv(*TCP_controller, &command_buffer[1], sizeof(time_t), 0);
+    	    memcpy(&sp->start_time_s , &command_buffer[1], sizeof(time_t));
+			stop_time_s = sp->start_time_s + sp->runTime;
+    		break;
+		case terminate_msg: // terminate program
+    	    printf("Received termination command from controller\n");
+    	    sig_terminate = 1;
+    	}
+	}
 }
 
 void Initialize_CR(struct node_parameters *np, void * ECR_p){
@@ -233,7 +242,7 @@ int main(int argc, char ** argv){
     dprintf("Receiving command from controller...\n");
     sleep(1);
     Receive_command_from_controller(&TCP_controller, &sp, &np);
-    fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
+    //fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
 	
 	// copy log file name for post processing later
     char net_rx_log_file_cpy[100];

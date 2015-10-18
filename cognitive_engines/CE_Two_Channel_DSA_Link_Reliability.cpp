@@ -101,7 +101,7 @@ void CE_Two_Channel_DSA_Link_Reliability::execute(void * _args){
     unsigned char control_info[6] = {};
     control_info[0] = 'f';
     std::memcpy(&control_info[1], &current_rx_freq, sizeof current_rx_freq);
-    ECR->set_control_info(control_info);
+    ECR->set_tx_control_info(control_info);
    
     // If we recieved a valid control and the fourth byte 
     // is set to 'f' (signalling that the frequency is 

@@ -44,6 +44,12 @@ public:
 // Custom Cognitive Engine sub classes
 ///@cond INTERNAL
 //EDIT START FLAG
+class CE_Subcarrier_Alloc : public Cognitive_Engine {
+public:
+    CE_Subcarrier_Alloc();
+    ~CE_Subcarrier_Alloc();
+    virtual void execute(void * _args);
+};
 class CE_Mod_Adaptation : public Cognitive_Engine {
 public:
     CE_Mod_Adaptation();

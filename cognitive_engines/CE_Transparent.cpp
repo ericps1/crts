@@ -26,11 +26,11 @@ void CE_Transparent::execute(void * _args){
 	// create a static struct to maintain variables from one execution to another
 	static struct CE_Transparent_members cm;
     
-	if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT) printf("CE execution was triggered by a timeout\n");
+	/*if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT) printf("CE execution was triggered by a timeout\n");
     else if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY) printf("CE execution was triggered by a physical layer event\n");
    
     printf("%f\n", cm.example_ce_metric);
-    cm.example_ce_metric += 1.0;
+    cm.example_ce_metric += 1.0;*/
 }
 
 // custom function definitions
