@@ -490,7 +490,6 @@ void TransmitInterference(
 void ChangeFrequency(Interferer Int)
 {
 
-		printf("entering change frequency\n");
 		switch (Int.tx_freq_hop_type)
 		{
 				case (ALTERNATING):
@@ -516,7 +515,6 @@ void ChangeFrequency(Interferer Int)
 						currentTxFreq = rand() % freqWidth + Int.tx_freq_hop_min;
 						break;
 		}
-		printf("Setting USRP freq\n");
 		Int.usrp_tx->set_tx_freq(currentTxFreq);
 		printf("Set transmit frequency to %f\n", currentTxFreq);
 }
@@ -536,6 +534,8 @@ void PerformDutyCycle_On( Interferer Int,
 				(Int.interference_type == (NOISE)) ? 1 : 0; 
 		timer_tic(onTimer); 
 
+        printf("Interferer turning on\n");
+
 		while (timer_toc(onTimer) < time_onCycle)
 		{
 
@@ -544,7 +544,6 @@ void PerformDutyCycle_On( Interferer Int,
 				if ((Int.tx_freq_hop_type != (NONE)) && 
 								(a >= Int.tx_freq_hop_dwell_time))
 				{
-						printf("Changing frequency\n");
 						timer_tic(dwellTimer); 
 						ChangeFrequency(Int); 
 						usleep(100); 
@@ -593,6 +592,8 @@ void PerformDutyCycle_Off(Interferer Int,
 				scenario_parameters sp, 
 				float time_offCycle)
 {
+		printf("Interferer turning off\n");
+        
 		timer_tic(onTimer); 
 		while (timer_toc(onTimer) < time_offCycle)
 		{

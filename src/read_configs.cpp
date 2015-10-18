@@ -345,7 +345,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
     if (config_setting_lookup_float(node_config, "tx_delay_us", &tmpD))
         np.tx_delay_us = tmpD;
 	else
-		np.tx_delay_us = 1e4;
+		np.tx_delay_us = 1e3;
 
     if (config_setting_lookup_string(node_config, "interference_type", &tmpS)){
         if(!strcmp(tmpS, "CW"))

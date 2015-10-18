@@ -35,9 +35,9 @@ void Receive_command_from_controller(int *TCP_controller, struct scenario_parame
     // Listen to socket for message from controller
     char command_buffer[1+sizeof(struct scenario_parameters)+sizeof(struct node_parameters)];
     memset(&command_buffer, 0, sizeof(command_buffer));
-    int rflag = recv(*TCP_controller, command_buffer, 1+sizeof(struct scenario_parameters)+sizeof(struct node_parameters), 0);
+    int rflag = recv(*TCP_controller, command_buffer, 1, 0);
     
-    dprintf("TCP receive flag: %i\n", rflag);
+    //dprintf("TCP receive flag: %i\n", rflag);
     int err = errno;
     if(rflag <= 0){
         if ((err == EAGAIN) || (err == EWOULDBLOCK))
@@ -49,20 +49,29 @@ void Receive_command_from_controller(int *TCP_controller, struct scenario_parame
         }
     }
 
+	int flags;
+
     // Parse command
     switch (command_buffer[0]){
     case scenario_params_msg: // settings for upcoming scenario
         printf("Received settings for scenario\n");
-        // copy scenario parameters
+        // receive and copy scenario parameters
+        rflag = recv(*TCP_controller, &command_buffer[1], sizeof(struct scenario_parameters), 0);
         memcpy(sp, &command_buffer[1], sizeof(struct scenario_parameters));
         
-        // copy node_parameters
+        // receive and copy node_parameters
+        rflag = recv(*TCP_controller, &command_buffer[1+sizeof(struct scenario_parameters)], sizeof(struct node_parameters), 0);
         memcpy(np ,&command_buffer[1+sizeof(struct scenario_parameters)], sizeof(struct node_parameters));
         print_node_parameters(np);
         break;
     case manual_start_msg: // updated start time (used for manual mode)
-		printf("Received an updated start time\n");
-		memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
+		flags = fcntl(*TCP_controller, F_GETFL, 0);
+		flags &= ~O_NONBLOCK;
+		fcntl(*TCP_controller, F_SETFL, flags); 
+		rflag = recv(*TCP_controller, &command_buffer[1], sizeof(time_t), 0);
+        fcntl(*TCP_controller, F_SETFL, O_NONBLOCK); 
+		
+		memcpy(&sp->start_time_s , &command_buffer[1], sizeof(time_t));
 		stop_time_s = sp->start_time_s + sp->runTime;
     	break;
 	case terminate_msg: // terminate program
@@ -225,7 +234,7 @@ int main(int argc, char ** argv){
     sleep(1);
     Receive_command_from_controller(&TCP_controller, &sp, &np);
     fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking for future communication
-
+	
 	// copy log file name for post processing later
     char net_rx_log_file_cpy[100];
     strcpy(net_rx_log_file_cpy, np.net_rx_log_file); 
@@ -355,12 +364,13 @@ int main(int argc, char ** argv){
     stop_time_s = sp.start_time_s + sp.runTime;
     while(1){
         Receive_command_from_controller(&TCP_controller, &sp, &np);
-		gettimeofday(&tv, NULL);
+	    gettimeofday(&tv, NULL);
         time_s = tv.tv_sec;
         if(time_s >= sp.start_time_s) 
             break;
     	if(sig_terminate)
 			break;
+		usleep(1e4);
 	}
 
 	if(np.cr_type == ecr){
@@ -416,7 +426,12 @@ int main(int argc, char ** argv){
         time_s = tv.tv_sec;    
     }
 
-    printf("CRTS: Reached termination. Sending termination message to controller\n");
+    printf("sigterminate: %i\n", sig_terminate);
+	printf("start_time_s: %li\n", sp.start_time_s);
+	printf("time_s: %li\n", time_s);
+	printf("stop_time_s: %li\n", stop_time_s);
+	
+	printf("CRTS: Reached termination. Sending termination message to controller\n");
     char term_message = terminate_msg;
     write(TCP_controller, &term_message, 1);
 

@@ -117,9 +117,9 @@ public:
     /// 
     /// ExtensibleCognitiveRadio::metric_s::CE_frame,
     /// 
-    /// ExtensibleCognitiveRadio::metric_s::header_valid,
+    /// ExtensibleCognitiveRadio::metric_s::control_valid,
     /// 
-    /// ExtensibleCognitiveRadio::metric_s::header,
+    /// ExtensibleCognitiveRadio::metric_s::control_info,
     /// 
     /// ExtensibleCognitiveRadio::metric_s::payload,
     /// 

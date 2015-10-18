@@ -517,7 +517,7 @@ unsigned int ExtensibleCognitiveRadio::get_tx_taper_len()
 void ExtensibleCognitiveRadio::set_control_info(unsigned char * _control_info)
 {
     pthread_mutex_lock(&tx_mutex);
-    for(int i=0; i<6; i++)
+	for(int i=0; i<6; i++)
         tx_header[i+2] = _control_info[i];
     pthread_mutex_unlock(&tx_mutex);
 }

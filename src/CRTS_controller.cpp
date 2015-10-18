@@ -191,10 +191,9 @@ int main(int argc, char ** argv){
             gettimeofday(&tv, NULL);
             time_s = tv.tv_sec;
             int pad_s = manual_execution ? 120 : 1;
-            sp.start_time_s = time_s + 3*sp.num_nodes + pad_s;
-            printf("\nScenario start time: %lld\n\n", (long long) sp.start_time_s);
+            sp.start_time_s = time_s + 1*sp.num_nodes + pad_s;
             
-            // loop through nodes in scenario
+			// loop through nodes in scenario
             for (int j = 0; j < sp.num_nodes; j++){
                 char node_id[10];
                 snprintf(node_id, 10, "%d", j + 1);
@@ -308,8 +307,8 @@ int main(int argc, char ** argv){
             	time_t time_s;
             	gettimeofday(&tv, NULL);
             	time_s = tv.tv_sec;
-            	int pad_s = 5;
-            	time_t start_time_s = time_s + pad_s;
+            	int pad_s = 1;
+            	time_t start_time_s = time_s + 1*sp.num_nodes + pad_s;
             	
 				// send updated start time to all nodes
 				char msg_type = manual_start_msg;

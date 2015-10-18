@@ -1,18 +1,13 @@
 #include "CE.hpp"
 #include "ECR.hpp"
 
-// custom member struct
-struct CE_FEC_Adaptation_members{
-    float example_ce_metric;
-    int num_received;
+#if 0
+#define dprintf(...) printf(__VA_ARGS__)
+#else
+#define dprintf(...) /*__VA_ARGS__*/
+#endif
 
-	CE_FEC_Adaptation_members(){
-		example_ce_metric = 15.0;
-    	num_received = 0;
-	}
-};
-
-// custom function declarations
+#define EVM_buff_len 5
 
 // constructor
 CE_FEC_Adaptation::CE_FEC_Adaptation(){}
@@ -25,43 +20,79 @@ void CE_FEC_Adaptation::execute(void * _args){
     // type cast pointer to cognitive radio object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
     
-	static struct CE_FEC_Adaptation_members cm;
-    
-	if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT) printf("CE execution was triggered by a timeout\n");
-    else if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY)
-    { 
-        if(ECR->CE_metrics.payload_valid)
-            cm.num_received++;
-        printf("num frames received: %i\n", cm.num_received);
-        if(cm.num_received == 10)
-        {
-            printf("sending change frame????????????????????\n");
-            unsigned char control[8] = {(unsigned char) 'f', 0, 0, 0, 0, 0, 0, 0};
-            ECR->transmit_frame(control, NULL, 0);
-        }
-        if(cm.num_received % 5 == 0)
-        {
-            unsigned char control[8] = {(unsigned char) 'p', 0, 0, 0, 0, 0, 0, 0};
-            unsigned char payload[50];
-            for(unsigned int i = 0; i < 50; i++)
-                payload[i] = 'b';
-            ECR->transmit_frame(control, payload, 50);
-        }
-       // else
-        //{
-          //  unsigned char control[8] = {(unsigned char) 'p', 0, 0, 0, 0, 0, 0, 0};
-       // }
+	// static variables to take a moving average of EVM
+	static float EVM_buff[EVM_buff_len];
+    static float EVM_avg;
+    static int ind;
 
-        if('f' == (char)ECR->CE_metrics.control_info[0])
-        {
-            printf("resetting fec!!!!!!!!!!!!!!!!!!!!!!\n");
-            ECR->set_tx_fec1(LIQUID_FEC_REP3);
-        }
-        if('p' == (char)ECR->CE_metrics.control_info[0])
-        {
-            printf("got p payload of length %u\n", ECR->CE_metrics.payload_len);
-        }
-    }    
+    // keep track of current and desired fec for rx and tx
+    int current_tx_fec = ECR->get_tx_fec0();
+	int desired_tx_fec;
+	int desired_rx_fec = LIQUID_MODEM_QAM4;
+
+	// control info to signal fec change at other node's transmitter
+    unsigned char control_info[6];
+
+	// only update average EVM  or tx fec for physical layer events
+    if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY){
+        // define old and new EVM values
+        float EVM_old = EVM_buff[ind];
+        float EVM_new = ECR->CE_metrics.stats.evm;
+    
+		// update EVM history
+        EVM_buff[ind] = EVM_new;
+
+        // update moving average EVM
+        EVM_avg += (EVM_new - EVM_old)/EVM_buff_len;
+
+        dprintf("\n---------------------------------------------------\n");
+		dprintf("New EVM: %f\n", EVM_new);
+        dprintf("Old EVM: %f\n", EVM_old);
+        dprintf("Average EVM: %f\n", EVM_avg);
+
+        // update rx fec scheme based on averaged EVM
+        if(EVM_avg > -15.0f){
+            dprintf("Setting desired rx fec to rate 1/2\n");
+            desired_rx_fec = LIQUID_FEC_CONV_V27;
+		}
+        else if(EVM_avg > -20.0f){
+            dprintf("Setting desired rx fec to rate 3/4\n");
+            desired_rx_fec = LIQUID_FEC_CONV_V27P34;
+		}
+		else{
+            dprintf("Setting desired rx fec to rate 7/8\n");
+            desired_rx_fec = LIQUID_FEC_CONV_V27P78;
+		}
+        
+		// set control info to update the transmitter fec scheme
+        memcpy(control_info, &desired_rx_fec, sizeof(int));
+		ECR->set_control_info(control_info);
+
+		// increment the EVM buffer index and wrap around
+        ind++;
+        if(ind >= EVM_buff_len)
+            ind = 0;
+    
+	    // update transmitter fec if necessary
+		desired_tx_fec = *(int*)ECR->CE_metrics.control_info;
+		if(ECR->CE_metrics.control_valid             && 
+		   current_tx_fec != desired_tx_fec          &&
+		   (desired_tx_fec == LIQUID_FEC_CONV_V27 ||
+		   desired_tx_fec == LIQUID_FEC_CONV_V27P34  ||
+		   desired_tx_fec == LIQUID_FEC_CONV_V27P78) 
+		  ){
+            dprintf("Setting tx FEC to: %i\n", desired_tx_fec);
+			ECR->set_tx_fec0(desired_tx_fec);
+		}
+        dprintf("desired tx FEC: %i\n", desired_tx_fec);
+		dprintf("current tx FEC: %i\n", current_tx_fec);
+		dprintf("desired rx FEC: %i\n", desired_rx_fec);
+			
+	}
+    else dprintf("CE was triggered by a timeout\n");
 }
 
 // custom function definitions
+
+
+

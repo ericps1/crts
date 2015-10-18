@@ -117,6 +117,9 @@ int main(int argc, char ** argv){
             fprintf(file_out, "%sphy_tx_gain_soft(%i) = %f;\n", node_prefix, i, tx_params.tx_gain_soft);
             fprintf(file_out, "%sphy_tx_freq(%i) = %f;\n", node_prefix, i, tx_params.tx_freq + tx_params.tx_dsp_freq);
             fprintf(file_out, "%sphy_tx_rate(%i) = %f;\n", node_prefix, i, tx_params.tx_rate);    
+            fprintf(file_out, "%sphy_tx_mod_scheme(%i) = %i;\n", node_prefix, i, tx_params.fgprops.mod_scheme);
+            fprintf(file_out, "%sphy_tx_fec0(%i) = %i;\n", node_prefix, i, tx_params.fgprops.fec0);
+            fprintf(file_out, "%sphy_tx_fec1(%i) = %i;\n\n", node_prefix, i, tx_params.fgprops.fec1);
             i++;
         }
     }
