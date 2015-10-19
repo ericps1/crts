@@ -70,14 +70,14 @@ Note that because using CRTS involves actively writing and compiling
 cognitive engine code, it is not installed like traditional software.
 
 #### Official Releases
-1. Download the Version 2.0 tar.gz from the [Official Releases Page](https://github.com/ericps1/crts/releases):
+1. Download the Version 1.0 tar.gz from the [Official Releases Page](https://github.com/ericps1/crts/releases):
 
-        $ wget -O crts-v2.0.tar.gz https://github.com/ericps1/crts/archive/v2.0.tar.gz
+        $ wget -O crts-v1.0.tar.gz https://github.com/ericps1/crts/archive/v1.0.tar.gz
 
 2. Unzip the archive and move into the main source tree:
 
-        $ tar xzf crts-v2.0.tar.gz
-        $ cd crts-v2.0/
+        $ tar xzf crts-v1.0.tar.gz
+        $ cd crts-v1.0/
 
 3. Compile the code with:
 
