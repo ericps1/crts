@@ -422,19 +422,69 @@ int main(int argc, char ** argv){
     write(TCP_controller, &term_message, 1);
 
     if(np.generate_octave_logs){
-        char command[100];
-        
+        char command[1000];
+        char multi_file[PATH_MAX];
+
+
         if(np.log_CRTS_rx_data){
+            // If using multifile, Delete old one (otherwise will append to old file).
+            if( sp.totalNumReps>1 && sp.repNumber==1 )
+            {
+                // Get the name of the multi file 
+                strcpy(multi_file, "logs/octave/");
+                strcat(multi_file, CRTS_rx_log_file_cpy);
+                char *ptr_ = strrchr(multi_file, (int) '_');
+                if (ptr_)
+                    multi_file[ ptr_ - multi_file] = '\0';
+                strcat(multi_file, ".m");
+
+                // Delete it
+                sprintf(command, "rm -f %s", multi_file);
+                system(command);
+            }
+
             sprintf(command, "./logs/logs2octave -c -l %s -N %d -n %d", CRTS_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
             system(command);
         }
 
         if(np.log_rx_metrics){
+            // If using multifile, Delete old one (otherwise will append to old file).
+            if( sp.totalNumReps>1 && sp.repNumber==1 )
+            {
+                // Get the name of the multi file 
+                strcpy(multi_file, "logs/octave/");
+                strcat(multi_file, np.rx_log_file);
+                char *ptr_ = strrchr(multi_file, (int) '_');
+                if (ptr_)
+                    multi_file[ ptr_ - multi_file] = '\0';
+                strcat(multi_file, ".m");
+
+                // Delete it
+                sprintf(command, "rm -f %s", multi_file);
+                system(command);
+            }
+
             sprintf(command, "./logs/logs2octave -r -l %s -N %d -n %d", np.rx_log_file, sp.totalNumReps, sp.repNumber);
             system(command);
         }
 
         if(np.log_tx_parameters){
+            // If using multifile, Delete old one (otherwise will append to old file).
+            if( sp.totalNumReps>1 && sp.repNumber==1 )
+            {
+                // Get the name of the multi file 
+                strcpy(multi_file, "logs/octave/");
+                strcat(multi_file, np.tx_log_file);
+                char *ptr_ = strrchr(multi_file, (int) '_');
+                if (ptr_)
+                    multi_file[ ptr_ - multi_file] = '\0';
+                strcat(multi_file, ".m");
+
+                // Delete it
+                sprintf(command, "rm -f %s", multi_file);
+                system(command);
+            }
+
             sprintf(command, "./logs/logs2octave -t -l %s -N %d -n %d", np.tx_log_file, sp.totalNumReps, sp.repNumber);
             strcat(command, np.tx_log_file);
             system(command);
