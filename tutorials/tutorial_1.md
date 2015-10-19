@@ -1,5 +1,4 @@
-#Tutorials
-## Tutorial 1: Running CRTS
+# Tutorial 1: Running CRTS
 
 Begin by opening three ssh sessions on CORNET using the following command:
 

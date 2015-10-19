@@ -31,7 +31,11 @@ public:
     ExtensibleCognitiveRadio();
     ~ExtensibleCognitiveRadio();
 
-    /// \brief Defines the different types of CE events.
+    //=================================================================================
+	// Enums and Structs
+	//=================================================================================
+	
+	/// \brief Defines the different types of CE events.
     ///
     /// The different circumstances under which the CE
     /// can be executed are defined here.
@@ -46,23 +50,16 @@ public:
         PHY,    // event is triggered by the reception of a physical layer frame
     };
 
-    /// \brief Defines the different types of frames 
-    /// that might be received, causing 
-    /// Cognitive_Engine::execute() to be called.
-    enum FrameType{
+    /// \brief Defines the types of frames used by the ECR
+	enum FrameType{
 
         /// \brief The frame contains application
         /// layer data. 
         ///
-        /// Generally, most frames received by the radio
-        /// will contain application layer data, 
-        /// not directly useful to the cognitive engine (CE).
-        /// However, the other parameters in 
-        /// ExtensibleCognitiveRadio::metric_s
-        /// may still contain important information about the 
-        /// quality of the received frame, which the 
-        /// CE may decide to act on.
-        DATA = 0,
+        /// Data frames contain IP packets that are read from
+		/// the virtual network interface and subsequently
+		/// transmitted over the air.
+		DATA = 0,
 
         /// \brief The frame was sent explicitly at the
         /// behest of another cognitive engine (CE) in the
@@ -89,28 +86,17 @@ public:
     };
 
     // metric struct
-    /// \brief Contains metric information when a 
-    /// ExtensibleCognitiveRadio::Event occurs.
+    /// \brief Contains metric information related
+    /// to the quality of a received frame.
     /// This information is made available to the
     /// custom Cognitive_Engine::execute() implementation
     /// and is accessed in the instance of this struct:
     /// ExtensibleCognitiveRadio::CE_metrics. 
     ///
-    /// Whenever an ExtensibleCognitiveRadio::Event occurs, 
-    /// an instance of this struct is filled with information
-    /// pertinent to the event that may then be used by the 
-    /// cognitive engine's (CE's) custom implementation of 
-    /// Cognitive_Engine::execute().
-    /// 
-    /// The most important member of this struct is 
-    /// ExtensibleCognitiveRadio::metric_s::CE_event 
-    /// which alerts the CE of what type of event 
-    /// caused the CE exectution. 
-    /// 
-    /// The other members of this struct are dependent on the 
-    /// event type and will only contain valid information
-    /// when the CE has been executed under the corrseponding event.
-    /// Otherwise, they should not be accesssed. 
+    /// The members of this struct will be valid when a frame has
+	/// been received which will be indicated when the
+	/// ExtensibleCognitiveRadio::metric_s.CE_event == PHY.
+	/// Otherwise, they will represent results from previous frames. 
     ///
     /// The valid members under a 
     /// ExtensibleCognitiveRadio::PHY event are:
@@ -140,7 +126,6 @@ public:
         /// When the CE is executed, this value is set according
         /// to the type of event that caused the CE execution,
         /// as specified in ExtensibleCognitiveRadio::Event.
-        // Flag for metric type
         ExtensibleCognitiveRadio::Event CE_event;
 
         // PHY
@@ -148,21 +133,19 @@ public:
         /// defined by ExtensibleCognitiveRadio::FrameType
         ExtensibleCognitiveRadio::FrameType CE_frame;
 
-        /// \brief Indicates whether the \p header of the 
-        /// received frame passed error checking tests.
+        /// \brief Indicates whether the \p control information 
+		/// of the received frame passed error checking tests.
         ///
         /// Derived from 
         /// \c <a href="http://liquidsdr.org/">liquid-dsp</a>. See the
         /// <a href="http://liquidsdr.org/doc/tutorial_ofdmflexframe.html">Liquid Documentation</a>
         /// for more information.
-        //int header_valid;
-		int control_valid;
+        int control_valid;
 
-        /// \brief The raw header data of the received frame.
-        //unsigned char header[8];
-		unsigned char control_info[6];
+        /// \brief The control info of the received frame.
+        unsigned char control_info[6];
 
-        /// \brief The raw payload data of the received frame.
+        /// \brief The payload data of the received frame.
         unsigned char* payload;
 
         /// \brief Indicates whether the \p payload of the 
@@ -206,14 +189,17 @@ public:
         uhd::time_spec_t time_spec;
     };
 
-    // tx parameter struct
     /// \brief Contains parameters defining how
     /// to handle frame transmission.
     ///
     /// The member parameters are accessed using the 
     /// instance of the struct:
     /// ExtensibleCognitiveRadio::tx_params.
-    struct tx_parameter_s{
+    /// 
+	/// Note that for frames to be received successfully
+	/// These settings must match the corresponding settings
+	/// at the receiver.
+	struct tx_parameter_s{
 
         /// \brief The number of subcarriers in the OFDM waveform
         /// generated by
@@ -222,10 +208,6 @@ public:
         /// See the 
         /// <a href="http://liquidsdr.org/doc/tutorial_ofdmflexframe.html">OFDM Framing Tutorial</a>
         /// for details.
-        /// 
-        /// Note that if this parameter is updated at the transmitter, 
-        /// then it must be updated at the corresponding receiver as well.
-        /// Otherwise, the receiver will not detect the newly formatted frames.
         unsigned int numSubcarriers;    // number of subcarriers
 
         /// \brief The length of the cyclic prefix in the OFDM waveform
@@ -235,10 +217,6 @@ public:
         /// See the 
         /// <a href="http://liquidsdr.org/doc/tutorial_ofdmflexframe.html">OFDM Framing Tutorial</a>
         /// for details.
-        /// 
-        /// Note that if this parameter is updated at the transmitter, 
-        /// then it must be updated at the corresponding receiver as well.
-        /// Otherwise, the receiver will not detect the newly formatted frames.
         unsigned int cp_len;            // cyclic prefix length
 
         /// \brief The overlapping taper length in the OFDM waveform
@@ -250,10 +228,6 @@ public:
         /// and the
         /// <a href="http://liquidsdr.org/doc/framing.html#framing:ofdmflexframe:tapering">Liquid Documentation Reference</a>
         /// for details.
-        /// 
-        /// Note that if this parameter is updated at the transmitter, 
-        /// then it must be updated at the corresponding receiver as well.
-        /// Otherwise, the receiver will not detect the newly formatted frames.
         unsigned int taper_len;         // taper length
 
         /// \brief An array of \p unsigned \p char whose number of elements is
@@ -272,10 +246,6 @@ public:
         /// Also refer to the 
         /// <a href="http://liquidsdr.org/doc/tutorial_ofdmflexframe.html">OFDM Framing Tutorial</a>
         /// for more information.
-        /// 
-        /// Note that if this parameter is updated at the transmitter, 
-        /// then it must be updated at the corresponding receiver as well.
-        /// Otherwise, the receiver will not detect the newly formatted frames.
         unsigned char * subcarrierAlloc;
 
         /// \brief The properties for the OFDM frame generator from 
@@ -332,25 +302,28 @@ public:
         /// Note that the values of samples sent to 
         /// <a href="http://files.ettus.com/manual/index.html">UHD</a>
         /// must be between -1 and 1. 
-        /// Approaching these limits may cause distortion and exceeding them
-        /// will cause clipping. 
-        /// Thus it is generally recommended to set this parameter below zero.
-        /// See the example scenario files for example values.
-        float tx_gain_soft;
+        /// Typically this value is set to around -12 dB based on the peak-
+		/// to-average power ratio of OFDM signals. Allowing some slight
+		/// clipping can improve overall signal power at the expense of
+		/// added distortion.
+		float tx_gain_soft;
 
-        /// \brief The transmitter frequency in Hertz. 
+        /// \brief The transmitter local oscillator frequency in Hertz. 
         ///
         /// It can be accessed with ExtensibleCognitiveRadio::set_tx_freq()
         /// and ExtensibleCognitiveRadio::get_tx_freq().
         ///
         /// This value is passed directly to 
         /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
-        /// 
-        /// Note that if this parameter is updated at the transmitter, 
-        /// then it must be updated at the corresponding receiver as well.
-        /// Otherwise, the receiver will not detect the newly formatted frames.
         float tx_freq;
 
+		/// \brief The transmitter NCO frequency in Hertz.
+		///
+		/// The USRP has an NCO which can be used to digitally mix
+		/// the signal anywhere within the baseband bandwidth of the
+		/// USRP daughterboard. This can be useful for offsetting the
+		/// tone resulting from LO leakage of the ZIF transmitter
+		/// used by the USRP.
 		float tx_dsp_freq;
 
         /// \brief The sample rate of the transmitter in samples/second. 
@@ -372,7 +345,11 @@ public:
     /// The member parameters are accessed using the 
     /// instance of the struct:
     /// ExtensibleCognitiveRadio::tx_params.
-    struct rx_parameter_s{
+    /// 
+	/// Note that for frames to be received successfully
+	/// These settings must match the corresponding settings
+	/// at the transmitter.
+	struct rx_parameter_s{
 
         /// \brief The number of subcarriers in the OFDM waveform
         /// generated by
@@ -381,10 +358,6 @@ public:
         /// See the 
         /// <a href="http://liquidsdr.org/doc/tutorial_ofdmflexframe.html">OFDM Framing Tutorial</a>
         /// for details.
-        /// 
-        /// Note that this parameter must match that of the frames being received
-        /// from the corresponding transmitter.
-        /// Otherwise, the receiver will not detect the newly formatted frames.
         unsigned int numSubcarriers;    // number of subcarriers
 
         /// \brief The length of the cyclic prefix in the OFDM waveform
@@ -394,10 +367,6 @@ public:
         /// See the 
         /// <a href="http://liquidsdr.org/doc/tutorial_ofdmflexframe.html">OFDM Framing Tutorial</a>
         /// for details.
-        /// 
-        /// Note that this parameter must match that of the frames being received
-        /// from the corresponding transmitter.
-        /// Otherwise, the receiver will not detect the newly formatted frames.
         unsigned int cp_len;            // cyclic prefix length
 
         /// \brief The overlapping taper length in the OFDM waveform
@@ -409,10 +378,6 @@ public:
         /// and the
         /// <a href="http://liquidsdr.org/doc/framing.html#framing:ofdmflexframe:tapering">Liquid Documentation Reference</a>
         /// for details.
-        /// 
-        /// Note that this parameter must match that of the frames being received
-        /// from the corresponding transmitter.
-        /// Otherwise, the receiver will not detect the newly formatted frames.
         unsigned int taper_len;         // taper length
         
         /// \brief An array of \p unsigned \p char whose number of elements is
@@ -431,10 +396,6 @@ public:
         /// Also refer to the 
         /// <a href="http://liquidsdr.org/doc/tutorial_ofdmflexframe.html">OFDM Framing Tutorial</a>
         /// for more information.
-        /// 
-        /// Note that this parameter must match that of the frames being received
-        /// from the corresponding transmitter.
-        /// Otherwise, the receiver will not detect the newly formatted frames.
         unsigned char * subcarrierAlloc;
         
         /// \brief The value of the hardware gain for the receiver. In dB. 
@@ -454,20 +415,23 @@ public:
         /// for details about the particular gain limits of your USRP device.
         float rx_gain_uhd;
 
-        /// \brief The receiver frequency in Hertz. 
+        /// \brief The receiver local oscillator frequency in Hertz. 
         ///
         /// It can be accessed with ExtensibleCognitiveRadio::set_rx_freq()
         /// and ExtensibleCognitiveRadio::get_rx_freq().
         ///
         /// This value is passed directly to 
         /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
-        /// 
-        /// Note that this parameter must match that of the frames being received
-        /// from the corresponding transmitter.
-        /// Otherwise, the receiver will not detect the newly formatted frames.
         float rx_freq;
 
-        float rx_dsp_freq;
+        /// \brief The transmitter NCO frequency in Hertz.
+		///
+		/// The USRP has an NCO which can be used to digitally mix
+		/// the signal anywhere within the baseband bandwidth of the
+		/// USRP daughterboard. This can be useful for offsetting the
+		/// tone resulting from LO leakage of the ZIF receiver
+		/// used by the USRP.
+		float rx_dsp_freq;
 
         /// \brief The sample rate of the receiver in samples/second. 
         ///
@@ -479,8 +443,11 @@ public:
         float rx_rate;
     };
 
-    // cognitive engine methods
-    void set_ce(char * ce); // method to set CE to custom defined subclass
+    //=================================================================================
+	// Cognitive Engine Methods
+	//=================================================================================
+	
+	void set_ce(char * ce); // method to set CE to custom defined subclass
     void start_ce();
     void stop_ce();
 
@@ -493,13 +460,20 @@ public:
     /// \brief The instance of 
     /// ExtensibleCognitiveRadio::metric_s
     /// made accessible to the Cognitive_Engine.
-    struct metric_s CE_metrics; // struct containing metrics used by cognitive engine
+    struct metric_s CE_metrics;
     
-    // network layer methods
-    void set_ip(char *ip);
+    //=================================================================================
+	// Networking Methods
+	//=================================================================================
+	
+	/// \brief Used to set the IP of the ECR's virtual network interface
+	void set_ip(char *ip);
 
-    // transmitter methods
-    /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
+    //=================================================================================
+	// Transmitter Methods
+	//=================================================================================
+	
+	/// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
     void set_tx_freq(float _tx_freq);
 
     void set_tx_freq(float _tx_freq, float _dsp_freq);
@@ -629,8 +603,11 @@ public:
             unsigned char *  _payload,
             unsigned int     _payload_len);
 
-    // receiver methods
-    /// \brief Set the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
+    //=================================================================================
+	// Receiver Methods
+	//=================================================================================
+	
+	/// \brief Set the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
     void set_rx_freq(float _rx_freq);
 
     void set_rx_freq(float _rx_freq, float _dsp_freq);
@@ -690,8 +667,11 @@ public:
     void start_liquid_rx();
 	void stop_liquid_rx();
 
-    // methods and variables for printing/logging metrics 
-    void print_metrics(ExtensibleCognitiveRadio * CR);
+    //=================================================================================
+	// Print/Log Methods and Variables
+	//=================================================================================
+	
+	void print_metrics(ExtensibleCognitiveRadio * CR);
     int print_metrics_flag;
     void log_rx_metrics();
     void log_tx_parameters();
@@ -701,8 +681,11 @@ public:
     char phy_tx_log_file[100];
 	void reset_log_files();
 
-    // USRP objects accessible to user for now
-    uhd::usrp::multi_usrp::sptr usrp_tx;
+    //=================================================================================
+	// USRP Objects
+	//=================================================================================
+	
+	uhd::usrp::multi_usrp::sptr usrp_tx;
     uhd::tx_metadata_t metadata_tx;
     
     uhd::usrp::multi_usrp::sptr usrp_rx;
@@ -710,8 +693,11 @@ public:
     	
 private:
     
-    // cognitive engine objects
-    Cognitive_Engine * CE; // pointer to CE object
+    //=================================================================================
+	// Private Cognitive Engine Objects
+	//=================================================================================
+	
+	Cognitive_Engine * CE; // pointer to CE object
 
     /// \brief The maximum length of time to go
     /// without an event before executing the CE
@@ -739,14 +725,21 @@ private:
 	bool ce_running;
 	friend void * ECR_ce_worker(void *);
     
-    // network layer objects
-    int tunfd; // virtual network interface
-    // String for holding TUN interface name
+    //=================================================================================
+	// Private Network Interface Objects
+	//=================================================================================
+	
+	int tunfd; // virtual network interface
+    // String for TUN interface name
     char tun_name[IFNAMSIZ];
-    // String for holding commands for TUN interface
+    // String for commands for TUN interface
     char systemCMD[200];
 
-    // receiver properties/objects
+    //=================================================================================
+	// Private Receiver Objects
+	//=================================================================================
+	
+	// receiver properties/objects
     struct rx_parameter_s rx_params;
     ofdmflexframesync fs;           // frame synchronizer object
     unsigned int frame_num;
@@ -762,7 +755,11 @@ private:
     // receiver callback
     friend int rxCallback(unsigned char *, int, unsigned char *, unsigned int, int,    framesyncstats_s, void *);
 
-    // transmitter properties/objects
+    //=================================================================================
+	// Private Transmitter Objects
+	//=================================================================================
+	
+	// transmitter properties/objects
     tx_parameter_s tx_params;
     ofdmflexframegen fg;            // frame generator object
     unsigned int fgbuffer_len;      // length of frame generator buffer

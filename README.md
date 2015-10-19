@@ -199,10 +199,11 @@ engine to the next must be declared as static (otherwise they will fall out of
 scope after the end of the execute function).
 
 One particular function that users should be aware of is ECR.set\_control\_information().
-This provided a generic way for cognitive radios to exchange control information
+This provides a generic way for cognitive radios to exchange control information
 without impacting the flow of data. The control information is 6 bytes which are
 placed in the header of the transmitted frame. It can then be extracted in the
-cognitive engine of at the receiving radio.
+cognitive engine at the receiving radio. A similar function can be performed by 
+transmitting a dedicated control packet from the CE.
 
 
 Examples of cognitive engines are provided in the `cognitive_engines/` directory.
@@ -232,67 +233,4 @@ respectively. This again assumes that the appropriate options were set in the
 scenario configuration file). These scripts provide the user with an easy way to 
 analyze the results of the experiment. There are some basic Octave/Matlab scripts 
 provided to plot the contents of the logs as a function of time.
-
-##Tutorial:
-
-Begin by opening four ssh sessions on CORNET using the following command:
-
-	$ ssh -p <node port> <username>@128.173.221.40
-
-Navigate to the crts directory. First open up the master\_scenario\_file.cfg file.
-This file simply tells the experiment controller how many tests will be performed
-and their names. Now open the default scenario configuration file,
-./scenarios/interferer.cfg. This file defines all of the nodes that will be
-involved in the scenario along with some parameters that define their behavior and 
-initial conditions.
-
-One of the more important features of CRTS is that it allows users to write their
-own cognitive engines in C++. Take a look at ./cognitive\_engines/CE\_Example.cpp.
-The execute function is what defines the operation of the cognitive engine. Here,
-the cognitive engine will be continually updated with information about what the
-radio is doing which it can use to adjust the radios behavior.
-
-A user can create as many custom cognitive engines he wants by adding files that
-follow the structure of the examples provided. The name of the class used in the
-file must match the file's name. Once the cognitive engine is defined, run:
-./config\_CEs from the crts directory. This will actually modify some of the code
-in CRTS to allow the cognitive engine to be used. Now you can modify or create a
-scenario configuration file to have a node that uses the new cognitive engine.
-You will want to create static variables within the cognitive engine execute
-function so that they will persist from one execution to the next. You can look
-at the examples to see how this is done. You can also define other functions that
-can be called from within the cognitive engine execute function.
-
-Now we'll actually run CRTS. On the node you want to use as the controller execute:
-
-	$ ./CRTS_controller -m
-
-The -m option tells the controller that you want to run the experiment manually
-by launching the processes on the other nodes yourself. The controller can do this
-for you by using the following command.
-
-	$ ./CRTS_controller -a <controller internal ip>
-
-In this case you need to make sure that the ips are set up correctly in the scenario
-config file being used. Assuming you've launched CRTS manually, on two of the other 
-nodes run:
-
-	$ ./CRTS_CR -a <controller internal ip>
-
-The internal ip will be 192.168.1.<external port number -6990>. Observe that 
-the two nodes have received their operating parameters and will begin to 
-exchange frames over the air. On the last node:
-
-	$ ./CRTS_interferer -a <controller internal ip>
-
-Observe that the interferer will turn off and on according to the duty cycle that
-was specified in the scenario configuration file. If you look at the EVM
-statistic being printed to the screen by the two CR nodes you can
-see that it degrades (becomes less negative) when the interferer is on.
-
-CRTS and the ECR will log all events to a binary file as the scenario runs.
-These logs will be converted to octave and/or python files which can be used
-to visualize or calculate various performance metrics for the radios. This behavior
-can be controlled through various flags found in the scenario files. We've provided
-some standard octave scripts to plot the logs as a function of time.
 
