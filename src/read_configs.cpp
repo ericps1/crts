@@ -103,8 +103,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
     std::string node_num;
     std::stringstream out;
     out << node;
-    node_num = out.str();
-    
+    node_num = out.str();    
 
     // lookup specific node
     strcpy(nodestr, "node");
@@ -243,6 +242,96 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
    	else
 		np.rx_subcarriers = 64;
 
+    if (config_setting_lookup_string(node_config, "rx_subcarrier_alloc_method", &tmpS)){
+		// subcarrier allocation is being defined in a standard way
+		if(!strcmp(tmpS, "standard")){
+			np.rx_subcarrier_alloc_method = STANDARD_SUBCARRIER_ALLOC;
+
+        	int rx_guard_subcarriers;
+			int rx_central_nulls;
+			int rx_pilot_freq;
+			if (config_setting_lookup_int(node_config, "rx_guard_subcarriers", &tmpI))
+				rx_guard_subcarriers = tmpI;
+
+    		if (config_setting_lookup_int(node_config, "rx_central_nulls", &tmpI))
+				rx_central_nulls = tmpI;
+
+    		if (config_setting_lookup_int(node_config, "rx_pilot_freq", &tmpI))
+				rx_pilot_freq = tmpI;
+		
+			for(int i=0; i<np.rx_subcarriers; i++){
+		         // central band nulls
+			     if(i<rx_central_nulls/2 || np.rx_subcarriers-i-1 < rx_central_nulls/2)
+			          np.rx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_NULL;
+			     // guard band nulls
+			     else if(i+1 > np.rx_subcarriers/2 - rx_guard_subcarriers &&
+			             i < np.rx_subcarriers/2 + rx_guard_subcarriers)
+			          np.rx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_NULL;
+			     // pilot subcarriers (based on distance from center)
+			     else if(abs((int)((float)np.rx_subcarriers/2.0-(float)i-0.5))%rx_pilot_freq == 0)
+			          np.rx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_PILOT;
+			     // data subcarriers
+		         else
+		              np.rx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_DATA;
+		     }
+		}
+
+		// subcarrier allocation is completely custom
+    	else if(!strcmp(tmpS, "custom")){
+			np.rx_subcarrier_alloc_method = CUSTOM_SUBCARRIER_ALLOC;	
+			config_setting_t *rx_subcarrier_alloc = config_setting_get_member(node_config, "rx_subcarrier_alloc");
+			
+			char type_str[9] = "sc_type_";
+			char num_str[8] = "sc_num_";
+			char sc_type[16];
+			char sc_num[16];
+			int i = 1;
+			int j = 0;	
+			int offset = np.rx_subcarriers/2;
+			sprintf(sc_type, "%s%d", type_str, i);
+			// read in a custom initial subcarrier allocation
+			while(config_setting_lookup_string(rx_subcarrier_alloc, sc_type, &tmpS)){
+				// read the number of subcarriers into tmpI
+				sprintf(sc_num, "%s%d", num_str, i);
+				tmpI = 1;
+				config_setting_lookup_int(rx_subcarrier_alloc, sc_num, &tmpI);
+				// set the subcarrier type based on the number specified
+				if(!strcmp(tmpS, "null")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.rx_subcarriers)/2)
+							offset = -(np.rx_subcarriers/2);
+						np.rx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_NULL;
+						j++;
+					}
+				}
+				if(!strcmp(tmpS, "pilot")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.rx_subcarriers)/2)
+							offset = -(np.rx_subcarriers/2);
+						np.rx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_PILOT;
+						j++;
+					}
+				}
+				if(!strcmp(tmpS, "data")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.rx_subcarriers)/2)
+							offset = -(np.rx_subcarriers/2);
+						np.rx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_DATA;
+						j++;
+					}
+				}
+				if(j>2048){
+					printf("The number of subcarriers specified was too high!\n");
+					exit(1);
+				}
+				i++;
+				sprintf(sc_type, "%s%d", type_str, i);
+			}
+		}
+		else
+			np.rx_subcarrier_alloc_method = LIQUID_DEFAULT_SUBCARRIER_ALLOC;
+	}
+
     if (config_setting_lookup_int(node_config, "rx_cp_len", &tmpI))
         np.rx_cp_len = (int)tmpI;
    	else
@@ -275,6 +364,96 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
         np.tx_subcarriers = (int)tmpI;
    	else
 		np.tx_subcarriers = 64;
+
+	if (config_setting_lookup_string(node_config, "tx_subcarrier_alloc_method", &tmpS)){
+		// subcarrier allocation is being defined in a standard way
+		if(!strcmp(tmpS, "standard")){
+			np.tx_subcarrier_alloc_method = STANDARD_SUBCARRIER_ALLOC;
+
+        	int tx_guard_subcarriers;
+			int tx_central_nulls;
+			int tx_pilot_freq;
+			if (config_setting_lookup_int(node_config, "tx_guard_subcarriers", &tmpI))
+				tx_guard_subcarriers = tmpI;
+
+    		if (config_setting_lookup_int(node_config, "tx_central_nulls", &tmpI))
+				tx_central_nulls = tmpI;
+
+    		if (config_setting_lookup_int(node_config, "tx_pilot_freq", &tmpI))
+				tx_pilot_freq = tmpI;
+		
+			for(int i=0; i<np.tx_subcarriers; i++){
+		         // central band nulls
+			     if(i<tx_central_nulls/2 || np.tx_subcarriers-i-1 < tx_central_nulls/2)
+			          np.tx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_NULL;
+			     // guard band nulls
+			     else if(i+1 > np.tx_subcarriers/2 - tx_guard_subcarriers &&
+			             i < np.tx_subcarriers/2 + tx_guard_subcarriers)
+			          np.tx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_NULL;
+			     // pilot subcarriers
+			     else if(abs((int)((float)np.tx_subcarriers/2.0-(float)i-0.5))%tx_pilot_freq == 0)
+			          np.tx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_PILOT;
+			     // data subcarriers
+		         else
+		              np.tx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_DATA;
+		     }
+		}
+
+		// subcarrier allocation is completely custom
+    	else if(!strcmp(tmpS, "custom")){
+			np.tx_subcarrier_alloc_method = CUSTOM_SUBCARRIER_ALLOC;	
+			config_setting_t *tx_subcarrier_alloc = config_setting_get_member(node_config, "tx_subcarrier_alloc");
+			
+			char type_str[9] = "sc_type_";
+			char num_str[8] = "sc_num_";
+			char sc_type[16];
+			char sc_num[16];
+			int i = 1;
+			int j = 0;	
+			int offset = np.tx_subcarriers/2;
+			sprintf(sc_type, "%s%d", type_str, i);
+			// read in a custom initial subcarrier allocation
+			while(config_setting_lookup_string(tx_subcarrier_alloc, sc_type, &tmpS)){
+				// read the number of subcarriers into tmpI
+				sprintf(sc_num, "%s%d", num_str, i);
+				tmpI = 1;
+				config_setting_lookup_int(tx_subcarrier_alloc, sc_num, &tmpI);
+				// set the subcarrier type based on the number specified
+				if(!strcmp(tmpS, "null")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.tx_subcarriers)/2)
+							offset = -(np.tx_subcarriers/2);
+						np.tx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_NULL;
+						j++;
+					}
+				}
+				if(!strcmp(tmpS, "pilot")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.tx_subcarriers)/2)
+							offset = -(np.tx_subcarriers/2);
+						np.tx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_PILOT;
+						j++;
+					}
+				}
+				if(!strcmp(tmpS, "data")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.tx_subcarriers)/2)
+							offset = -(np.tx_subcarriers/2);
+						np.tx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_DATA;
+						j++;
+					}
+				}
+				if(j>2048){
+					printf("The number of subcarriers specified was too high!\n");
+					exit(1);
+				}
+				i++;
+				sprintf(sc_type, "%s%d", type_str, i);
+			}
+		}
+		else
+			np.tx_subcarrier_alloc_method = LIQUID_DEFAULT_SUBCARRIER_ALLOC;
+	}
 
     if (config_setting_lookup_int(node_config, "tx_cp_len", &tmpI))
         np.tx_cp_len = (int)tmpI;
@@ -342,7 +521,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
                 np.tx_fec1 = k;
         }
     }
-    if (config_setting_lookup_float(node_config, "tx_delay_us", &tmpD))
+    
+	if (config_setting_lookup_float(node_config, "tx_delay_us", &tmpD))
         np.tx_delay_us = tmpD;
 	else
 		np.tx_delay_us = 1e3;

@@ -31,18 +31,18 @@ void CE_Subcarrier_Alloc::execute(void * _args){
 
 		// define custom subcarrier allocation
 		for(unsigned int i=0; i<32; i++){
-			// guard band nulls
+			// central band nulls
 			if(i<4 || 31-i<4)
 				custom_alloc[i] = OFDMFRAME_SCTYPE_NULL;
+			// guard band nulls
+			else if(i > 12 && i < 20)
+				custom_alloc[i] = OFDMFRAME_SCTYPE_NULL;
 			// pilot subcarriers
-			else if(i==4 || i==8 || i==12)
+			else if(i%4 == 0)
 				custom_alloc[i] = OFDMFRAME_SCTYPE_PILOT;
 			// data subcarriers
-			else if(i<13 || 31-i<13)
-				custom_alloc[i] = OFDMFRAME_SCTYPE_DATA;
-			// central nulls
 			else
-				custom_alloc[i] = OFDMFRAME_SCTYPE_NULL;
+				custom_alloc[i] = OFDMFRAME_SCTYPE_DATA;
 		}
 	}
 	
@@ -56,7 +56,7 @@ void CE_Subcarrier_Alloc::execute(void * _args){
 		    alloc = 1;
 		}
 		else if(alloc == 1){
-            printf("Set subcarrier allocation to default\n");
+            printf("Set subcarrier allocation to liquid-dsp default\n");
 		    ECR->set_tx_subcarrier_alloc(NULL);
 		    alloc = 0;
 		}

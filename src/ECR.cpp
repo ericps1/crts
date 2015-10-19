@@ -726,12 +726,26 @@ unsigned int ExtensibleCognitiveRadio::get_rx_subcarriers()
 void ExtensibleCognitiveRadio::set_rx_subcarrier_alloc(char *_subcarrierAlloc)
 {
     // destroy frame gen, set cp length, recreate frame gen
-    stop_rx();
-    usleep(1.0);
+    //int rx_state = rx_running;
+	//if(rx_state)
+	//	stop_rx();
+    //usleep(1.0);
+	pthread_mutex_lock(&rx_mutex);
+
     ofdmflexframesync_destroy(fs);
-    memcpy(rx_params.subcarrierAlloc, _subcarrierAlloc, rx_params.numSubcarriers);
-    fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len, rx_params.taper_len, rx_params.subcarrierAlloc, rxCallback, (void*)this);
-    start_rx();
+    if(_subcarrierAlloc){
+	    rx_params.subcarrierAlloc = (unsigned char*) realloc((void*)rx_params.subcarrierAlloc, rx_params.numSubcarriers);
+		memcpy(rx_params.subcarrierAlloc, _subcarrierAlloc, rx_params.numSubcarriers);
+    }
+	else{
+	    free(rx_params.subcarrierAlloc);
+		rx_params.subcarrierAlloc = NULL;
+	}
+	fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len, rx_params.taper_len, rx_params.subcarrierAlloc, rxCallback, (void*)this);
+    
+	pthread_mutex_unlock(&rx_mutex);
+	//if(rx_state)
+	//	start_rx();
 }
 
 // get subcarrier allocation
