@@ -13,13 +13,17 @@ each CR node and logging metrics based on the received packets. Each CR node wil
 create a virtual network interface so that CRTS can treat it as a standard network
 device. Part of the motivation for this is to enable evaluation of UDP and TCP network
 connections. The CR object/process can be anything with such an interface. We are
-currently working on examples of this in standard SDR frameworks e.g. GNU Radio. 
+currently working on examples of this in standard SDR frameworks e.g. GNU Radio. A block
+diagram depicting the test process run on a CR node by CRTS is depicted below.
+\image latex Cognitive_Radio_Test_Process_Block_Diagram.eps "Cogntive Radio Test Process" width=12cm
 
 A particular CR has been developed with the goal of providing a flexible generic structure
 to enable rapid development and evaluation of cognitive engine (CE) algorithms. This
 CR is being called the Extensible Cognitive Radio (ECR). In this structure, a CE is
 fed data and metrics relating to the current operating point of the radio. It can then
-make decisions and exert control over the radio to improve its performance.
+make decisions and exert control over the radio to improve its performance. A block diagram
+of the ECR is shown below.
+\image latex Extensible_Cognitive_Radio_Block_Diagram.eps "The Extensible Cognitive Radio" width=12cm
 
 The ECR uses the  
 [OFDM Frame Generator](http://liquidsdr.org/doc/tutorial_ofdmflexframe.html)
