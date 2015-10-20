@@ -490,6 +490,75 @@ int main(int argc, char ** argv){
             system(command);
         }
     }
+    if(np.generate_python_logs){
+        char command[1000];
+        char multi_file[PATH_MAX];
+
+
+        if(np.log_CRTS_rx_data){
+            // If using multifile, Delete old one (otherwise will append to old file).
+            if( sp.totalNumReps>1 && sp.repNumber==1 )
+            {
+                // Get the name of the multi file 
+                strcpy(multi_file, "logs/python/");
+                strcat(multi_file, CRTS_rx_log_file_cpy);
+                char *ptr_ = strrchr(multi_file, (int) '_');
+                if (ptr_)
+                    multi_file[ ptr_ - multi_file] = '\0';
+                strcat(multi_file, ".py");
+
+                // Delete it
+                sprintf(command, "rm -f %s", multi_file);
+                system(command);
+            }
+
+            sprintf(command, "./logs/logs2python -c -l %s -N %d -n %d", CRTS_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
+            system(command);
+        }
+
+        if(np.log_rx_metrics){
+            // If using multifile, Delete old one (otherwise will append to old file).
+            if( sp.totalNumReps>1 && sp.repNumber==1 )
+            {
+                // Get the name of the multi file 
+                strcpy(multi_file, "logs/python/");
+                strcat(multi_file, np.rx_log_file);
+                char *ptr_ = strrchr(multi_file, (int) '_');
+                if (ptr_)
+                    multi_file[ ptr_ - multi_file] = '\0';
+                strcat(multi_file, ".py");
+
+                // Delete it
+                sprintf(command, "rm -f %s", multi_file);
+                system(command);
+            }
+
+            sprintf(command, "./logs/logs2python -r -l %s -N %d -n %d", np.rx_log_file, sp.totalNumReps, sp.repNumber);
+            system(command);
+        }
+
+        if(np.log_tx_parameters){
+            // If using multifile, Delete old one (otherwise will append to old file).
+            if( sp.totalNumReps>1 && sp.repNumber==1 )
+            {
+                // Get the name of the multi file 
+                strcpy(multi_file, "logs/python/");
+                strcat(multi_file, np.tx_log_file);
+                char *ptr_ = strrchr(multi_file, (int) '_');
+                if (ptr_)
+                    multi_file[ ptr_ - multi_file] = '\0';
+                strcat(multi_file, ".py");
+
+                // Delete it
+                sprintf(command, "rm -f %s", multi_file);
+                system(command);
+            }
+
+            sprintf(command, "./logs/logs2python -t -l %s -N %d -n %d", np.tx_log_file, sp.totalNumReps, sp.repNumber);
+            strcat(command, np.tx_log_file);
+            system(command);
+        }
+    }
 
     close(TCP_controller);
     close(CRTS_client_sock);

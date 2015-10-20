@@ -1,49 +1,76 @@
 #include <stdio.h>
+#include <limits.h>
 #include "ECR.hpp"
 
 void help_logs2python() {
-        printf("logs2python -- Create Python .py file containing log data.\n");
-        printf("               The new file can then be imported into a Python script to process the data.\n");
-        printf(" -h : Help.\n");
-        printf(" -l : Name of log file to process (required).\n");
-        printf(" -o : Name of output file (required).\n");
-        printf(" -p : Optional prefix for Python variable names.\n");
-        printf(" -r : Log file contains cognitive radio receive metrics.\n");
-        printf(" -t : Log file contains cognitive radio transmit parameters.\n");
-        printf(" -i : Log file contains interferer transmit parameters.\n");
+    printf("logs2python -- Create Python .py file containing log data.\n");
+    printf("               The new file can then be imported into a Python script to process the data.\n");
+    printf(" -h : Help.\n");
+    printf(" -l : Name of log file to process (required).\n");
+    printf(" -r : Log file contains cognitive radio receive metrics.\n");
+    printf(" -t : Log file contains cognitive radio transmit parameters.\n");
+    printf(" -i : Log file contains interferer transmit parameters.\n");
+    printf(" -c : Log file contains CRTS rx data.\n");
+    printf(" -N : Total number of repetitions for this scenario (default: 1)\n");
+    printf(" -n : The repetition number for this scenario (required if -N is given)\n");
 }
 
 int main(int argc, char ** argv){
-    
-    char log_file[50]; 
-    char output_file[50];
-    char node_prefix[50];
-    strcpy(node_prefix, "");
-    
+
+    char log_file[PATH_MAX]; 
+    char output_file[PATH_MAX];
+    char multi_file[PATH_MAX];
+
     enum log_t {
         RXMETRICS = 0,
         TXPARAMS,
-        INTPARAMS
+        INTPARAMS,
+        CRPARAMS
     };
 
     // default log type is receive metrics
     log_t log_type = RXMETRICS;
 
+    strcpy(log_file, "logs/bin/");
+    strcpy(output_file, "logs/python/");
+    strcpy(multi_file, "logs/python/");
+
+    unsigned int totalNumReps = 1;
+    unsigned int repNumber = 1;
+
     // Option flags
     int l_opt = 0;
-    int o_opt = 0;
+    int n_opt = 0;
 
     int d;
-    while((d = getopt(argc, argv, "hl:o:p:rti")) != EOF){
+    while((d = getopt(argc, argv, "hl:rticN:n:")) != EOF){
         switch(d){
-        case 'h': help_logs2python();                       return 0;
-        case 'l': strcpy(log_file, optarg); l_opt = 1;      break;
-        case 'o': strcpy(output_file, optarg); o_opt = 1;   break;
-        case 'p': strcpy(node_prefix, optarg); 
-                    strcat(node_prefix, "_");               break;
-        case 'r':                                           break;
-        case 't': log_type = TXPARAMS;                      break;
-        case 'i': log_type = INTPARAMS;                     break;
+            case 'h': help_logs2python();                 return 0;
+            case 'l':
+                      {
+                          strcat(log_file, optarg);
+                          strcat(log_file, ".log");
+                          strcat(output_file, optarg);
+                          strcat(output_file, ".py");
+                          strcat(multi_file, optarg);
+                          char *ptr_ = strrchr(multi_file, (int) '_');
+                          if (ptr_)
+                              multi_file[ ptr_ - multi_file] = '\0';
+                          strcat(multi_file, ".py");
+                          l_opt = 1;
+                          break;
+                      }
+            case 'r':                                       break;
+            case 't': log_type = TXPARAMS;                  break;
+            case 'i': log_type = INTPARAMS;                 break;
+            case 'c': log_type = CRPARAMS;                  break;
+            case 'N': totalNumReps = atoi(optarg);          break;
+            case 'n': 
+                      {
+                          repNumber = atoi(optarg);
+                          n_opt = 1;
+                          break;
+                      }
         }
     }
 
@@ -54,94 +81,366 @@ int main(int argc, char ** argv){
         help_logs2python();
         return 1;
     }
-    if (!o_opt)
+    // Check that -n option is given as necessary
+    if (totalNumReps>1 && !n_opt)
     {
-        printf("Please give -o option.\n\n");
+        printf("-n option is required whenever -N option is given");
         help_logs2python();
         return 1;
     }
-
-    // Check that output file name has .py extension. If not add one.
-    char fileExtension[4];
-    strcpy(fileExtension, ".py");
-    if ( strcmp(output_file+(strlen(output_file)-strlen(fileExtension)), fileExtension ) )
-        strcat(output_file, fileExtension);
 
     printf("Log file name: %s\n", log_file);
     printf("Output file name: %s\n", output_file);
 
     FILE * file_in = fopen(log_file, "rb");
-    FILE * file_out = fopen(output_file, "w");
+    FILE * file_out;
+    if (totalNumReps==1)
+    {
+        file_out = fopen(output_file, "w");
+    }
+    else
+    {
+        file_out = fopen(multi_file, "a");
+    }
 
     struct ExtensibleCognitiveRadio::metric_s metrics = {};
+    struct ExtensibleCognitiveRadio::rx_parameter_s rx_params = {};
     struct ExtensibleCognitiveRadio::tx_parameter_s tx_params = {};
     int i = 1;
-    
-    if(log_type == RXMETRICS){
-        fprintf(file_out,   "%st                      = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_Control_valid    = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_Payload_valid   = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_EVM             = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_RSSI            = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_CFO             = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_num_syms        = list()\n", node_prefix);    
-        fprintf(file_out,   "%sECR_rx_mod_scheme      = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_BPS             = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_fec0            = list()\n", node_prefix);
-        fprintf(file_out,   "%sECR_rx_fec1            = list()\n", node_prefix);
 
-        while(fread((char*)&metrics, sizeof(struct ExtensibleCognitiveRadio::metric_s), 1, file_in)){
-            fprintf(file_out, "%st.append(%li + %f)\n",                 node_prefix,    metrics.time_spec.get_full_secs(), 
+    switch(log_type)
+    {
+        case RXMETRICS:
+        {
+            fprintf(file_out,   "ECR_rx_t                      = list()\n");
+            // metrics
+            fprintf(file_out,   "ECR_rx_Control_valid   = list()\n");
+            fprintf(file_out,   "ECR_rx_Payload_valid   = list()\n");
+            fprintf(file_out,   "ECR_rx_EVM             = list()\n");
+            fprintf(file_out,   "ECR_rx_RSSI            = list()\n");
+            fprintf(file_out,   "ECR_rx_CFO             = list()\n");
+            fprintf(file_out,   "ECR_rx_num_syms        = list()\n");    
+            fprintf(file_out,   "ECR_rx_mod_scheme      = list()\n");
+            fprintf(file_out,   "ECR_rx_BPS             = list()\n");
+            fprintf(file_out,   "ECR_rx_fec0            = list()\n");
+            fprintf(file_out,   "ECR_rx_fec1            = list()\n");
+            // parameters
+            fprintf(file_out,   "ECR_rx_numSubcarriers  = list()\n");
+            fprintf(file_out,   "ECR_rx_cp_len          = list()\n");
+            fprintf(file_out,   "ECR_rx_taper_len       = list()\n");
+            fprintf(file_out,   "ECR_rx_gain_uhd        = list()\n");
+            fprintf(file_out,   "ECR_rx_freq            = list()\n");
+            fprintf(file_out,   "ECR_rx_rate            = list()\n");
+
+            while(fread((char*)&metrics, sizeof(struct ExtensibleCognitiveRadio::metric_s), 1, file_in)){
+                fprintf(file_out, "ECR_rx_t.append(%li + %f)\n",                 metrics.time_spec.get_full_secs(), 
                         metrics.time_spec.get_frac_secs());
-            fprintf(file_out, "%sECR_rx_Control_valid.append(%i)\n",     node_prefix,    metrics.control_valid);
-            fprintf(file_out, "%sECR_rx_Payload_valid.append(%i)\n",    node_prefix,    metrics.payload_valid);
-            fprintf(file_out, "%sECR_rx_EVM.append(%f)\n",              node_prefix,    metrics.stats.evm);
-            fprintf(file_out, "%sECR_rx_RSSI.append(%f)\n",             node_prefix,    metrics.stats.rssi);
-            fprintf(file_out, "%sECR_rx_CFO.append(%f)\n",              node_prefix,    metrics.stats.cfo);
-            fprintf(file_out, "%sECR_rx_num_syms.append(%i)\n",         node_prefix,    metrics.stats.num_framesyms);    
-            fprintf(file_out, "%sECR_rx_mod_scheme.append(%i)\n",       node_prefix,    metrics.stats.mod_scheme);
-            fprintf(file_out, "%sECR_rx_BPS.append(%i)\n",              node_prefix,    metrics.stats.mod_bps);
-            fprintf(file_out, "%sECR_rx_fec0.append(%i)\n",             node_prefix,    metrics.stats.fec0);
-            fprintf(file_out, "%sECR_rx_fec1.append(%i)\n",             node_prefix,    metrics.stats.fec1);
-            i++;
-        }
-    }
-    else if(log_type == TXPARAMS){
-        fprintf(file_out, "%sECR_tx_t         = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_numSubcarriers         = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_cp_len    = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_taper_len = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_gain_uhd  = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_gain_soft = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_freq      = list()\n", node_prefix);
-        fprintf(file_out, "%sECR_tx_rate      = list()\n", node_prefix);    
+                //metrics
+                fprintf(file_out, "ECR_rx_Control_valid.append(%i)\n",  metrics.control_valid);
+                fprintf(file_out, "ECR_rx_Payload_valid.append(%i)\n",  metrics.payload_valid);
+                fprintf(file_out, "ECR_rx_EVM.append(%f)\n",            metrics.stats.evm);
+                fprintf(file_out, "ECR_rx_RSSI.append(%f)\n",           metrics.stats.rssi);
+                fprintf(file_out, "ECR_rx_CFO.append(%f)\n",            metrics.stats.cfo);
+                fprintf(file_out, "ECR_rx_num_syms.append(%i)\n",       metrics.stats.num_framesyms);    
+                fprintf(file_out, "ECR_rx_mod_scheme.append(%i)\n",     metrics.stats.mod_scheme);
+                fprintf(file_out, "ECR_rx_BPS.append(%i)\n",            metrics.stats.mod_bps);
+                fprintf(file_out, "ECR_rx_fec0.append(%i)\n",           metrics.stats.fec0);
+                fprintf(file_out, "ECR_rx_fec1.append(%i)\n",           metrics.stats.fec1);
+                // parameters
+                fprintf(file_out, "ECR_rx_numSubcarriers.append(%u)\n", rx_params.numSubcarriers);
+                fprintf(file_out, "ECR_rx_cp_len.append(%u)\n",         rx_params.cp_len);
+                fprintf(file_out, "ECR_rx_taper_len.append(%u)\n",      rx_params.taper_len);
+                fprintf(file_out, "ECR_rx_gain_uhd.append(%f)\n",       rx_params.rx_gain_uhd);
+                fprintf(file_out, "ECR_rx_freq.append(%f)\n",           rx_params.rx_freq - rx_params.rx_dsp_freq);
+                fprintf(file_out, "ECR_rx_rate.append(%f)\n",           rx_params.rx_rate);
 
-        struct timeval log_time;
-        while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
-            fread((char*)&tx_params, sizeof(struct ExtensibleCognitiveRadio::tx_parameter_s), 1, file_in);
-            fprintf(file_out, "%sECR_tx_t.append(%li + 1e-6*%li)\n", node_prefix, log_time.tv_sec, log_time.tv_usec);
-            fprintf(file_out, "%sECR_tx_numSubcarriers.append(%u)\n",              node_prefix, tx_params.numSubcarriers);
-            fprintf(file_out, "%sECR_tx_cp_len.append(%u)\n",         node_prefix, tx_params.cp_len);
-            fprintf(file_out, "%sECR_tx_taper_len.append(%u)\n",      node_prefix, tx_params.taper_len);
-            fprintf(file_out, "%sECR_tx_gain_uhd.append(%f)\n",       node_prefix, tx_params.tx_gain_uhd);
-            fprintf(file_out, "%sECR_tx_gain_soft.append(%f)\n",      node_prefix, tx_params.tx_gain_soft);
-            fprintf(file_out, "%sECR_tx_freq.append(%f)\n",           node_prefix, tx_params.tx_freq);
-            fprintf(file_out, "%sECR_tx_rate.append(%f)\n",           node_prefix, tx_params.tx_rate);    
-            i++;
-        }
-    }
+                i++;
+            }
+            // If appending to the multiFile, then put the data into the next elements of the multi array
+            if (totalNumReps>1)
+            {
+                // Check that the multi array exists. Create it if it doesn't.
+                fprintf(file_out, "if 'ECR_rx_t_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_t_all_repetitions = [None]*%u\n", totalNumReps);
+                // metrics
+                fprintf(file_out, "if 'ECR_rx_Control_valid_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_Control_valid_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_Payload_valid_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_Payload_valid_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_EVM_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_EVM_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_RSSI_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_RSSI_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_CFO_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_CFO_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_num_syms_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_num_syms_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_mod_scheme_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_mod_scheme_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_BPS_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_BPS_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_fec0_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_fec0_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_fec1_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_fec1_all_repetitions = [None]*%u\n", totalNumReps);
+                // parameters
+                fprintf(file_out, "if 'ECR_rx_numSubcarriers_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_numSubcarriers_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_cp_len_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_cp_len_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_taper_len_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_taper_len_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_gain_uhd_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_gain_uhd_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_freq_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_freq_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_rx_rate_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_rx_rate_all_repetitions = [None]*%u\n", totalNumReps);
 
-    if(log_type == INTPARAMS){
-        fprintf(file_out, "%sInt_tx_t       = list()\n", node_prefix);
-        fprintf(file_out, "%sInt_tx_freq    = list()\n", node_prefix);
-        struct timeval log_time;
-        float tx_freq;
-        while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
-            fread((float*)&tx_freq, sizeof(float), 1, file_in);
-            fprintf(file_out, "%sInt_tx_t.append(%li + 1e-6*%li)\n", node_prefix, log_time.tv_sec, log_time.tv_usec);
-            fprintf(file_out, "%sInt_tx_freq.append(%f)\n",  node_prefix, tx_freq);
-            i++;
+                // Place data in multiarray
+                fprintf(file_out, "ECR_rx_t_all_repetitions[%u]     = ECR_rx_t\n", repNumber-1);
+                // metrics
+                fprintf(file_out, "ECR_rx_Control_valid_all_repetitions[%u] = ECR_rx_Control_valid\n", repNumber-1);
+                fprintf(file_out, "ECR_rx_Payload_valid_all_repetitions[%u] = ECR_rx_Payload_valid\n", repNumber-1);
+                fprintf(file_out, "ECR_rx_EVM_all_repetitions[%u]           = ECR_rx_EVM\n",           repNumber-1);
+                fprintf(file_out, "ECR_rx_RSSI_all_repetitions[%u]          = ECR_rx_RSSI\n",          repNumber-1);
+                fprintf(file_out, "ECR_rx_CFO_all_repetitions[%u]           = ECR_rx_CFO\n",           repNumber-1);
+                fprintf(file_out, "ECR_rx_num_syms_all_repetitions[%u]      = ECR_rx_num_syms\n",      repNumber-1);
+                fprintf(file_out, "ECR_rx_mod_scheme_all_repetitions[%u]    = ECR_rx_mod_scheme\n",    repNumber-1);
+                fprintf(file_out, "ECR_rx_BPS_all_repetitions[%u]           = ECR_rx_BPS\n",           repNumber-1);
+                fprintf(file_out, "ECR_rx_fec0_all_repetitions[%u]          = ECR_rx_fec0\n",          repNumber-1);
+                fprintf(file_out, "ECR_rx_fec1_all_repetitions[%u]          = ECR_rx_fec1\n",          repNumber-1);
+                // parameters
+                fprintf(file_out, "ECR_rx_numSubcarriers_all_repetitions[%u]= ECR_rx_numSubcarriers\n",repNumber-1);
+                fprintf(file_out, "ECR_rx_cp_len_all_repetitions[%u]        = ECR_rx_cp_len\n",        repNumber-1);
+                fprintf(file_out, "ECR_rx_taper_len_all_repetitions[%u]     = ECR_rx_taper_len\n",     repNumber-1);
+                fprintf(file_out, "ECR_rx_gain_uhd_all_repetitions[%u]      = ECR_rx_gain_uhd\n",      repNumber-1);
+                fprintf(file_out, "ECR_rx_freq_all_repetitions[%u]          = ECR_rx_freq\n",          repNumber-1);
+                fprintf(file_out, "ECR_rx_rate_all_repetitions[%u]          = ECR_rx_rate\n",          repNumber-1);
+
+                // Delete redundant data
+                fprintf(file_out, "del ECR_rx_t\n");
+                // metrics
+                fprintf(file_out, "del ECR_rx_Control_valid\n");
+                fprintf(file_out, "del ECR_rx_Payload_valid\n");
+                fprintf(file_out, "del ECR_rx_EVM\n");
+                fprintf(file_out, "del ECR_rx_RSSI\n");
+                fprintf(file_out, "del ECR_rx_CFO\n");
+                fprintf(file_out, "del ECR_rx_num_syms\n");
+                fprintf(file_out, "del ECR_rx_mod_scheme\n");
+                fprintf(file_out, "del ECR_rx_BPS\n");
+                fprintf(file_out, "del ECR_rx_fec0\n");
+                fprintf(file_out, "del ECR_rx_fec1\n\n");
+                // parameters
+                fprintf(file_out, "del ECR_rx_numSubcarriers\n");
+                fprintf(file_out, "del ECR_rx_cp_len\n");
+                fprintf(file_out, "del ECR_rx_taper_len\n");
+                fprintf(file_out, "del ECR_rx_gain_uhd\n");
+                fprintf(file_out, "del ECR_rx_freq\n");
+                fprintf(file_out, "del ECR_rx_rate\n");
+            }
+            break;
         }
+        case TXPARAMS:
+        {
+            fprintf(file_out, "ECR_tx_t                 = list()\n");
+            fprintf(file_out, "ECR_tx_numSubcarriers    = list()\n");
+            fprintf(file_out, "ECR_tx_cp_len            = list()\n");
+            fprintf(file_out, "ECR_tx_taper_len         = list()\n");
+            fprintf(file_out, "ECR_tx_gain_uhd          = list()\n");
+            fprintf(file_out, "ECR_tx_gain_soft         = list()\n");
+            fprintf(file_out, "ECR_tx_freq              = list()\n");
+            fprintf(file_out, "ECR_tx_rate              = list()\n");    
+
+            struct timeval log_time;
+            while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
+                fread((char*)&tx_params, sizeof(struct ExtensibleCognitiveRadio::tx_parameter_s), 1, file_in);
+                fprintf(file_out, "ECR_tx_t.append(%li + 1e-6*%li)\n", log_time.tv_sec, log_time.tv_usec);
+                fprintf(file_out, "ECR_tx_numSubcarriers.append(%u)\n", tx_params.numSubcarriers);
+                fprintf(file_out, "ECR_tx_cp_len.append(%u)\n",         tx_params.cp_len);
+                fprintf(file_out, "ECR_tx_taper_len.append(%u)\n",      tx_params.taper_len);
+                fprintf(file_out, "ECR_tx_gain_uhd.append(%f)\n",       tx_params.tx_gain_uhd);
+                fprintf(file_out, "ECR_tx_gain_soft.append(%f)\n",      tx_params.tx_gain_soft);
+                fprintf(file_out, "ECR_tx_freq.append(%f)\n",           tx_params.tx_freq);
+                fprintf(file_out, "ECR_tx_rate.append(%f)\n",           tx_params.tx_rate);    
+                i++;
+            }
+
+            // If appending to the multiFile, then put the data into the next elements of the multi array
+            if (totalNumReps>1)
+            {
+                // Check that the multi array exists. Create it if it doesn't.
+                fprintf(file_out, "if 'ECR_tx_t_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_tx_t_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_tx_numSubcarriers_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_tx_numSubcarriers_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_tx_cp_len_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_tx_cp_len_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_tx_taper_len_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_tx_taper_len_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_tx_gain_uhd_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_tx_gain_uhd_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_tx_gain_soft_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_tx_gain_soft_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_tx_freq_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_tx_freq_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'ECR_tx_rate_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    ECR_tx_rate_all_repetitions = [None]*%u\n", totalNumReps);
+
+                // Place data in multiarray
+                fprintf(file_out, "ECR_tx_t_all_repetitions[%u] = ECR_tx_t\n", repNumber-1);
+                fprintf(file_out, "ECR_tx_numSubcarriers_all_repetitions[%u] = ECR_tx_numSubcarriers\n", repNumber-1);
+                fprintf(file_out, "ECR_tx_cp_len_all_repetitions[%u] = ECR_tx_cp_len\n", repNumber-1);
+                fprintf(file_out, "ECR_tx_taper_len_all_repetitions[%u] = ECR_tx_taper_len\n", repNumber-1);
+                fprintf(file_out, "ECR_tx_gain_uhd_all_repetitions[%u] = ECR_tx_gain_uhd\n", repNumber-1);
+                fprintf(file_out, "ECR_tx_gain_soft_all_repetitions[%u] = ECR_tx_gain_soft\n", repNumber-1);
+                fprintf(file_out, "ECR_tx_freq_all_repetitions[%u] = ECR_tx_freq\n", repNumber-1);
+                fprintf(file_out, "ECR_tx_rate_all_repetitions[%u] = ECR_tx_rate\n", repNumber-1);
+
+                // Delete redundant data
+                fprintf(file_out, "del ECR_tx_t\n");
+                fprintf(file_out, "del ECR_tx_numSubcarriers\n");
+                fprintf(file_out, "del ECR_tx_cp_len\n");
+                fprintf(file_out, "del ECR_tx_taper_len\n");
+                fprintf(file_out, "del ECR_tx_gain_uhd\n");
+                fprintf(file_out, "del ECR_tx_gain_soft\n");
+                fprintf(file_out, "del ECR_tx_freq\n");
+                fprintf(file_out, "del ECR_tx_rate\n");
+
+            }
+            break;
+        }
+
+        case INTPARAMS:
+        {
+            struct timeval log_time;
+
+            fprintf(file_out, "Int_tx_t       = list()\n");
+            fprintf(file_out, "Int_tx_freq    = list()\n");
+
+            float tx_freq;
+            while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
+                fread((float*)&tx_freq, sizeof(float), 1, file_in);
+                fprintf(file_out, "Int_tx_t.append(%li + 1e-6*%li)\n", log_time.tv_sec, log_time.tv_usec);
+                fprintf(file_out, "Int_tx_freq.append(%f)\n",  tx_freq);
+                i++;
+            }
+
+            // If appending to the multiFile, then put the data into the next elements of the multi array
+            if (totalNumReps>1)
+            {
+                // Check that the multi array exists. Create it if it doesn't.
+                fprintf(file_out, "if 'Int_tx_t_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    Int_tx_t_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'Int_tx_freq_all_repetitions' in locals():\n\n");
+                fprintf(file_out, "    pass\n\n");
+                fprintf(file_out, "else:\n\n");
+                fprintf(file_out, "    Int_tx_freq_all_repetitions = [None]*%u\n\n", totalNumReps);
+
+                // Place data in multiarray
+                fprintf(file_out, "Int_tx_t_all_repetitions[%u] = Int_tx_t\n", repNumber-1);
+                fprintf(file_out, "Int_tx_freq_all_repetitions[%u] = Int_tx_freq\n\n", repNumber-1);
+
+                // Delete redundant data
+                fprintf(file_out, "del Int_tx_t\n");
+                fprintf(file_out, "del Int_tx_freq\n\n");
+            }
+            break;
+        }
+
+        // handle CRTS rx data logs
+        case CRPARAMS:
+        {
+            struct timeval log_time;
+
+            fprintf(file_out, "CRTS_rx_t        = list()\n");
+            fprintf(file_out, "CRTS_rx_bytes    = list()\n");
+
+            int bytes;
+            while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1, file_in)){
+                fread((int*)&bytes, sizeof(int), 1, file_in);
+                fprintf(file_out, "CRTS_rx_t.append(%li + 1e-6*%li)\n",  log_time.tv_sec, log_time.tv_usec);
+                fprintf(file_out, "CRTS_rx_bytes.append(%i)\n\n",  bytes);
+                i++;
+            }
+
+            // If appending to the multiFile, then put the data into the next elements of the multi array
+            if (totalNumReps>1)
+            {
+                // Check that the multi array exists. Create it if it doesn't.
+                fprintf(file_out, "if 'CRTS_rx_t_all_repetitions' in locals():\n");
+                fprintf(file_out, "    pass\n");
+                fprintf(file_out, "else:\n");
+                fprintf(file_out, "    CRTS_rx_t_all_repetitions = [None]*%u\n", totalNumReps);
+                fprintf(file_out, "if 'CRTS_rx_bytes_all_repetitions' in locals():\n\n");
+                fprintf(file_out, "    pass\n\n");
+                fprintf(file_out, "else:\n\n");
+                fprintf(file_out, "    CRTS_rx_bytes_all_repetitions = [None]*%u\n\n", totalNumReps);
+
+                // Place data in multiarray
+                fprintf(file_out, "CRTS_rx_t_all_repetitions[%u] = CRTS_rx_t\n", repNumber-1);
+                fprintf(file_out, "CRTS_rx_bytes_all_repetitions[%u] = CRTS_rx_bytes\n\n", repNumber-1);
+
+                // Delete redundant data
+                fprintf(file_out, "del CRTS_rx_t\n");
+                fprintf(file_out, "del CRTS_rx_bytes\n\n");
+            }
+            break;
+
+        }
+
     }
 
     fclose(file_in);
