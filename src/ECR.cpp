@@ -14,13 +14,13 @@
 #include "TUN.hpp"
 
 //EDIT INCLUDE START FLAG
+#include "../cognitive_engines/CE_Template.hpp"
 #include "../cognitive_engines/CE_Subcarrier_Alloc.hpp"
 #include "../cognitive_engines/CE_Mod_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_PU.hpp"
 #include "../cognitive_engines/CE_FEC_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
-#include "../cognitive_engines/CE_Transparent.hpp"
 //EDIT INCLUDE END FLAG
 
 #define DEBUG 0
@@ -219,6 +219,8 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 void ExtensibleCognitiveRadio::set_ce(char *ce){
 ///@cond INTERNAL
 //EDIT SET_CE START FLAG
+    if(!strcmp(ce, "CE_Template"))
+        CE = new CE_Template();
     if(!strcmp(ce, "CE_Subcarrier_Alloc"))
         CE = new CE_Subcarrier_Alloc();
     if(!strcmp(ce, "CE_Mod_Adaptation"))
@@ -231,8 +233,6 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
         CE = new CE_FEC_Adaptation();
     if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
         CE = new CE_Two_Channel_DSA_Link_Reliability();
-    if(!strcmp(ce, "CE_Transparent"))
-        CE = new CE_Transparent();
 //EDIT SET_CE END FLAG
 ///@endcond
 }

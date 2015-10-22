@@ -2,6 +2,7 @@
 #define _CE_SUBCARRIER_ALLOC_
 
 #include "CE.hpp"
+#include <sys/time.h>
 
 class CE_Subcarrier_Alloc : public Cognitive_Engine {
 
