@@ -1,35 +1,15 @@
-#include "CE.hpp"
+#include "CE_Two_Channel_DSA_Link_Reliability.hpp"
 #include "ECR.hpp"
 #include <stdio.h>
 #include <iostream>
 
-// custom member struct
-struct CE_Two_Channel_DSA_Link_Reliability_members{
-    static const float freq_a = 770e6;
-    static const float freq_b = 769e6;
-    static const float freq_x = 870e6;
-    static const float freq_y = 869e6;
-
-    // Number of consecutive invalid control or payloads
-    int cons_invalid_payloads;
-    int cons_invalid_control;
-
-    // Theshold for number of consecutive invalid control
-    int invalid_payloads_thresh;
-    int invalid_control_thresh;
-
-	CE_Two_Channel_DSA_Link_Reliability_members(){
-		cons_invalid_payloads = 0;
-    	cons_invalid_control = 0;
-    	invalid_payloads_thresh = 3;
-    	invalid_control_thresh = 1;
-	}
-};
-
-// custom function declarations
-
 // constructor
-CE_Two_Channel_DSA_Link_Reliability::CE_Two_Channel_DSA_Link_Reliability(){}
+CE_Two_Channel_DSA_Link_Reliability::CE_Two_Channel_DSA_Link_Reliability(){
+	cons_invalid_payloads = 0;
+    cons_invalid_control = 0;
+    invalid_payloads_thresh = 3;
+    invalid_control_thresh = 1;
+}
 
 // destructor
 CE_Two_Channel_DSA_Link_Reliability::~CE_Two_Channel_DSA_Link_Reliability(){}
@@ -38,58 +18,56 @@ CE_Two_Channel_DSA_Link_Reliability::~CE_Two_Channel_DSA_Link_Reliability(){}
 void CE_Two_Channel_DSA_Link_Reliability::execute(void * _args){
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 
-    static struct CE_Two_Channel_DSA_Link_Reliability_members cm;
-    
-	// If we recieved a frame and the payload is valid
+    // If we recieved a frame and the payload is valid
     if((ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT) && ECR->CE_metrics.payload_valid)
-        cm.cons_invalid_payloads = 0;
+        cons_invalid_payloads = 0;
     else
-        cm.cons_invalid_payloads += 1;
+        cons_invalid_payloads += 1;
 
     // If we recieved a frame and the control is valid
     if((ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT) && ECR->CE_metrics.control_valid)
-        cm.cons_invalid_control = 0;
+        cons_invalid_control = 0;
     else
-        cm.cons_invalid_control += 1;
+        cons_invalid_control += 1;
     
     float current_rx_freq = ECR->get_rx_freq();
     //printf("Current RX freq: %f\n", current_rx_freq);
     // Check if packets received from other node are very poor 
     // or not being received
-    if (cm.cons_invalid_payloads>cm.invalid_payloads_thresh || 
-        cm.cons_invalid_control>cm.invalid_control_thresh || 
+    if (cons_invalid_payloads>invalid_payloads_thresh || 
+        cons_invalid_control>invalid_control_thresh || 
         ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
     {
         /*if (ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT)
             //std::cout<<"Timed out without receiving any frames."<<std::endl;
-        if (cm.cons_invalid_payloads > cm.invalid_payloads_thresh)
-            //std::cout<<"Received "<<cm.cons_invalid_payloads<<" consecutive invalid payloads."<<std::endl;
-        if (cm.cons_invalid_control > cm.invalid_control_thresh)
-            //std::cout<<"Received "<<cm.cons_invalid_control<<" consecutive invalid control."<<std::endl;
+        if (cons_invalid_payloads > invalid_payloads_thresh)
+            //std::cout<<"Received "<<cons_invalid_payloads<<" consecutive invalid payloads."<<std::endl;
+        if (cons_invalid_control > invalid_control_thresh)
+            //std::cout<<"Received "<<cons_invalid_control<<" consecutive invalid control."<<std::endl;
 		*/
         
 		// Reset counter to 0
-        cm.cons_invalid_payloads = 0;
-        cm.cons_invalid_control = 0;
+        cons_invalid_payloads = 0;
+        cons_invalid_control = 0;
 
         // Switch to other rx frequency and tell
         // other node to switch their tx frequency likewise.
         std::cout<<"Switching from rx_freq="<<current_rx_freq<<std::endl;
-        if (current_rx_freq == cm.freq_a)
+        if (current_rx_freq == freq_a)
         {
-            current_rx_freq = cm.freq_b;
+            current_rx_freq = freq_b;
         }
-        else if (current_rx_freq == cm.freq_b)
+        else if (current_rx_freq == freq_b)
         {
-            current_rx_freq = cm.freq_a;
+            current_rx_freq = freq_a;
         }
-        else if (current_rx_freq == cm.freq_x)
+        else if (current_rx_freq == freq_x)
         {
-            current_rx_freq = cm.freq_y;
+            current_rx_freq = freq_y;
         }
-        else if (current_rx_freq == cm.freq_y)
+        else if (current_rx_freq == freq_y)
         {
-            current_rx_freq = cm.freq_x;
+            current_rx_freq = freq_x;
         }
         ECR->set_rx_freq(current_rx_freq);
         std::cout<<"to rx_freq="<<current_rx_freq<<std::endl;
@@ -118,10 +96,10 @@ void CE_Two_Channel_DSA_Link_Reliability::execute(void * _args){
 
     	// This check ensures that the radio didn't accidentally receive it's own
         // transmission due to limited isolation between transmitter/receiver of USRP
-        if( (tx_freq == cm.freq_a && new_tx_freq == cm.freq_b) || 
-            (tx_freq == cm.freq_b && new_tx_freq == cm.freq_a) ||
-            (tx_freq == cm.freq_x && new_tx_freq == cm.freq_y) || 
-            (tx_freq == cm.freq_y && new_tx_freq == cm.freq_x) )
+        if( (tx_freq == freq_a && new_tx_freq == freq_b) || 
+            (tx_freq == freq_b && new_tx_freq == freq_a) ||
+            (tx_freq == freq_x && new_tx_freq == freq_y) || 
+            (tx_freq == freq_y && new_tx_freq == freq_x) )
         {    
             ECR->set_tx_freq(new_tx_freq);
             std::cout<<"Tx freq set to: "<< new_tx_freq << std::endl;

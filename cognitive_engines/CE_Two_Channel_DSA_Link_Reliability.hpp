@@ -8,6 +8,21 @@ class CE_Two_Channel_DSA_Link_Reliability : public Cognitive_Engine {
         CE_Two_Channel_DSA_Link_Reliability();
         ~CE_Two_Channel_DSA_Link_Reliability();
         virtual void execute(void * _args);
+
+	private:
+		static const float freq_a = 770e6;
+    	static const float freq_b = 769e6;
+    	static const float freq_x = 870e6;
+    	static const float freq_y = 869e6;
+
+    	// Number of consecutive invalid control or payloads
+    	int cons_invalid_payloads;
+    	int cons_invalid_control;
+
+    	// Theshold for number of consecutive invalid control
+    	int invalid_payloads_thresh;
+    	int invalid_control_thresh;
+	
 };
 
 #endif

@@ -1,4 +1,4 @@
-#include "CE.hpp"
+#include "CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
 #include "ECR.hpp"
 #include "timer.h"
 #include <complex.h>

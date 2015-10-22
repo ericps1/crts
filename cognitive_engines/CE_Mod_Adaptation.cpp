@@ -1,5 +1,3 @@
-
-
 #include "ECR.hpp"
 #include "CE_Mod_Adaptation.hpp"
 

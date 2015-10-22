@@ -2,6 +2,7 @@
 #define _CE_TWO_CHANNEL_DSA_SPECTRUM_SENSING_
 
 #include "ECR.hpp"
+#include "CE.hpp"
 #include "timer.h"
 
 class CE_Two_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
