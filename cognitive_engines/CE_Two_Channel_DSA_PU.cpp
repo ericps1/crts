@@ -1,11 +1,14 @@
-#include "CE.hpp"
+#include "CE_Two_Channel_DSA_PU.hpp"
 #include "ECR.hpp"
 #include <stdio.h>
 #include <timer.h>
 #include <sys/time.h>
 
 // constructor
-CE_Two_Channel_DSA_PU::CE_Two_Channel_DSA_PU(){}
+CE_Two_Channel_DSA_PU::CE_Two_Channel_DSA_PU(){
+	first_execution = 1;
+	period_s = 5;
+}
 
 // destructor
 CE_Two_Channel_DSA_PU::~CE_Two_Channel_DSA_PU(){}
@@ -13,16 +16,6 @@ CE_Two_Channel_DSA_PU::~CE_Two_Channel_DSA_PU(){}
 // execute function
 void CE_Two_Channel_DSA_PU::execute(void * _args){
 	ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
-
-	static const float freq_a = 770e6;
-    static const float freq_b = 769e6;
-    static const float freq_x = 760e6;
-    static const float freq_y = 759e6;
-
-    static struct timeval tv;
-	static time_t switch_time_s;
-	static int period_s = 5;
-	static int first_execution = 1;
 
 	gettimeofday(&tv, NULL);
 
