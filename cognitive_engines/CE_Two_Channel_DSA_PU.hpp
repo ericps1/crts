@@ -10,3 +10,4 @@ class CE_Two_Channel_DSA_PU : public Cognitive_Engine {
         virtual void execute(void * _args);
 };
 
+#endif

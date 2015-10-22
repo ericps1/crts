@@ -10,3 +10,4 @@ class CE_Transparent : public Cognitive_Engine {
         virtual void execute(void * _args);
 };
 
+#endif

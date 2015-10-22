@@ -3,10 +3,11 @@
 
 #include "CE.hpp"
 
-class CE_Mod_Adaption : public Cognitive_Engine {
+class CE_Mod_Adaptation : public Cognitive_Engine {
     public:
-        CE_Mod_Adaption();
-        ~CE_Mod_Adaption();
+        CE_Mod_Adaptation();
+        ~CE_Mod_Adaptation();
         virtual void execute(void * _args);
 };
 
+#endif

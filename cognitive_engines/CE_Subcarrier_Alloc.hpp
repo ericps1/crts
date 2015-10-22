@@ -10,3 +10,4 @@ class CE_Subcarrier_Alloc : public Cognitive_Engine {
         virtual void execute(void * _args);
 };
 
+#endif
