@@ -1,9 +1,6 @@
 FLAGS = -I include -Wall -fPIC -g
 LIBS = lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
-# Used to define the path upon install
-CRTS_PATH = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-
 #EDIT START FLAG
 CEs = src/CE.cpp cognitive_engines/CE_Template.cpp cognitive_engines/CE_Subcarrier_Alloc.cpp cognitive_engines/CE_Mod_Adaptation.cpp cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.cpp cognitive_engines/CE_Two_Channel_DSA_PU.cpp cognitive_engines/CE_FEC_Adaptation.cpp cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.cpp
 #EDIT END FLAG
