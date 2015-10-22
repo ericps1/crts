@@ -40,8 +40,8 @@ namespace gr {
      */
     debug_block_impl::debug_block_impl()
       : gr::block("debug_block",
-              gr::io_signature::make(1, 1, sizeof(char)),
-              gr::io_signature::make(1, 1, sizeof(char)))
+              gr::io_signature::make(1, 1, 1032*sizeof(char)),
+              gr::io_signature::make(1, 1, 1032*sizeof(char)))
     {}
 
     /*
