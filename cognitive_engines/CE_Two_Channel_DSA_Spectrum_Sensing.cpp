@@ -13,68 +13,6 @@
 #define dprintf(...) /*__VA_ARGS__*/
 #endif
 
-// custom member struct
-struct CE_Two_Channel_DSA_Spectrum_Sensing_members{
-	// measured noise power and flag
-    float noise_floor;
-    int noise_floor_measured;
-
-	// Multiplicative coeffiecient applied to meausured noise
-    // power to determine channel threshold for PU occupancy.
-    static const float threshold_coefficient = 275.0;
-
-    // Number of measurements taken for noise floor
-	// and time between each measurement
-	static const unsigned int numMeasurements = 60;
-    static const float measurementDelay_ms = 400.0;
-
-    // How long to sense spectrum when checking noise floor
-    // or for PU in milliseconds.
-    static const float sensingPeriod_ms = 100.0;
-
-    // How frequently to recheck for PU
-    static const float sensingFrequency_Hz = 1.0;
-   
-	// Settling time for USRP
-	static const float tune_settling_time_ms = 100.0;
-
-	// time related variables
-    static const float desired_timeout_ms = 10.0;
-    timer t1;
-    int tx_is_on;
-
-	// counter/threshold for receiver frequency synchronization
-	int no_sync_counter;
-	static const int no_sync_threshold = 100;
-
-	// frequencies used in scenario
-	float fc;							// RF center frequency of USRP
-	float fshift;						// DSP shift applied to reduce interference from transmitter
-										// during sensing
-	static const float freq_a = 770e6;  // Channel center frequencies
-	static const float freq_b = 769e6;
-	static const float freq_x = 760e6;
-	static const float freq_y = 759e6;
-
-	// DSP shift applied to reach the target channel's center frequency
-	float rx_foff;
-	float tx_foff;
-	
-	// USRP sample and FFT output buffers
-	float _Complex buffer[512];
-	float _Complex buffer_F[512];
-
-	CE_Two_Channel_DSA_Spectrum_Sensing_members(){
-		tx_is_on = 1;
-		t1 = timer_create();
-		timer_tic(t1);
-	}
-};
-
-// custom function declarations
-int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectrum_Sensing_members* cm);
-void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectrum_Sensing_members* cm);
-
 // constructor
 CE_Two_Channel_DSA_Spectrum_Sensing::CE_Two_Channel_DSA_Spectrum_Sensing(){}
 
@@ -85,11 +23,9 @@ CE_Two_Channel_DSA_Spectrum_Sensing::~CE_Two_Channel_DSA_Spectrum_Sensing() {}
 void CE_Two_Channel_DSA_Spectrum_Sensing::execute(void * _args){
     // type cast pointer to cognitive radio object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
-    // type cast custom members void pointer to custom member struct
-    static struct CE_Two_Channel_DSA_Spectrum_Sensing_members cm; 
-	
+    
 	// If the noise floor hasn't been measured yet, do so now.
-    if (cm.noise_floor_measured == 0) 
+    if (noise_floor_measured == 0) 
     {
         dprintf("Stopping transceiver\n");
 		ECR->stop_tx();
@@ -100,118 +36,118 @@ void CE_Two_Channel_DSA_Spectrum_Sensing::execute(void * _args){
         float tx_freq = ECR->get_tx_freq();
 	
 		if(rx_freq > 765e6){
-			cm.fc = 750e6;
-			cm.fshift = -15e6;
+			fc = 750e6;
+			fshift = -15e6;
 		}
 		else{
-			cm.fc = 780e6;
-			cm.fshift = 15e6;
+			fc = 780e6;
+			fshift = 15e6;
 		}
-		printf("\nfc: %.2e\n\n", cm.fc);
+		printf("\nfc: %.2e\n\n", fc);
 
-		cm.rx_foff = cm.fc - rx_freq;
-		cm.tx_foff = -cm.fc + tx_freq;
-		ECR->set_tx_freq(cm.fc, cm.fshift);
-		ECR->set_rx_freq(cm.fc, -cm.tx_foff);
+		rx_foff = fc - rx_freq;
+		tx_foff = -fc + tx_freq;
+		ECR->set_tx_freq(fc, fshift);
+		ECR->set_rx_freq(fc, -tx_foff);
 
         dprintf("Measuring noise floor\n");	
-		measureNoiseFloor(ECR, &cm);
+		measureNoiseFloor(ECR);
 		
 		// check if channel is currently occuppied
-		int PUDetected = PUisPresent(ECR, &cm);
+		int PUDetected = PUisPresent(ECR);
         
-		ECR->set_tx_freq(cm.fc, cm.tx_foff);
+		ECR->set_tx_freq(fc, tx_foff);
 		//ECR->set_tx_freq(tx_freq);
-		ECR->set_rx_freq(cm.fc, cm.rx_foff);
+		ECR->set_rx_freq(fc, rx_foff);
 
         // restart receiver
 		ECR->start_rx();
 		// restart transmitter if the channel is unoccupied
 		if(!PUDetected){
 			ECR->start_tx();
-			cm.tx_is_on = 1;
+			tx_is_on = 1;
 		}
 
 		// This CE should be executed immediately when run, so the timeout should 
         // be set to 0 in the scenario file. After the first run, a new timeout
         // value should be set.
-        ECR->set_ce_timeout_ms(cm.desired_timeout_ms);
+        ECR->set_ce_timeout_ms(desired_timeout_ms);
     
-		cm.noise_floor_measured = 1;
-		timer_tic(cm.t1);
+		noise_floor_measured = 1;
+		timer_tic(t1);
 	}
 
 	
 	// If it's time to sense the spectrum again
-    if(timer_toc(cm.t1) > 1.0/cm.sensingFrequency_Hz)
+    if(timer_toc(t1) > 1.0/sensingFrequency_Hz)
     {
-        timer_tic(cm.t1);
+        timer_tic(t1);
         
 		// stop data receiver to enable spectrum sensing
 		ECR->stop_rx();
-        if (cm.tx_is_on)
+        if (tx_is_on)
         {
             // Pause Transmission
             ECR->stop_tx();
-            cm.tx_is_on = 0;
+            tx_is_on = 0;
         }
         
 		// flag indicating to change to transmit frequency
 		int switch_tx_freq = 0;
 		
 		// Change rx freq to current tx freq
-        float rx_freq = cm.fc - cm.rx_foff;
-        float tx_freq = cm.fc + cm.tx_foff;
-		cm.rx_foff = cm.fc - rx_freq;
-		cm.tx_foff = -cm.fc + tx_freq;
-		ECR->set_tx_freq(cm.fc, cm.fshift);
-		ECR->set_rx_freq(cm.fc, -cm.tx_foff);
+        float rx_freq = fc - rx_foff;
+        float tx_freq = fc + tx_foff;
+		rx_foff = fc - rx_freq;
+		tx_foff = -fc + tx_freq;
+		ECR->set_tx_freq(fc, fshift);
+		ECR->set_rx_freq(fc, -tx_foff);
 
         // pause to allow the frequency to settle
         while(true)
         {
-            if(timer_toc(cm.t1) >= (cm.tune_settling_time_ms/1e3))
+            if(timer_toc(t1) >= (tune_settling_time_ms/1e3))
 				break;
         }
-		timer_tic(cm.t1);
+		timer_tic(t1);
 
-		int PUDetected = PUisPresent(ECR, &cm);
+		int PUDetected = PUisPresent(ECR);
         
 		// reset to original frequencies if no PU was detected
 		if(!PUDetected){
-		ECR->set_rx_freq(cm.fc, cm.rx_foff);
-		ECR->set_tx_freq(cm.fc, cm.tx_foff);
+		ECR->set_rx_freq(fc, rx_foff);
+		ECR->set_tx_freq(fc, tx_foff);
         }
 		// Check for PU on other possible tx freq.
 		else {
 			printf("PU detected in current channel (%-.2f), checking other channel\n", tx_freq);
 			
-			if(tx_freq == cm.freq_a)
-				tx_freq = cm.freq_b;
-			else if(tx_freq == cm.freq_b)
-				tx_freq = cm.freq_a;
-			else if(tx_freq == cm.freq_x)
-				tx_freq = cm.freq_y;
-			else if(tx_freq == cm.freq_y)
-				tx_freq = cm.freq_x;
+			if(tx_freq == freq_a)
+				tx_freq = freq_b;
+			else if(tx_freq == freq_b)
+				tx_freq = freq_a;
+			else if(tx_freq == freq_x)
+				tx_freq = freq_y;
+			else if(tx_freq == freq_y)
+				tx_freq = freq_x;
 
-			cm.tx_foff = -cm.fc + tx_freq;	
-			ECR->set_rx_freq(cm.fc, -cm.tx_foff);
+			tx_foff = -fc + tx_freq;	
+			ECR->set_rx_freq(fc, -tx_foff);
 			
 			// pause to allow the frequency to settle
         	while(true)
         	{
-            	if(timer_toc(cm.t1) >= (cm.tune_settling_time_ms/1e3))
+            	if(timer_toc(t1) >= (tune_settling_time_ms/1e3))
 					break;
         	}
-			timer_tic(cm.t1);
+			timer_tic(t1);
 
-			PUDetected = PUisPresent(ECR, &cm);
+			PUDetected = PUisPresent(ECR);
 			if(!PUDetected)
 				switch_tx_freq = 1;
 		
 			// reset receiver frequency to current channel
-			ECR->set_rx_freq(cm.fc, cm.rx_foff);
+			ECR->set_rx_freq(fc, rx_foff);
 		}
 		
 		// restart receiver
@@ -226,48 +162,48 @@ void CE_Two_Channel_DSA_Spectrum_Sensing::execute(void * _args){
 			// switch to other channel if applicable
 			if(switch_tx_freq){
 				printf("Switching transmit frequency to %-.2f\n", tx_freq);
-				ECR->set_tx_freq(cm.fc, cm.tx_foff);
+				ECR->set_tx_freq(fc, tx_foff);
 			}
 
 			ECR->start_tx();
-            cm.tx_is_on = 1;
+            tx_is_on = 1;
         }
     }
 
 	// Receiver frequency selection based on timeouts and bad frames
 	if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::TIMEOUT || !ECR->CE_metrics.payload_valid){
-		cm.no_sync_counter++;
-		if(cm.no_sync_counter >= cm.no_sync_threshold){
-			float rx_freq = cm.fc - cm.rx_foff;
-        	cm.no_sync_counter = 0;
+		no_sync_counter++;
+		if(no_sync_counter >= no_sync_threshold){
+			float rx_freq = fc - rx_foff;
+        	no_sync_counter = 0;
 			
-			if(rx_freq == cm.freq_a)
-				rx_freq = cm.freq_b;
-			else if(rx_freq == cm.freq_b)
-				rx_freq = cm.freq_a;
-			else if(rx_freq == cm.freq_x)
-				rx_freq = cm.freq_y;
-			else if(rx_freq == cm.freq_y)
-				rx_freq = cm.freq_x;
+			if(rx_freq == freq_a)
+				rx_freq = freq_b;
+			else if(rx_freq == freq_b)
+				rx_freq = freq_a;
+			else if(rx_freq == freq_x)
+				rx_freq = freq_y;
+			else if(rx_freq == freq_y)
+				rx_freq = freq_x;
 				
 			printf("Switching rx freq to: %f\n", rx_freq);
-			cm.rx_foff = cm.fc - rx_freq;
-			ECR->set_rx_freq(cm.fc, cm.rx_foff);
+			rx_foff = fc - rx_freq;
+			ECR->set_rx_freq(fc, rx_foff);
 		}
 	}
 	else
-		cm.no_sync_counter = 0;
+		no_sync_counter = 0;
 
 }
 
 
 // Check if current channel power is signficantly higher than measured noise power.
 // Return 0 if channel is empty
-int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectrum_Sensing_members* cm)
+int CE_Two_Channel_DSA_Spectrum_Sensing::PUisPresent(ExtensibleCognitiveRadio* ECR)
 {
-    // set up receive buffers to sense for time specified by cm.sensingPeriod_ms
+    // set up receive buffers to sense for time specified by sensingPeriod_ms
     const size_t max_samps_per_packet = ECR->usrp_rx->get_device()->get_max_recv_samps_per_packet();
-    size_t numSensingSamples = (long unsigned int) ((cm->sensingPeriod_ms/1000.0)*ECR->get_rx_rate());
+    size_t numSensingSamples = (long unsigned int) ((sensingPeriod_ms/1000.0)*ECR->get_rx_rate());
     unsigned int numFullPackets = numSensingSamples / max_samps_per_packet;
     size_t samps_per_last_packet = numSensingSamples % max_samps_per_packet;
     
@@ -277,8 +213,8 @@ int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectru
 	ECR->usrp_rx->issue_stream_cmd(s);
 		
 	static fftplan fft = fft_create_plan(512, 
-		reinterpret_cast<liquid_float_complex*>(cm->buffer), 
-		reinterpret_cast<liquid_float_complex*>(cm->buffer_F), 
+		reinterpret_cast<liquid_float_complex*>(buffer), 
+		reinterpret_cast<liquid_float_complex*>(buffer_F), 
 		LIQUID_FFT_FORWARD, 
 		0);
 
@@ -290,7 +226,7 @@ int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectru
     for (unsigned int j = 0; j<numFullPackets; j++)
     {
         ECR->usrp_rx->get_device()->recv(
-                cm->buffer, max_samps_per_packet, ECR->metadata_rx,
+                buffer, max_samps_per_packet, ECR->metadata_rx,
                 uhd::io_type_t::COMPLEX_FLOAT32,
                 uhd::device::RECV_MODE_ONE_PACKET
                 );
@@ -298,14 +234,14 @@ int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectru
         // calculate and sum fft of zero-padded sample buffer
 		fft_execute(fft);
 		for(unsigned int k=0; k<512; k++)
-			X[k] += cm->buffer_F[k];
+			X[k] += buffer_F[k];
 	
 	}
     // If number of samples in last packet is nonzero, get them as well.
     if (samps_per_last_packet)
     {
         ECR->usrp_rx->get_device()->recv(
-                cm->buffer, samps_per_last_packet, ECR->metadata_rx,
+                buffer, samps_per_last_packet, ECR->metadata_rx,
                 uhd::io_type_t::COMPLEX_FLOAT32,
                 uhd::device::RECV_MODE_ONE_PACKET
                 );
@@ -313,7 +249,7 @@ int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectru
     	// calculate and sum fft of zero-padded sample buffer
 		fft_execute(fft);
 		for(unsigned int k=0; k<512; k++)
-			X[k] += cm->buffer_F[k];
+			X[k] += buffer_F[k];
 
 	}
 
@@ -327,22 +263,22 @@ int PUisPresent(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectru
 	channelPower = M*M;
 	printf("Measured channel power: %.2e\n", channelPower);
 		
-	return (channelPower > cm->threshold_coefficient*cm->noise_floor);
+	return (channelPower > threshold_coefficient*noise_floor);
 }
 
 // Try to evaluate the noise floor power
-void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_Spectrum_Sensing_members* cm)
+void CE_Two_Channel_DSA_Spectrum_Sensing::measureNoiseFloor(ExtensibleCognitiveRadio* ECR)
 {
-    // set up receive buffers to sense for time specified by cm.sensingPeriod_ms
+    // set up receive buffers to sense for time specified by sensingPeriod_ms
     const size_t max_samps_per_packet = ECR->usrp_rx->get_device()->get_max_recv_samps_per_packet();
-    size_t numSensingSamples = (long unsigned int) ((cm->sensingPeriod_ms/1000.0)*ECR->get_rx_rate());
+    size_t numSensingSamples = (long unsigned int) ((sensingPeriod_ms/1000.0)*ECR->get_rx_rate());
     unsigned int numFullPackets = numSensingSamples / max_samps_per_packet;
     size_t samps_per_last_packet = numSensingSamples % max_samps_per_packet;
     
 	// static fft plan will be used for each execution
 	static fftplan fft = fft_create_plan(512, 
-		reinterpret_cast<liquid_float_complex*>(cm->buffer), 
-		reinterpret_cast<liquid_float_complex*>(cm->buffer_F), 
+		reinterpret_cast<liquid_float_complex*>(buffer), 
+		reinterpret_cast<liquid_float_complex*>(buffer_F), 
 		LIQUID_FFT_FORWARD, 
 		0);
 
@@ -350,7 +286,7 @@ void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_
     // be less than this
     float noisePowerMin = (float)max_samps_per_packet + 1.0;
     // Make numMeasurements measueremnts, each measurementDelay_ms apart
-    for (unsigned int i=0; i<cm->numMeasurements; i++)
+    for (unsigned int i=0; i<numMeasurements; i++)
     {
         uhd::stream_cmd_t s(uhd::stream_cmd_t::STREAM_MODE_NUM_SAMPS_AND_DONE);
 		s.num_samps = numSensingSamples;
@@ -365,7 +301,7 @@ void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_
         for (unsigned int j = 0; j<numFullPackets; j++)
         {
             ECR->usrp_rx->get_device()->recv(
-                    cm->buffer, max_samps_per_packet, ECR->metadata_rx,
+                    buffer, max_samps_per_packet, ECR->metadata_rx,
                     uhd::io_type_t::COMPLEX_FLOAT32,
                     uhd::device::RECV_MODE_ONE_PACKET
                     );
@@ -373,14 +309,14 @@ void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_
             // calculate and sum fft of zero-padded sample buffer
 			fft_execute(fft);
 			for(unsigned int k=0; k<512; k++)
-				X[k] += cm->buffer_F[k];
+				X[k] += buffer_F[k];
 
 		}
         // If number of samples in last packet is nonzero, get them as well.
         if (samps_per_last_packet)
         {
             ECR->usrp_rx->get_device()->recv(
-                    cm->buffer, samps_per_last_packet, ECR->metadata_rx,
+                    buffer, samps_per_last_packet, ECR->metadata_rx,
                     uhd::io_type_t::COMPLEX_FLOAT32,
                     uhd::device::RECV_MODE_ONE_PACKET
                     );
@@ -388,7 +324,7 @@ void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_
 			// calculate and sum fft of zero-padded final sample buffer
 			fft_execute(fft);
 			for(unsigned int k=0; k<512; k++)
-				X[k] += cm->buffer_F[k];
+				X[k] += buffer_F[k];
 
 		}
 
@@ -413,17 +349,17 @@ void measureNoiseFloor(ExtensibleCognitiveRadio* ECR, struct CE_Two_Channel_DSA_
         // Pause before measuring again
         while(true)
         {
-            if(timer_toc(cm->t1) >= (cm->measurementDelay_ms/1e3))
+            if(timer_toc(t1) >= (measurementDelay_ms/1e3))
 				break;
         }
-        timer_tic(cm->t1);
+        timer_tic(t1);
     }
-    cm->noise_floor = noisePowerMin;
+    noise_floor = noisePowerMin;
 	
 	// Lower bound the noise floor (based on experimental values)
-	//if(cm.noise_floor < 5e2)
-	//	cm.noise_floor = 5e2;
+	//if(noise_floor < 5e2)
+	//	noise_floor = 5e2;
 
-	printf("Measured Noise Floor: %f\n", cm->noise_floor);
+	printf("Measured Noise Floor: %f\n", noise_floor);
 }
 

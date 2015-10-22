@@ -42,14 +42,17 @@ int main(){
     // create string vector
     std::vector<std::string> file_lines;
     std::string line;
-    std::string flag_beg = "EDIT START FLAG";
-    std::string flag_end = "EDIT END FLAG";
+    std::string flag_beg;
+    std::string flag_end;
     bool edit_content = false;
     
     //////////////////////////////////////////////////////////////////////////////////
     // Edit ECR.cpp
 
-    // open read file
+    flag_beg = "EDIT SET_CE START FLAG";
+    flag_end = "EDIT SET_CE END FLAG";
+    
+	// open read file
     std::ifstream file_in("src/ECR.cpp", std::ifstream::in);
 
     // read file until the end
@@ -96,10 +99,13 @@ int main(){
     /////////////////////////////////////////////////////////////////////////////////////
     // Edit CE.hpp
 
-    file_lines.clear();
+    flag_beg = "EDIT INCLUDE START FLAG";
+    flag_end = "EDIT INCLUDE END FLAG";
+    
+	file_lines.clear();
 
-    // open header file
-    file_in.open("include/CE.hpp", std::ifstream::in);
+    // open read file
+    file_in.open("src/ECR.cpp", std::ifstream::in);
 
     // read file until the end
     while(!(file_in.eof())){
@@ -148,7 +154,7 @@ int main(){
     file_in.close();
 
     // write file
-    file_out.open("include/CE.hpp", std::ofstream::out);
+    file_out.open("src/ECR.cpp", std::ofstream::out);
     for(std::vector<std::string>::iterator i=file_lines.begin(); i!=file_lines.end(); i++){
         file_out << (*i);
         if(i!=file_lines.end()-1)
@@ -161,7 +167,10 @@ int main(){
 
     file_lines.clear();
     
-    // open header file
+    flag_beg = "EDIT START FLAG";
+    flag_end = "EDIT END FLAG";
+    
+	// open header file
     file_in.open("makefile", std::ifstream::in);
 
     // read file until the end

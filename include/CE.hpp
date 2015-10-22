@@ -42,16 +42,6 @@ public:
     virtual void execute(void * _args);
 };
 
-// include all sub-class header files
-//EDIT START FLAG
-#include "../cognitive_engines/CE_Subcarrier_Alloc.hpp"
-#include "../cognitive_engines/CE_Mod_Adaptation.hpp"
-#include "../cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
-#include "../cognitive_engines/CE_Two_Channel_DSA_PU.hpp"
-#include "../cognitive_engines/CE_FEC_Adaptation.hpp"
-#include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
-#include "../cognitive_engines/CE_Transparent.hpp"
-//EDIT END FLAG
 #endif
 
 
