@@ -11,19 +11,25 @@ int main(){
     // Read in all file names in cognitive_engines directory.
     // Count number of CEs and truncate '.cpp' from file name.
     int num_ces = 0;
-    std::string ce_list[100];
-    DIR *dpdf;
+    int num_srcs = 0;
+	std::string ce_list[100];
+    std::string src_list[100];
+	DIR *dpdf;
     struct dirent *epdf;
 
     dpdf = opendir("./cognitive_engines");
     if (dpdf != NULL){
         while ((epdf = readdir(dpdf))){
-			if(strlen(epdf->d_name) > 4){
-			    if(epdf->d_name[0]!='.' && 
-			       epdf->d_name[strlen(epdf->d_name)-3] == 'c' &&
-			       epdf->d_name[strlen(epdf->d_name)-2] == 'p' &&
-			       epdf->d_name[strlen(epdf->d_name)-1] == 'p' )
-                {
+			// find all CE files
+			if(strlen(epdf->d_name) >= 3){
+			    if(epdf->d_name[0]=='C' &&
+				   epdf->d_name[1]=='E' && 
+			       epdf->d_name[2]=='_' &&
+				   epdf->d_name[strlen(epdf->d_name)-3]=='c' && 
+				   epdf->d_name[strlen(epdf->d_name)-2]=='p' && 
+				   epdf->d_name[strlen(epdf->d_name)-1]=='p' 
+				   )
+				{
 				    // Copy filename into list of CE names
                     ce_list[num_ces].assign(epdf->d_name);
                     // Strip the extension from the name
@@ -31,7 +37,20 @@ int main(){
                     ce_list[num_ces].resize(dot_pos);
                     num_ces++;
 				}
+            	else if(epdf->d_name[strlen(epdf->d_name)-3]=='c' && 
+				   epdf->d_name[strlen(epdf->d_name)-2]=='p' && 
+				   epdf->d_name[strlen(epdf->d_name)-1]=='p' 
+				   )
+				{
+				    // Copy filename into list of CE names
+                    src_list[num_srcs].assign(epdf->d_name);
+                    // Strip the extension from the name
+                    //std::size_t dot_pos = src_list[num_srcs].find(".");
+                    //ce_list[num_ces].resize(dot_pos);
+                    num_srcs++;
+				}
             }
+
         }
     }
 
@@ -192,7 +211,11 @@ int main(){
                     line_new += ce_list[i];
                     line_new += ".cpp";
                 }
-                //line_new += "\r";
+                for(int i=0; i<num_srcs; i++){
+					line_new += " cognitive_engines/";
+                    line_new += src_list[i];
+				}
+				//line_new += "\r";
                 file_lines.push_back(line_new);
             }
         }
