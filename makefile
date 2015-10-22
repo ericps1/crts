@@ -1,5 +1,5 @@
 FLAGS = -I include -Wall -fPIC -g
-LIBS = lib/TUN.o lib/CR.o -lliquid -luhd -lpthread -lm -lc -lconfig
+LIBS = lib/TUN.o lib/ECR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
 #EDIT START FLAG
 CEs = src/CE.cpp cognitive_engines/CE_Template.cpp cognitive_engines/CE_Subcarrier_Alloc.cpp cognitive_engines/CE_Mod_Adaptation.cpp cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.cpp cognitive_engines/CE_Two_Channel_DSA_PU.cpp cognitive_engines/CE_FEC_Adaptation.cpp cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.cpp
@@ -20,7 +20,7 @@ lib/ECR.o: include/ECR.hpp src/ECR.cpp
 	g++ $(FLAGS) -c -o lib/ECR.o src/ECR.cpp
 
 CRTS_CR: include/ECR.hpp src/TUN.cpp src/ECR.cpp src/CRTS_CR.cpp  $(CEs)
-	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp src/read_configs.cpp src/timer.cc lib/TUN.o lib/ECR.o -lliquid -luhd -lpthread -lm -lc -lconfig $(CEs)
+	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp src/read_configs.cpp src/timer.cc $(CEs) $(LIBS)
 
 lib/interferer.o: src/interferer.cpp 
 	g++ $(FLAGS) -c -o lib/interferer.o src/interferer.cpp
