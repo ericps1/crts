@@ -2,7 +2,6 @@
 #define _CE_FEC_ADAPTATION_
 
 #include "CE.hpp"
-
 #define EVM_buff_len 5
 
 class CE_FEC_Adaptation : public Cognitive_Engine {

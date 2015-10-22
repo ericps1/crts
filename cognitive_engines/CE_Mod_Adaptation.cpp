@@ -39,7 +39,7 @@ void CE_Mod_Adaptation::execute(void * _args){
         EVM_buff[ind] = EVM_new;
 
         // update moving average EVM
-        EVM_avg += (EVM_new - EVM_old)/EVM_buff_len;
+        EVM_avg += (EVM_new - EVM_old)/EVM_buffer_len;
 
         dprintf("\n------------------------------------------------\n");
 		dprintf("\nNew EVM: %f\n", EVM_new);
@@ -66,7 +66,7 @@ void CE_Mod_Adaptation::execute(void * _args){
 
 		// increment the EVM buffer index and wrap around
         ind++;
-        if(ind >= EVM_buff_len)
+        if(ind >= EVM_buffer_len)
             ind = 0;
     
 	    // obtain the desired tx modulation based on the received control information
