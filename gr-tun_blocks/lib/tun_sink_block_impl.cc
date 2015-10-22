@@ -57,7 +57,7 @@ namespace gr {
      */
     tun_sink_block_impl::tun_sink_block_impl(std::string interface_name, std::string interface_address)
       : gr::sync_block("tun_sink_block",
-              gr::io_signature::make(1, 1, sizeof(char)),
+              gr::io_signature::make(1, 1, 1032*sizeof(char)),
               gr::io_signature::make(0, 0, 0))
     {
         strcpy(tun_name, interface_name.c_str());
