@@ -2,7 +2,6 @@
 #define _CE_TWO_CHANNEL_DSA_SPECTRUM_SENSING_
 
 #include "ECR.hpp"
-#include "CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
 #include "timer.h"
 
 class CE_Two_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
@@ -14,7 +13,7 @@ class CE_Two_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
 	private:
 		// member functions
 		void measureNoiseFloor(ExtensibleCognitiveRadio* ECR);
-		void PUisPresent(ExtensibleCognitiveRadio* ECR);
+		int PUisPresent(ExtensibleCognitiveRadio* ECR);
 		
 		// measured noise power and flag
     	float noise_floor;

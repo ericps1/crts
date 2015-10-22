@@ -1,5 +1,5 @@
-#include "CE.hpp"
 #include "ECR.hpp"
+#include "CE_FEC_Adaptation.hpp"
 
 #if 0
 #define dprintf(...) printf(__VA_ARGS__)
@@ -7,7 +7,6 @@
 #define dprintf(...) /*__VA_ARGS__*/
 #endif
 
-#define EVM_buff_len 5
 
 // constructor
 CE_FEC_Adaptation::CE_FEC_Adaptation(){}
@@ -19,11 +18,6 @@ CE_FEC_Adaptation::~CE_FEC_Adaptation() {}
 void CE_FEC_Adaptation::execute(void * _args){
     // type cast pointer to cognitive radio object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
-    
-	// static variables to take a moving average of EVM
-	static float EVM_buff[EVM_buff_len];
-    static float EVM_avg;
-    static int ind;
 
     // keep track of current and desired fec for rx and tx
     int current_tx_fec = ECR->get_tx_fec0();

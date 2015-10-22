@@ -3,9 +3,14 @@
 #include <stdio.h>
 #include <timer.h>
 #include <sys/time.h>
-
+#include "CE_Subcarrier_Alloc.hpp"
 // constructor
-CE_Subcarrier_Alloc::CE_Subcarrier_Alloc(){}
+CE_Subcarrier_Alloc::CE_Subcarrier_Alloc()
+{
+    period_s = 5;
+    first_execution = 1;
+    alloc = 0;
+}
 
 // destructor
 CE_Subcarrier_Alloc::~CE_Subcarrier_Alloc(){}
@@ -14,13 +19,6 @@ CE_Subcarrier_Alloc::~CE_Subcarrier_Alloc(){}
 void CE_Subcarrier_Alloc::execute(void * _args){
 	ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 
-	static struct timeval tv;
-	static time_t switch_time_s;
-	static int period_s = 5;
-	static int first_execution = 1;
-
-	static char custom_alloc[32];
-	static int alloc = 0;
 
 	gettimeofday(&tv, NULL);
 

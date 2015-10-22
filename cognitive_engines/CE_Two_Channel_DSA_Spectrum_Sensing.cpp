@@ -5,7 +5,7 @@
 #include <complex>
 #include <pthread.h>
 #include <liquid/liquid.h>
-
+#include "CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
 #define DEBUG 0
 #if DEBUG == 1
 #define dprintf(...) printf(__VA_ARGS__)

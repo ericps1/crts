@@ -1,5 +1,7 @@
-#include "CE.hpp"
+
+
 #include "ECR.hpp"
+#include "CE_Mod_Adaptation.hpp"
 
 #if 0
 #define dprintf(...) printf(__VA_ARGS__)
@@ -7,7 +9,6 @@
 #define dprintf(...) /*__VA_ARGS__*/
 #endif
 
-#define EVM_buff_len 3
 
 // constructor
 CE_Mod_Adaptation::CE_Mod_Adaptation(){}
@@ -20,10 +21,6 @@ void CE_Mod_Adaptation::execute(void * _args){
     // type cast pointer to cognitive radio object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
     
-	// static variables to take a moving average of EVM
-	static float EVM_buff[EVM_buff_len];
-    static float EVM_avg;
-    static int ind;
 
     // keep track of current and desired modulation for rx and tx
     int current_tx_mod = ECR->get_tx_modulation();

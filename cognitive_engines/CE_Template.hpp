@@ -1,12 +1,15 @@
-#ifndef _CE_TRANSPARENT_
-#define _CE_TRANSPARENT_
+#ifndef _CE_TEMPLATE_
+#define _CE_TEMPLATE_
 
 #include "CE.hpp"
 
-class CE_Transparent : public Cognitive_Engine {
+class CE_Template : public Cognitive_Engine {
+    
+    private:
+        float example_ce_metric;
     public:
-        CE_Transparent();
-        ~CE_Transparent();
+        CE_Template();
+        ~CE_Template();
         virtual void execute(void * _args);
 };
 
