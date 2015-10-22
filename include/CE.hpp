@@ -1,6 +1,18 @@
 #ifndef _CE_HPP_
 #define _CE_HPP_
 
+// include all sub-class header files
+//EDIT START FLAG
+#include "cognitive_engines/CE_Subcarrier_Alloc.hpp"
+#include "cognitive_engines/CE_Mod_Adaptation.hpp"
+#include "cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
+#include "cognitive_engines/CE_Two_Channel_DSA_PU.hpp"
+#include "cognitive_engines/CE_FEC_Adaptation.hpp"
+#include "cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
+#include "cognitive_engines/CE_Transparent.hpp"
+//EDIT END FLAG
+
+
 ///////////////////////////////////////////
 // Cognitive Engine base class
 /// \brief The base class for the custom 
@@ -40,53 +52,6 @@ public:
     virtual void execute(void * _args);
 };
 
-///////////////////////////////////////////
-// Custom Cognitive Engine sub classes
-///@cond INTERNAL
-//EDIT START FLAG
-class CE_Subcarrier_Alloc : public Cognitive_Engine {
-public:
-    CE_Subcarrier_Alloc();
-    ~CE_Subcarrier_Alloc();
-    virtual void execute(void * _args);
-};
-class CE_Mod_Adaptation : public Cognitive_Engine {
-public:
-    CE_Mod_Adaptation();
-    ~CE_Mod_Adaptation();
-    virtual void execute(void * _args);
-};
-class CE_Two_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
-public:
-    CE_Two_Channel_DSA_Spectrum_Sensing();
-    ~CE_Two_Channel_DSA_Spectrum_Sensing();
-    virtual void execute(void * _args);
-};
-class CE_Two_Channel_DSA_PU : public Cognitive_Engine {
-public:
-    CE_Two_Channel_DSA_PU();
-    ~CE_Two_Channel_DSA_PU();
-    virtual void execute(void * _args);
-};
-class CE_FEC_Adaptation : public Cognitive_Engine {
-public:
-    CE_FEC_Adaptation();
-    ~CE_FEC_Adaptation();
-    virtual void execute(void * _args);
-};
-class CE_Two_Channel_DSA_Link_Reliability : public Cognitive_Engine {
-public:
-    CE_Two_Channel_DSA_Link_Reliability();
-    ~CE_Two_Channel_DSA_Link_Reliability();
-    virtual void execute(void * _args);
-};
-class CE_Transparent : public Cognitive_Engine {
-public:
-    CE_Transparent();
-    ~CE_Transparent();
-    virtual void execute(void * _args);
-};
-//EDIT END FLAG
-///@endcond
 #endif
+
 

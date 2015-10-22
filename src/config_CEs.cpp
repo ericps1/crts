@@ -18,13 +18,19 @@ int main(){
     dpdf = opendir("./cognitive_engines");
     if (dpdf != NULL){
         while ((epdf = readdir(dpdf))){
-			if(epdf->d_name[0]!='.' && epdf->d_name[strlen(epdf->d_name)-1] == 'p'){
-                // Copy filename into list of CE names
-                ce_list[num_ces].assign(epdf->d_name);
-                // Strip the extension from the name
-                std::size_t dot_pos = ce_list[num_ces].find(".");
-                ce_list[num_ces].resize(dot_pos);
-                num_ces++;
+			if(strlen(epdf->d_name) > 4){
+			    if(epdf->d_name[0]!='.' && 
+			       epdf->d_name[strlen(epdf->d_name)-3] == 'c' &&
+			       epdf->d_name[strlen(epdf->d_name)-2] == 'p' &&
+			       epdf->d_name[strlen(epdf->d_name)-1] == 'p' )
+                {
+				    // Copy filename into list of CE names
+                    ce_list[num_ces].assign(epdf->d_name);
+                    // Strip the extension from the name
+                    std::size_t dot_pos = ce_list[num_ces].find(".");
+                    ce_list[num_ces].resize(dot_pos);
+                    num_ces++;
+				}
             }
         }
     }
@@ -58,9 +64,9 @@ int main(){
 
                 // push all lines to map subclass
                 for(int i=0; i<num_ces; i++){
-                    line = "    if(!strcmp(ce, \"" + ce_list[i] + "\"))\r";
+                    line = "    if(!strcmp(ce, \"" + ce_list[i] + "\"))";
                     file_lines.push_back(line);
-                    line = "        CE = new " + ce_list[i] + "();\r";
+                    line = "        CE = new " + ce_list[i] + "();";
                     file_lines.push_back(line);
                 }
             }
@@ -109,7 +115,9 @@ int main(){
                 // push all lines to map subclass
                 std::string line_new;
                 for(int i=0; i<num_ces; i++){
-                    line_new = "class " + ce_list[i] + " : public Cognitive_Engine {\r";
+                    line_new = "#include \"cognitive_engines/" + ce_list[i] + ".hpp\"";
+					file_lines.push_back(line_new);
+					/*line_new = "class " + ce_list[i] + " : public Cognitive_Engine {\r";
                     file_lines.push_back(line_new);
                     line_new  = "public:\r";
                     file_lines.push_back(line_new);
@@ -119,10 +127,10 @@ int main(){
                     file_lines.push_back(line_new);
                     line_new = "    virtual void execute(void * _args);\r";
                     file_lines.push_back(line_new);
-                    /*line_new = "    void * custom_members;\r";
-                    file_lines.push_back(line_new);*/
-                    line_new = "};\r";
+                    line_new = "    void * custom_members;\r";
                     file_lines.push_back(line_new);
+                    line_new = "};\r";
+                    file_lines.push_back(line_new);*/
                 }
             }
         }
@@ -175,7 +183,7 @@ int main(){
                     line_new += ce_list[i];
                     line_new += ".cpp";
                 }
-                line_new += "\r";
+                //line_new += "\r";
                 file_lines.push_back(line_new);
             }
         }
