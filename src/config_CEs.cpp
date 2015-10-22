@@ -115,7 +115,7 @@ int main(){
                 // push all lines to map subclass
                 std::string line_new;
                 for(int i=0; i<num_ces; i++){
-                    line_new = "#include \"cognitive_engines/" + ce_list[i] + ".hpp\"";
+                    line_new = "#include \"../cognitive_engines/" + ce_list[i] + ".hpp\"";
 					file_lines.push_back(line_new);
 					/*line_new = "class " + ce_list[i] + " : public Cognitive_Engine {\r";
                     file_lines.push_back(line_new);
