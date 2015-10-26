@@ -45,14 +45,11 @@ logs/logs2python: src/logs2python.cpp
 	g++ $(FLAGS) -o logs/logs2python src/logs2python.cpp -luhd
 
 setup_env:
-	echo "CRTS_PATH DEFAULT=$(CRTS_PATH)" >> ~/.pam_environment
-	chmod +x ./.add_sudoers
-	./.add_sudoers	
+	cp ./.crts_sudoers /etc/sudoers.d/crts # Filename must not have '_' or '.' in name.
+	chmod 440 /etc/sudoers.d/crts
 
 teardown_env:
-	sed -i "/\b\(CRTS_PATH\)\b/d" ~/.pam_environment
-	chmod +x ./.rm_sudoers
-	./.rm_sudoers
+	rm -rf /etc/sudoers.d/crts
 
 clean:
 	rm -rf lib/*.o

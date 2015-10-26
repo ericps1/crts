@@ -2,6 +2,7 @@
 #define _CR_HPP_
 
 #include <stdio.h>
+#include <net/if.h>
 #include <math.h>
 #include <complex>
 #include <liquid/liquid.h>
@@ -206,6 +207,10 @@ private:
     
     // network layer objects
     int tunfd; // virtual network interface
+    // String for holding TUN interface name
+    char tun_name[IFNAMSIZ];
+    // String for holding commands for TUN interface
+    char systemCMD[200];
 
     // receiver properties/objects
     struct rx_parameter_s rx_params;

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 #include <net/if.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -89,8 +90,8 @@ int main(int argc, char ** argv){
 	int manual_execution = 0;
 
     // Use current username as default username for ssh
-    char ssh_uname[100];
-    getlogin_r(ssh_uname, 100);
+    char ssh_uname[LOGIN_NAME_MAX+1];
+    getlogin_r(ssh_uname, LOGIN_NAME_MAX+1);
 
     // Use currnet location of CRTS Directory as defualt for ssh
     char crts_dir[1000];
@@ -221,7 +222,8 @@ int main(int argc, char ** argv){
                     // add appropriate executable
                     switch (np[j].type){
                     case CR:
-                        strcat(command, " && sudo ./CRTS_CR");
+                        //strcat(command, " && sudo ./CRTS_CR");
+                        strcat(command, " && ./CRTS_CR");
                         break;
                     case interferer:
                         strcat(command, " && ./CRTS_interferer");
