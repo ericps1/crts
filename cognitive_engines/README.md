@@ -1,8 +1,8 @@
 # Example Cognitive Engines
 
 We have put together several example CE's to illustrate some of the features and
-capabilities of CRTS. Users are encouraged to reference these CE's to get a better
-understanding of CRTS and how they might want to design their own CE's, but should 
+capabilities of the ECR. Users are encouraged to reference these CE's to get a better
+understanding of the ECR and how they might want to design their own CE's, but should 
 be aware that there is nothing optimal about these examples.
 
 ## 1. CE\_Two\_Channel\_DSA\_Link\_Reliability
@@ -39,9 +39,9 @@ quality and updates its control information so that the transmitter will use the
 appropriate scheme. This is just a demonstration, no particular thought was put into
 the switching points.
 
-## 6. CE\_Transparent
+## 6. CE\_Template
 
-This CE makes no adaptations and is mostly used for debug.
+This CE makes no adaptations but serves as a template for creating new CE's.
 
 ## 7. CE\_Subcarrier\_Alloc
 

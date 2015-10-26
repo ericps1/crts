@@ -19,7 +19,7 @@ how many scenarios to run and their names. Make the values match:
 
 Now open the scenario configuration file 2\_Node\_FDD\_Network.cfg This file 
 defines the most basic scenario involving two CR nodes. The default cognitive
-engine is transparent (does not make any decisions). If you haven't already,
+engine is an empty template (it does not make any decisions). If you haven't already,
 take a look at the definition of the cognitive engine being used by this
 scenario just to see the general structure, more details are provided in the
 Cognitive Engine section of the documentation.

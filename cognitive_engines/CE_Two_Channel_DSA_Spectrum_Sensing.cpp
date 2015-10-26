@@ -4,8 +4,9 @@
 #include <complex.h>
 #include <complex>
 #include <pthread.h>
-#include <liquid/liquid.h>
+//#include <liquid/liquid.h>
 #include "CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
+
 #define DEBUG 0
 #if DEBUG == 1
 #define dprintf(...) printf(__VA_ARGS__)
@@ -14,7 +15,24 @@
 #endif
 
 // constructor
-CE_Two_Channel_DSA_Spectrum_Sensing::CE_Two_Channel_DSA_Spectrum_Sensing(){}
+CE_Two_Channel_DSA_Spectrum_Sensing::CE_Two_Channel_DSA_Spectrum_Sensing(){
+	t1 = timer_create();
+	timer_tic(t1);
+	tx_is_on = 1;
+	noise_floor_measured = 0;
+	
+	// initialize buffers to 0
+	memset(buffer, 0, 512*sizeof(float _Complex));
+	memset(buffer_F, 0, 512*sizeof(float _Complex));
+
+	// create fft plan to be used for channel power measurements
+	fft = fft_create_plan(512, 
+		reinterpret_cast<liquid_float_complex*>(buffer), 
+		reinterpret_cast<liquid_float_complex*>(buffer_F), 
+		LIQUID_FFT_FORWARD, 
+		0);
+
+	}
 
 // destructor
 CE_Two_Channel_DSA_Spectrum_Sensing::~CE_Two_Channel_DSA_Spectrum_Sensing() {}
@@ -100,7 +118,7 @@ void CE_Two_Channel_DSA_Spectrum_Sensing::execute(void * _args){
         float tx_freq = fc + tx_foff;
 		rx_foff = fc - rx_freq;
 		tx_foff = -fc + tx_freq;
-		ECR->set_tx_freq(fc, fshift);
+		//ECR->set_tx_freq(fc, fshift);
 		ECR->set_rx_freq(fc, -tx_foff);
 
         // pause to allow the frequency to settle
@@ -115,12 +133,12 @@ void CE_Two_Channel_DSA_Spectrum_Sensing::execute(void * _args){
         
 		// reset to original frequencies if no PU was detected
 		if(!PUDetected){
-		ECR->set_rx_freq(fc, rx_foff);
-		ECR->set_tx_freq(fc, tx_foff);
+			ECR->set_rx_freq(fc, rx_foff);
+			ECR->set_tx_freq(fc, tx_foff);
         }
 		// Check for PU on other possible tx freq.
 		else {
-			printf("PU detected in current channel (%-.2f), checking other channel\n", tx_freq);
+			//printf("\nPU detected in current channel (%-.2f), checking other channel\n", tx_freq);
 			
 			if(tx_freq == freq_a)
 				tx_freq = freq_b;
@@ -151,13 +169,13 @@ void CE_Two_Channel_DSA_Spectrum_Sensing::execute(void * _args){
 		}
 		
 		// restart receiver
-        dprintf("Restarting receiver\n");
+        //dprintf("Restarting receiver\n");
 		ECR->start_rx();
         
 		// resume transmissions if open channel
         if (!PUDetected)
         {
-            dprintf("Starting transmitter\n");
+            printf("Starting transmitter\n");
 			
 			// switch to other channel if applicable
 			if(switch_tx_freq){
@@ -186,13 +204,14 @@ void CE_Two_Channel_DSA_Spectrum_Sensing::execute(void * _args){
 			else if(rx_freq == freq_y)
 				rx_freq = freq_x;
 				
-			printf("Switching rx freq to: %f\n", rx_freq);
+			printf("\nSwitching rx freq to: %f\n", rx_freq);
 			rx_foff = fc - rx_freq;
 			ECR->set_rx_freq(fc, rx_foff);
 		}
 	}
 	else
 		no_sync_counter = 0;
+
 
 }
 
@@ -212,16 +231,10 @@ int CE_Two_Channel_DSA_Spectrum_Sensing::PUisPresent(ExtensibleCognitiveRadio* E
 	s.stream_now = true;
 	ECR->usrp_rx->issue_stream_cmd(s);
 		
-	static fftplan fft = fft_create_plan(512, 
-		reinterpret_cast<liquid_float_complex*>(buffer), 
-		reinterpret_cast<liquid_float_complex*>(buffer_F), 
-		LIQUID_FFT_FORWARD, 
-		0);
-
 	// Calculate channel power
     float channelPower = 0.0;
-    float _Complex X[512];
-	memset(X, 0, 512*sizeof(float _Complex));
+    float X[512];
+	memset(X, 0, 512*sizeof(float));
     // Get spectrum samples
     for (unsigned int j = 0; j<numFullPackets; j++)
     {
@@ -234,7 +247,7 @@ int CE_Two_Channel_DSA_Spectrum_Sensing::PUisPresent(ExtensibleCognitiveRadio* E
         // calculate and sum fft of zero-padded sample buffer
 		fft_execute(fft);
 		for(unsigned int k=0; k<512; k++)
-			X[k] += buffer_F[k];
+			X[k] += cabsf(buffer_F[k]);
 	
 	}
     // If number of samples in last packet is nonzero, get them as well.
@@ -249,7 +262,7 @@ int CE_Two_Channel_DSA_Spectrum_Sensing::PUisPresent(ExtensibleCognitiveRadio* E
     	// calculate and sum fft of zero-padded sample buffer
 		fft_execute(fft);
 		for(unsigned int k=0; k<512; k++)
-			X[k] += buffer_F[k];
+			X[k] += cabsf(buffer_F[k]);
 
 	}
 
@@ -257,7 +270,7 @@ int CE_Two_Channel_DSA_Spectrum_Sensing::PUisPresent(ExtensibleCognitiveRadio* E
 	float M = 0.0f;
 	for (unsigned int k=16; k<496; k++){
 		//printf("FFT pt %i: %f\n", k, cabsf(X[k]));
-		M += cabsf(X[k]);
+		M += X[k];
 	}
 	
 	channelPower = M*M;
@@ -275,16 +288,9 @@ void CE_Two_Channel_DSA_Spectrum_Sensing::measureNoiseFloor(ExtensibleCognitiveR
     unsigned int numFullPackets = numSensingSamples / max_samps_per_packet;
     size_t samps_per_last_packet = numSensingSamples % max_samps_per_packet;
     
-	// static fft plan will be used for each execution
-	static fftplan fft = fft_create_plan(512, 
-		reinterpret_cast<liquid_float_complex*>(buffer), 
-		reinterpret_cast<liquid_float_complex*>(buffer_F), 
-		LIQUID_FFT_FORWARD, 
-		0);
-
 	// USRP samples are always magnitude <= 1 so measured power will always 
     // be less than this
-    float noisePowerMin = (float)max_samps_per_packet + 1.0;
+    float noisePowerMin = 1e32;//(float)max_samps_per_packet + 1.0;
     // Make numMeasurements measueremnts, each measurementDelay_ms apart
     for (unsigned int i=0; i<numMeasurements; i++)
     {
@@ -294,9 +300,9 @@ void CE_Two_Channel_DSA_Spectrum_Sensing::measureNoiseFloor(ExtensibleCognitiveR
 		ECR->usrp_rx->issue_stream_cmd(s);
 		
 		// Calculate channel power
-        float noisePower = 0.0;
-		float _Complex X[512];
-		memset(X, 0, 512*sizeof(float _Complex));
+        float noisePower = 0;
+		float X[512];
+		memset(X, 0, 512*sizeof(float));
         // Get spectrum samples
         for (unsigned int j = 0; j<numFullPackets; j++)
         {
@@ -309,7 +315,7 @@ void CE_Two_Channel_DSA_Spectrum_Sensing::measureNoiseFloor(ExtensibleCognitiveR
             // calculate and sum fft of zero-padded sample buffer
 			fft_execute(fft);
 			for(unsigned int k=0; k<512; k++)
-				X[k] += buffer_F[k];
+				X[k] += cabsf(buffer_F[k]);
 
 		}
         // If number of samples in last packet is nonzero, get them as well.
@@ -324,7 +330,7 @@ void CE_Two_Channel_DSA_Spectrum_Sensing::measureNoiseFloor(ExtensibleCognitiveR
 			// calculate and sum fft of zero-padded final sample buffer
 			fft_execute(fft);
 			for(unsigned int k=0; k<512; k++)
-				X[k] += buffer_F[k];
+				X[k] += cabsf(buffer_F[k]);
 
 		}
 
@@ -332,7 +338,7 @@ void CE_Two_Channel_DSA_Spectrum_Sensing::measureNoiseFloor(ExtensibleCognitiveR
 		float M = 0.0f;
 		for (unsigned int k=16; k<496; k++){
 			//printf("FFT pt %i: %f\n", k, cabsf(X[k]));
-			M += cabsf(X[k]);
+			M += X[k];
 		}
 		
 		// square to calculate power

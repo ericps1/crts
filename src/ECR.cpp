@@ -153,7 +153,10 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 	stop_rx();
 	//if (tx_running) 
 	stop_tx();
-	
+
+	// sleep so tx/rx threads are ready for signal
+	usleep(1e4);
+
 	// signal condition (tell rx worker to continue)
     dprintf("destructor signaling rx condition...\n");
     rx_thread_running = false;
@@ -571,7 +574,9 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char * _header,
                    unsigned char * _payload,
                    unsigned int    _payload_len)
 {
-    if(log_phy_tx_flag){
+    pthread_mutex_lock(&tx_mutex); 
+	
+	if(log_phy_tx_flag){
         //printf("\nLogging transmit parameters\n\n");
         log_tx_parameters();
     }
@@ -587,9 +592,7 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char * _header,
 
     float tx_gain_soft_lin = powf(10.0f, tx_params.tx_gain_soft / 20.0f);
 
-    pthread_mutex_lock(&tx_mutex); 
-	
-	tx_header[0] = (ExtensibleCognitiveRadio::DATA << 6) + ((frame_num >> 8) & 0x3f);
+    tx_header[0] = (ExtensibleCognitiveRadio::DATA << 6) + ((frame_num >> 8) & 0x3f);
     tx_header[1] = (frame_num) & 0xff;
     frame_num++;
             
@@ -674,7 +677,6 @@ void ExtensibleCognitiveRadio::set_rx_freq(float _rx_freq, float _dsp_freq)
 float ExtensibleCognitiveRadio::get_rx_freq()
 {
     return rx_params.rx_freq - rx_params.rx_dsp_freq;
-	//return rx_params.rx_freq;
 }
 
 // set receiver sample rate

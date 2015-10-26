@@ -22,7 +22,7 @@ class CE_Two_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
 
 		// Multiplicative coeffiecient applied to meausured noise
     	// power to determine channel threshold for PU occupancy.
-    	static const float threshold_coefficient = 275.0;
+    	static const float threshold_coefficient = 20.0;
 
     	// Number of measurements taken for noise floor
 		// and time between each measurement
@@ -37,7 +37,7 @@ class CE_Two_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
     	static const float sensingFrequency_Hz = 1.0;
    
 		// Settling time for USRP
-		static const float tune_settling_time_ms = 100.0;
+		static const float tune_settling_time_ms = 20.0;
 
 		// time related variables
     	static const float desired_timeout_ms = 10.0;
@@ -54,8 +54,8 @@ class CE_Two_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
 										// during sensing
 		static const float freq_a = 770e6;  // Channel center frequencies
 		static const float freq_b = 769e6;
-		static const float freq_x = 760e6;
-		static const float freq_y = 759e6;
+		static const float freq_x = 765e6;
+		static const float freq_y = 764e6;
 
 		// DSP shift applied to reach the target channel's center frequency
 		float rx_foff;
@@ -64,6 +64,9 @@ class CE_Two_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
 		// USRP sample and FFT output buffers
 		float _Complex buffer[512];
 		float _Complex buffer_F[512];
+
+		// fft plan for channel measurements
+		fftplan fft;
 };
 
 #endif

@@ -52,7 +52,7 @@ struct node_parameters{
     char CORNET_IP[20];
     char CRTS_IP[20];
     char TARGET_IP[20];
-    char CE[30];
+    char CE[100];
     int print_metrics;
     int log_phy_rx;
     int log_phy_tx;

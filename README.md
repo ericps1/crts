@@ -56,7 +56,7 @@ is being used in CRTS development.
 - libconfig-dev
 
 CRTS also relies on each node having network synchronized clocks. On CORNET this is accomplished
-with NTP. PTP would work as well.
+with Network Time Protocol (NTP). Precision Time Protocol (PTP) would work as well.
 
 Note to CORNET users: These dependencies are already installed for you on all CORNET nodes.
 
@@ -163,7 +163,7 @@ These parameters include but are not limited to:
         * The initial configuration of CR. 
         * What type of data should be logged.
 - If it is an interferer node, it further defines:
-    + The type of interferer (e.g. AWGN, OFDM, etc.).
+    + The type of interference (e.g. OFDM, GMSK, RRC, etc.).
     + The paremeters of the interferer's operation.
     + What type of data should be logged.
 
@@ -198,9 +198,23 @@ operation of the ECR via get() function calls as well as metrics passed from
 the receiver DSP. It can then control any of the operating parameters of the
 radio using set() function calls defined for the ECR.
 
-Variables used to keep track of information from one execution of the cognitive
-engine to the next must be declared as static (otherwise they will fall out of
-scope after the end of the execute function).
+To make a new cognitive engine a user needs to define a new cognitive engine
+subclass. The CE\_Template.cpp and CE\_Template.hpp can be used as a guide in terms
+of the structure, and some of the other examples show how the CE can interact
+with the ECR. Once the CE has been defined it can be integrated into CRTS
+by running $ ./config\_CEs in the top directory.
+
+Other source files in the cognitive\_engine directory will be automatically
+linked into the build process. This way you can define other classes that your
+CE could instantiate. To make this work, a cpp file that defines a CE must be named
+beginning with "CE_" as in the examples.
+
+* Any cpp files defining a cognitive engine must begin with "CE_" as in the examples! *
+
+Installed libraries can also be used by a CE. For this to work you'll need to manually
+edit the makefile by adding the library to the variable LIBS which is located at the
+top of the makefile and defines a list of all libraries being linked in the final
+compilation.
 
 One particular function that users should be aware of is ECR.set\_control\_information().
 This provides a generic way for cognitive radios to exchange control information
@@ -208,7 +222,6 @@ without impacting the flow of data. The control information is 6 bytes which are
 placed in the header of the transmitted frame. It can then be extracted in the
 cognitive engine at the receiving radio. A similar function can be performed by 
 transmitting a dedicated control packet from the CE.
-
 
 Examples of cognitive engines are provided in the `cognitive_engines/` directory.
 
@@ -234,7 +247,7 @@ The logs are written as raw binary files in the /logs/bin directory, but will
 automatically be converted to either Octave/Matlab or Python scripts after the 
 scenario has finished and placed in the logs/Octave or logs/Python directories 
 respectively. This again assumes that the appropriate options were set in the 
-scenario configuration file). These scripts provide the user with an easy way to 
+scenario configuration file. These scripts provide the user with an easy way to 
 analyze the results of the experiment. There are some basic Octave/Matlab scripts 
 provided to plot the contents of the logs as a function of time.
 
