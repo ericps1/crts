@@ -151,14 +151,15 @@ void Initialize_CR(struct node_parameters *np, void * ECR_p){
     else if(np->cr_type == python)
     {
         // set IP for TUN interface
-        //char command[50];
-        //sprintf(command, "ifconfig tunCRTS %s", np->CRTS_IP);
-        //system("ip link set dev tunCRTS up");
-        //sprintf(command, "ip addr add %s/24 dev tunCRTS", np->CRTS_IP);
-        //system(command);
-        //printf("Running command: %s\n", command);
-        //system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
-        //system("ifconfig");
+        char command[100];
+        sprintf(command, "ifconfig tunCRTS %s", np->CRTS_IP);
+        system("ip link set dev tunCRTS up");
+        sprintf(command, "ip addr add %s/24 dev tunCRTS", np->CRTS_IP);
+        system(command);
+        printf("Running command: %s\n", command);
+        system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
+        system(command);
+        system("ifconfig");
     }
 }
 
@@ -423,7 +424,9 @@ int main(int argc, char ** argv){
         
         // send UDP packet via CR
         dprintf("CRTS: Sending UDP packet using CRTS client socket\n");
-        int send_return = sendto(CRTS_client_sock, message, sizeof(message), 0, (struct sockaddr*)&CRTS_client_addr, sizeof(CRTS_client_addr));    
+        int send_return = 0;
+        if(!np.cr_type == python)
+            send_return = sendto(CRTS_client_sock, message, sizeof(message), 0, (struct sockaddr*)&CRTS_client_addr, sizeof(CRTS_client_addr));    
         if(send_return < 0) printf("Failed to send message\n");
         
         // read all available data from the UDP socket

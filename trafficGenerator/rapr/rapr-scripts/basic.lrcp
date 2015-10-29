@@ -5,8 +5,8 @@
 #each node and its ip address
 #N1=128.173.92.105	
 #N2=172.16.77.129
-N1=10.10.10.45
-N2=10.10.10.46
+N1=10.10.10.55
+N2=10.10.10.56
 #N3=10.10.10.7
 [networks]
 #pcktSize in bytes, rate in bits/s  8 bits = 1 byte, duration of -1.0 = infinite
