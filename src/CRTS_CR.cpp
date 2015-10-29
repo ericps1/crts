@@ -383,6 +383,8 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
     strcat(phy_tx_log_file_name, np->phy_tx_log_file);
     strcat(phy_tx_log_file_name, ".log");
 
+
+
     // set cognitive radio parameters
     ECR->set_ip(np->CRTS_IP);
     ECR->print_metrics_flag = np->print_metrics;
@@ -412,6 +414,8 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
     ECR->reset_log_files();
     ECR->set_rx_stat_tracking(false, 0.0);
 
+
+
     // copy subcarrier allocations if other than liquid-dsp default
     if (np->tx_subcarrier_alloc_method == CUSTOM_SUBCARRIER_ALLOC ||
         np->tx_subcarrier_alloc_method == STANDARD_SUBCARRIER_ALLOC) {
@@ -427,18 +431,22 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
     }
   }
   // intialize python radio if applicable
-  else if (np->cr_type == python) {
-    // set IP for TUN interface
-    // char command[50];
-    // sprintf(command, "ifconfig tunCRTS %s", np->CRTS_IP);
-    // system("ip link set dev tunCRTS up");
-    // sprintf(command, "ip addr add %s/24 dev tunCRTS", np->CRTS_IP);
-    // system(command);
-    // printf("Running command: %s\n", command);
-    // system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
-    // system("ifconfig");
+  else if(np->cr_type == python)
+  {
+      // set IP for TUN interface
+      char command[100];
+      sprintf(command, "ifconfig tunCRTS %s", np->CRTS_IP);
+      system("ip link set dev tunCRTS up");
+      sprintf(command, "ip addr add %s/24 dev tunCRTS", np->CRTS_IP);
+      system(command);
+      printf("Running command: %s\n", command);
+      system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
+      system(command);
+      system("ifconfig");
   }
 }
+
+
 
 void log_rx_data(struct scenario_parameters *sp, struct node_parameters *np,
                  int bytes, int packet_num) {
@@ -855,8 +863,9 @@ int main(int argc, char **argv) {
 
         // send UDP packet via CR
         dprintf("CRTS sending packet %i\n", packet_counter);
-        int send_return = sendto(
-            CRTS_client_sock, (char *)message, sizeof(message), 0,
+        int send_return = 0;
+        if(!np.cr_type == python)
+        sendto(CRTS_client_sock, (char *)message, sizeof(message), 0,
             (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
         if (send_return < 0)
           printf("Failed to send message\n");
