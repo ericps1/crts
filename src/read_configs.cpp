@@ -70,7 +70,7 @@ struct scenario_parameters read_scenario_parameters(char * scenario_file)
     config_lookup_int(&cfg, "num_nodes", &tmpI);
     sp.num_nodes = tmpI;
     config_lookup_float(&cfg, "run_time", &tmpD);
-    sp.run_time = (float) tmpD;
+    sp.runTime = (time_t) tmpD;
     config_destroy(&cfg);
 
     return sp;
@@ -103,8 +103,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
     std::string node_num;
     std::stringstream out;
     out << node;
-    node_num = out.str();
-    
+    node_num = out.str();    
 
     // lookup specific node
     strcpy(nodestr, "node");
@@ -191,23 +190,23 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
     if (config_setting_lookup_int(node_config, "print_metrics", &tmpI))
         np.print_metrics = (int)tmpI;
     
-    if (config_setting_lookup_int(node_config, "log_rx_metrics", &tmpI))
-        np.log_rx_metrics = (int)tmpI;
+    if (config_setting_lookup_int(node_config, "log_phy_rx", &tmpI))
+        np.log_phy_rx = (int)tmpI;
 
-    if (config_setting_lookup_int(node_config, "log_tx_parameters", &tmpI))
-        np.log_tx_parameters = (int)tmpI;
+    if (config_setting_lookup_int(node_config, "log_phy_tx", &tmpI))
+        np.log_phy_tx = (int)tmpI;
     
-    if (config_setting_lookup_int(node_config, "log_CRTS_rx_data", &tmpI))
-        np.log_CRTS_rx_data = (int)tmpI;
+    if (config_setting_lookup_int(node_config, "log_net_rx", &tmpI))
+        np.log_net_rx = (int)tmpI;
     
-    if (config_setting_lookup_string(node_config, "rx_log_file", &tmpS))
-        strcpy(np.rx_log_file, tmpS);
+    if (config_setting_lookup_string(node_config, "phy_rx_log_file", &tmpS))
+        strcpy(np.phy_rx_log_file, tmpS);
 
-    if (config_setting_lookup_string(node_config, "tx_log_file", &tmpS))
-        strcpy(np.tx_log_file, tmpS);
+    if (config_setting_lookup_string(node_config, "phy_tx_log_file", &tmpS))
+        strcpy(np.phy_tx_log_file, tmpS);
 
-    if (config_setting_lookup_string(node_config, "CRTS_rx_log_file", &tmpS))
-        strcpy(np.CRTS_rx_log_file, tmpS);
+    if (config_setting_lookup_string(node_config, "net_rx_log_file", &tmpS))
+        strcpy(np.net_rx_log_file, tmpS);
 
     if (config_setting_lookup_int(node_config, "generate_octave_logs", &tmpI))
         np.generate_octave_logs = (int)tmpI;
@@ -243,6 +242,96 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
    	else
 		np.rx_subcarriers = 64;
 
+    if (config_setting_lookup_string(node_config, "rx_subcarrier_alloc_method", &tmpS)){
+		// subcarrier allocation is being defined in a standard way
+		if(!strcmp(tmpS, "standard")){
+			np.rx_subcarrier_alloc_method = STANDARD_SUBCARRIER_ALLOC;
+
+        	int rx_guard_subcarriers;
+			int rx_central_nulls;
+			int rx_pilot_freq;
+			if (config_setting_lookup_int(node_config, "rx_guard_subcarriers", &tmpI))
+				rx_guard_subcarriers = tmpI;
+
+    		if (config_setting_lookup_int(node_config, "rx_central_nulls", &tmpI))
+				rx_central_nulls = tmpI;
+
+    		if (config_setting_lookup_int(node_config, "rx_pilot_freq", &tmpI))
+				rx_pilot_freq = tmpI;
+		
+			for(int i=0; i<np.rx_subcarriers; i++){
+		         // central band nulls
+			     if(i<rx_central_nulls/2 || np.rx_subcarriers-i-1 < rx_central_nulls/2)
+			          np.rx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_NULL;
+			     // guard band nulls
+			     else if(i+1 > np.rx_subcarriers/2 - rx_guard_subcarriers &&
+			             i < np.rx_subcarriers/2 + rx_guard_subcarriers)
+			          np.rx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_NULL;
+			     // pilot subcarriers (based on distance from center)
+			     else if(abs((int)((float)np.rx_subcarriers/2.0-(float)i-0.5))%rx_pilot_freq == 0)
+			          np.rx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_PILOT;
+			     // data subcarriers
+		         else
+		              np.rx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_DATA;
+		     }
+		}
+
+		// subcarrier allocation is completely custom
+    	else if(!strcmp(tmpS, "custom")){
+			np.rx_subcarrier_alloc_method = CUSTOM_SUBCARRIER_ALLOC;	
+			config_setting_t *rx_subcarrier_alloc = config_setting_get_member(node_config, "rx_subcarrier_alloc");
+			
+			char type_str[9] = "sc_type_";
+			char num_str[8] = "sc_num_";
+			char sc_type[16];
+			char sc_num[16];
+			int i = 1;
+			int j = 0;	
+			int offset = np.rx_subcarriers/2;
+			sprintf(sc_type, "%s%d", type_str, i);
+			// read in a custom initial subcarrier allocation
+			while(config_setting_lookup_string(rx_subcarrier_alloc, sc_type, &tmpS)){
+				// read the number of subcarriers into tmpI
+				sprintf(sc_num, "%s%d", num_str, i);
+				tmpI = 1;
+				config_setting_lookup_int(rx_subcarrier_alloc, sc_num, &tmpI);
+				// set the subcarrier type based on the number specified
+				if(!strcmp(tmpS, "null")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.rx_subcarriers)/2)
+							offset = -(np.rx_subcarriers/2);
+						np.rx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_NULL;
+						j++;
+					}
+				}
+				if(!strcmp(tmpS, "pilot")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.rx_subcarriers)/2)
+							offset = -(np.rx_subcarriers/2);
+						np.rx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_PILOT;
+						j++;
+					}
+				}
+				if(!strcmp(tmpS, "data")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.rx_subcarriers)/2)
+							offset = -(np.rx_subcarriers/2);
+						np.rx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_DATA;
+						j++;
+					}
+				}
+				if(j>2048){
+					printf("The number of subcarriers specified was too high!\n");
+					exit(1);
+				}
+				i++;
+				sprintf(sc_type, "%s%d", type_str, i);
+			}
+		}
+		else
+			np.rx_subcarrier_alloc_method = LIQUID_DEFAULT_SUBCARRIER_ALLOC;
+	}
+
     if (config_setting_lookup_int(node_config, "rx_cp_len", &tmpI))
         np.rx_cp_len = (int)tmpI;
    	else
@@ -275,6 +364,96 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
         np.tx_subcarriers = (int)tmpI;
    	else
 		np.tx_subcarriers = 64;
+
+	if (config_setting_lookup_string(node_config, "tx_subcarrier_alloc_method", &tmpS)){
+		// subcarrier allocation is being defined in a standard way
+		if(!strcmp(tmpS, "standard")){
+			np.tx_subcarrier_alloc_method = STANDARD_SUBCARRIER_ALLOC;
+
+        	int tx_guard_subcarriers;
+			int tx_central_nulls;
+			int tx_pilot_freq;
+			if (config_setting_lookup_int(node_config, "tx_guard_subcarriers", &tmpI))
+				tx_guard_subcarriers = tmpI;
+
+    		if (config_setting_lookup_int(node_config, "tx_central_nulls", &tmpI))
+				tx_central_nulls = tmpI;
+
+    		if (config_setting_lookup_int(node_config, "tx_pilot_freq", &tmpI))
+				tx_pilot_freq = tmpI;
+		
+			for(int i=0; i<np.tx_subcarriers; i++){
+		         // central band nulls
+			     if(i<tx_central_nulls/2 || np.tx_subcarriers-i-1 < tx_central_nulls/2)
+			          np.tx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_NULL;
+			     // guard band nulls
+			     else if(i+1 > np.tx_subcarriers/2 - tx_guard_subcarriers &&
+			             i < np.tx_subcarriers/2 + tx_guard_subcarriers)
+			          np.tx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_NULL;
+			     // pilot subcarriers
+			     else if(abs((int)((float)np.tx_subcarriers/2.0-(float)i-0.5))%tx_pilot_freq == 0)
+			          np.tx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_PILOT;
+			     // data subcarriers
+		         else
+		              np.tx_subcarrier_alloc[i] = OFDMFRAME_SCTYPE_DATA;
+		     }
+		}
+
+		// subcarrier allocation is completely custom
+    	else if(!strcmp(tmpS, "custom")){
+			np.tx_subcarrier_alloc_method = CUSTOM_SUBCARRIER_ALLOC;	
+			config_setting_t *tx_subcarrier_alloc = config_setting_get_member(node_config, "tx_subcarrier_alloc");
+			
+			char type_str[9] = "sc_type_";
+			char num_str[8] = "sc_num_";
+			char sc_type[16];
+			char sc_num[16];
+			int i = 1;
+			int j = 0;	
+			int offset = np.tx_subcarriers/2;
+			sprintf(sc_type, "%s%d", type_str, i);
+			// read in a custom initial subcarrier allocation
+			while(config_setting_lookup_string(tx_subcarrier_alloc, sc_type, &tmpS)){
+				// read the number of subcarriers into tmpI
+				sprintf(sc_num, "%s%d", num_str, i);
+				tmpI = 1;
+				config_setting_lookup_int(tx_subcarrier_alloc, sc_num, &tmpI);
+				// set the subcarrier type based on the number specified
+				if(!strcmp(tmpS, "null")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.tx_subcarriers)/2)
+							offset = -(np.tx_subcarriers/2);
+						np.tx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_NULL;
+						j++;
+					}
+				}
+				if(!strcmp(tmpS, "pilot")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.tx_subcarriers)/2)
+							offset = -(np.tx_subcarriers/2);
+						np.tx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_PILOT;
+						j++;
+					}
+				}
+				if(!strcmp(tmpS, "data")){
+					for(int k=0; k<tmpI; k++){
+						if(j>=(np.tx_subcarriers)/2)
+							offset = -(np.tx_subcarriers/2);
+						np.tx_subcarrier_alloc[j+offset] = OFDMFRAME_SCTYPE_DATA;
+						j++;
+					}
+				}
+				if(j>2048){
+					printf("The number of subcarriers specified was too high!\n");
+					exit(1);
+				}
+				i++;
+				sprintf(sc_type, "%s%d", type_str, i);
+			}
+		}
+		else
+			np.tx_subcarrier_alloc_method = LIQUID_DEFAULT_SUBCARRIER_ALLOC;
+	}
 
     if (config_setting_lookup_int(node_config, "tx_cp_len", &tmpI))
         np.tx_cp_len = (int)tmpI;
@@ -342,16 +521,17 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
                 np.tx_fec1 = k;
         }
     }
-    if (config_setting_lookup_float(node_config, "tx_delay_us", &tmpD))
+    
+	if (config_setting_lookup_float(node_config, "tx_delay_us", &tmpD))
         np.tx_delay_us = tmpD;
 	else
-		np.tx_delay_us = 1e4;
+		np.tx_delay_us = 1e3;
 
     if (config_setting_lookup_string(node_config, "interference_type", &tmpS)){
         if(!strcmp(tmpS, "CW"))
             np.interference_type = CW;
         if(!strcmp(tmpS, "AWGN")) 
-            np.interference_type = AWGN;
+            np.interference_type = NOISE;
         if(!strcmp(tmpS, "GMSK"))
             np.interference_type = GMSK;
         if(!strcmp(tmpS, "RRC")) 
@@ -402,28 +582,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file){
                                     "tx_freq_hop_increment", 
                                     &tmpD))
         np.tx_freq_hop_increment = tmpD;
-
-
-        // ======================================================
-        // process GMSK interference parameters
-        // ======================================================
-    if (config_setting_lookup_float(node_config, 
-                                    "gmsk_header_length", 
-                                    &tmpD))
-        np.gmsk_header_length = tmpD;
-
-    if (config_setting_lookup_float(node_config, 
-                                    "gmsk_payload_length", 
-                                    &tmpD))
-        np.gmsk_payload_length = tmpD;
-
-    if (config_setting_lookup_float(node_config, 
-                                    "gmsk_bandwidth", 
-                                    &tmpD))
-        np.gmsk_bandwidth = tmpD;
-
-
-
+ 
     return np;
 }
 
@@ -467,10 +626,10 @@ void print_node_parameters(struct node_parameters * np)
   //
   printf("\nLog/Report Settings:\n");
   if(np->type != interferer)
-    printf("    Rx log file:                       %-s\n", np->rx_log_file);
-  printf("    Tx log file:                       %-s\n", np->tx_log_file);
+    printf("    PHY Rx log file:                   %-s\n", np->phy_rx_log_file);
+  printf("    PHY Tx log file:                   %-s\n", np->phy_tx_log_file);
   if(np->type != interferer)
-    printf("    CRTS Rx log file:                  %-s\n", np->CRTS_rx_log_file);
+    printf("    NET Rx log file:                   %-s\n", np->net_rx_log_file);
   printf("    Generate octave logs:              %i\n", np->generate_octave_logs);
   printf("    Generate python logs:              %i\n", np->generate_python_logs);
   //
@@ -517,7 +676,7 @@ void print_node_parameters(struct node_parameters * np)
     switch(np->interference_type)
       {
       case (CW): strcpy(interference_type, "CW"); break;
-      case (AWGN): strcpy(interference_type, "AWGN"); break;
+      case (NOISE): strcpy(interference_type, "AWGN"); break;
       case (GMSK): strcpy(interference_type, "GMSK"); break;
       case (RRC): strcpy(interference_type, "RRC"); break;
       case (OFDM): strcpy(interference_type, "OFDM"); break;
@@ -530,7 +689,7 @@ void print_node_parameters(struct node_parameters * np)
       case (RANDOM): strcpy(tx_freq_hop_type, "RANDOM"); break;
       }
     printf("    Interference type:                 %-s\n", interference_type);
-    printf("    Interference period:       %-.2f\n", np->period);
+    printf("    Interference period:               %-.2f\n", np->period);
     printf("    Interference duty cycle:           %-.2f\n", np->duty_cycle);
     printf("\n"); 
     printf("    tx freq hop type:                  %-s\n", tx_freq_hop_type);
@@ -540,9 +699,6 @@ void print_node_parameters(struct node_parameters * np)
     printf("    tx freq hop increment:             %-.2e\n", np->tx_freq_hop_increment);
 
     printf("\n"); 
-    printf("    GMSK header length:                %-.2d\n", np->gmsk_header_length);
-    printf("    GMSK payload length:               %-.2d\n", np->gmsk_payload_length);
-    printf("    GMSK bandwidth:                    %-.2e\n", np->gmsk_bandwidth);
     }
   printf("--------------------------------------------------------------\n");
   }

@@ -11,7 +11,12 @@ ALL             ALL = NOPASSWD: /sbin/ip link set dev tunCRTS up
 ALL             ALL = NOPASSWD: /sbin/ip link set dev tunCRTS down
 # Set the tunCRTS interface with an arbitrary IP address
 ALL             ALL = NOPASSWD: /sbin/ip addr add [0-9.]*/24 dev tunCRTS
+# Set the tunCRTS interface with an arbitrary IP address
+ALL             ALL = NOPASSWD: /sbin/ifconfig tunCRTS [0-9.]* netmask 255.255.255.0
 # Set the route information for tunCRTS
 ALL             ALL = NOPASSWD: /sbin/route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS
 # Delete the route information for tunCRTS
 ALL             ALL = NOPASSWD: /sbin/route del -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS
+# Delete the special tunCRTS TUN interface
+ALL             ALL = NOPASSWD: /sbin/ip tuntap del dev tunCRTS mode tun
+

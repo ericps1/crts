@@ -5,27 +5,27 @@
 #include<liquid/liquid.h>
 
 enum type{
-    CR = 0,        // user equipment node type
-    interferer        // interferer node type
+    CR = 0,       // user equipment node type
+    interferer    // interferer node type
 };
 
 enum cr_type{
-    python = 0, //third party python radios
-    ecr      //Radios created using ECR
+    python = 0,   //third party python radios
+    ecr           //Radios created using ECR
 };
 
 enum duplex{
-    FDD = 0,        // frequency division duplexing
-    TDD,        // time division duplexing (not implemented)
+    FDD = 0,      // frequency division duplexing
+    TDD,          // time division duplexing (not implemented)
     HD            // half-duplex
 };
 
 enum interference_type{
-    CW= 0,       // continuous-wave interference
-    AWGN,       // additive white gaussian noise interference
-    GMSK,     // gaussian minimum-shift keying inteference
-    RRC,     // root-raised cosine interference (as in WCDMA)
-    OFDM     // orthogonal frequency division multiplexing interference
+    CW= 0,        // continuous-wave interference
+    NOISE,        // random noise interference
+    GMSK,         // gaussian minimum-shift keying inteference
+    RRC,          // root-raised cosine interference (as in WCDMA)
+    OFDM          // orthogonal frequency division multiplexing interference
 };
 
 
@@ -36,6 +36,11 @@ enum tx_freq_hop_type{
     RANDOM
 };
 
+enum subcarrier_alloc{
+	LIQUID_DEFAULT_SUBCARRIER_ALLOC = 0,
+	STANDARD_SUBCARRIER_ALLOC,
+	CUSTOM_SUBCARRIER_ALLOC
+};
 
 struct node_parameters{
     // general
@@ -47,14 +52,14 @@ struct node_parameters{
     char CORNET_IP[20];
     char CRTS_IP[20];
     char TARGET_IP[20];
-    char CE[30];
+    char CE[100];
     int print_metrics;
-    int log_rx_metrics;
-    int log_tx_parameters;
-    int log_CRTS_rx_data;
-    char rx_log_file[100];
-    char tx_log_file[100];
-    char CRTS_rx_log_file[100];
+    int log_phy_rx;
+    int log_phy_tx;
+    int log_net_rx;
+    char phy_rx_log_file[100];
+    char phy_tx_log_file[100];
+    char net_rx_log_file[100];
     float ce_timeout_ms;
     int generate_octave_logs;
     int generate_python_logs;
@@ -69,11 +74,17 @@ struct node_parameters{
 
     // liquid OFDM settings
     int duplex;
-    float tx_gain_soft;
     int rx_subcarriers;
 	int rx_cp_len;
 	int rx_taper_len;
-	int tx_subcarriers;
+	int rx_subcarrier_alloc_method;
+	int rx_guard_subcarriers;
+	int rx_central_nulls;
+	int rx_pilot_freq;
+	char rx_subcarrier_alloc[2048];
+
+	float tx_gain_soft;
+    int tx_subcarriers;
 	int tx_cp_len;
 	int tx_taper_len;
 	int tx_modulation;
@@ -81,7 +92,12 @@ struct node_parameters{
     int tx_fec0;
     int tx_fec1;
 	float tx_delay_us;
-    
+	int tx_subcarrier_alloc_method;
+	int tx_guard_subcarriers;
+	int tx_central_nulls;
+	int tx_pilot_freq;
+	char tx_subcarrier_alloc[2048];
+
     // interferer only
     int   interference_type;          // see ENUM list above 
     float period;                     // seconds for a single period
@@ -96,13 +112,6 @@ struct node_parameters{
     float tx_freq_hop_dwell_time;      // seconds at a given freq
     float tx_freq_hop_increment;       // for SWEEP, increment hop amount 
     
-    // gmsk interferer properties 
-    unsigned int gmsk_header_length;
-    unsigned int gmsk_payload_length; 
-    float        gmsk_bandwidth;       // note tx_rate is ignored and 
-                                       // calcualted from gmsk_bandwidth 
-                                       // (default = 4.0f * bandwidth)
-
 };
 
 #endif

@@ -2,6 +2,8 @@
 #define _INTERFERER_HPP_
 
 #include <uhd/usrp/multi_usrp.hpp>
+#include <liquid/liquid.h>
+#include "timer.h"
 
 class Interferer {
 public:
@@ -23,17 +25,12 @@ public:
     float tx_freq_hop_max;
     float tx_freq_hop_dwell_time; 
     float tx_freq_hop_increment; 
-
-    float gmsk_header_length;
-    float gmsk_payload_length;
-    float gmsk_bandwidth; 
-
-
-    // RF objects and properties
+    
+	// RF objects and properties
     uhd::usrp::multi_usrp::sptr usrp_tx;
     uhd::tx_metadata_t          metadata_tx;
-    
-private:
+
+    private:
 };
 
 #endif
