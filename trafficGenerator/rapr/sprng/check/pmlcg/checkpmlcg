@@ -1,0 +1,6 @@
+echo
+echo pmlcg: Checking Default C++ interface:
+./check.cpmlcg < ./pmlcg.data 2> /dev/null
+echo
+echo pmlcg: Checking Simple C++ interface:
+./check_sim.cpmlcg < ./pmlcg.data 2> /dev/null

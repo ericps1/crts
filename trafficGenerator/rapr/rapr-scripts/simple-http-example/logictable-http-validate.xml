@@ -1,0 +1,57 @@
+<RaprLogicTable>
+
+  <state>
+    <!-- Default state, SERVER:STARTED -->
+    <value>0</value>
+    <logicid>
+      <!-- Logic id 1 initiates the interaction between the client
+	   and the server.  It is sent from the client to the server 
+	   and directs the server to send a single TCP packet
+	   or "web page" of random size with logic id 2 
+	   back to the client -->
+      <id>1</id>
+      <entry>DECLARATIVE TCP DST %PACKET:SRCIP%/%HTTP_CLIENT_PORT% PERIODIC [1 %SYSTEM:RANDOMI(1024,1024)%] COUNT 1 LOGICID 2</entry>
+    </logicid>
+    <logicid>
+      <!-- Logic id 2 is sent from the server to the client.
+	   It directs the client to send between 1 and 3
+	   TCP messages (or "requests for gif files") back 
+	   to the server. These mesages(s) are associated with logic
+	   id 3. Note that the client has a 50% probability
+	   of making these requests. -->
+      <id>2</id>
+      <percent>1.0</percent>
+      <entry>DECLARATIVE TCP DST %PACKET:SRCIP%/%HTTP_SERVER_PORT% PERIODIC [1 %SYSTEM:RANDOMI(2048,2048)%] LOGICID 3 COUNT 1</entry>
+    </logicid>
+    <logicid>
+      <id>3</id>
+      <!-- Logic if 3 is sent from the client to the server.
+	   It directs the server to send a single TCP message (or "file")
+	   between 512 and 38192 bytes back to the client.  It is
+	   not associated with a logic id and "ends" the 
+	   interaction initiated by logic id 1. The server will
+           respond between 1 and 3 times depending on how many 
+	   "http requests" (or packets associated with logic id 3
+	   it received from the client.-->
+      <entry>DECLARATIVE TCP DST %PACKET:SRCIP%/%HTTP_CLIENT_PORT% PERIODIC [1 %SYSTEM:RANDOMI(5012,5012)%] COUNT 1</entry>
+    </logicid>
+  </state>
+
+  <state>
+      <!-- The server script issues a CHANGE_STATE 
+	   command at 120 seconds into the test.  When
+	   the server is in this state (SERVER:STOPPED)
+	   it will not respond to any requests from the
+	   client. At 180 seconds into the test the
+	   server changes state back to SERVER:STARTED and the
+	   logic defind for SERVER:STARTED (state 0) 
+	   will be followed-->
+      <value>1</value>
+      <logicid>
+	<!-- Server shut down - no response -->      
+	<id>0</id>
+	<entry></entry>
+      </logicid>
+  </state>
+</RaprLogicTable>
+

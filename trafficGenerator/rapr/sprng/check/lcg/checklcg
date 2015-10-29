@@ -1,0 +1,6 @@
+echo
+echo lcg: Checking Default C++ interface:
+./check.clcg < ./lcg.data 2> /dev/null
+echo
+echo lcg: Checking Simple C++ interface:
+./check_sim.clcg < ./lcg.data 2> /dev/null

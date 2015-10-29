@@ -1,0 +1,113 @@
+<RaprLogicTable>
+	<state>
+		<value>0,0</value>
+		<logicid>
+			<!-- Intel Server Response to URI Request -->
+			<id>1</id>
+			<!-- Server Change State -->
+			<entry>CHANGE_UBI_STATE %PACKET:UBI% %STATE:EVENT_QUEUED%</entry>
+			<!-- Intel Server Send ACK for URI Request -->
+			<entry>DECLARATIVE UDP SRC %SERVER:SEND_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_PORT% %SERVER:ACK_URI_REQ_PATTERN% PAYLOAD 2</entry>
+			<!-- Intel Server Send URI -->
+			<entry>%SERVER:URI_WAIT_TIME% DURATION 1.01 DECLARATIVE UDP SRC %SERVER:SEND_DATA_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_DATA_PORT% %SERVER:URI_PATTERN% PAYLOAD 3</entry>
+ 		</logicid>
+		<logicid>
+			<!-- Intel Client Response to URI -->
+			<id>3</id>
+			<!-- Client Change State -->
+			<entry>CHANGE_UBI_STATE %PACKET:UBI% %STATE:EVENT_QUEUED%</entry>
+			<!-- Client Send File Request -->
+			<entry>%CLIENT:FILE_REQ_WAIT_TIME% DURATION 75.01 INTERROGATIVE RETRYINTERVAL 15.0 NUMRETRIES 4 UDP SRC %CLIENT:SEND_PORT% DST %PACKET:SRCIP%/%SERVER:LISTEN_PORT% %CLIENT:FILE_REQ_PATTERN% PAYLOAD 4</entry>
+		</logicid>
+		<logicid>
+			<id>4</id>
+			<!-- Server Change State -->
+			<entry>CHANGE_UBI_STATE %PACKET:UBI% %STATE:EVENT_QUEUED%</entry>
+			<!-- Intel Server Send ACK for File Request -->
+			<entry>DECLARATIVE UDP SRC %SERVER:SEND_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_PORT% %SERVER:ACK_FILE_REQ_PATTERN% PAYLOAD 5</entry>
+			<!-- Change our own state -->
+			<!-- entry>CHANGE_STATE %STATE:TCP_SEND%</entry-->
+			<!-- Intel Server Send File -->
+			<entry>DURATION %SERVER:FILE_SIZE% DECLARATIVE UDP SRC %SERVER:SEND_DATA_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_DATA_PORT% %SERVER:FILE_PATTERN%</entry>
+                        <entry>DURATION %SYSTEM:RANDOMI(1,4)% DECLARATIVE UDP SRC %SERVER:SEND_DATA_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_DATA_PORT% PERIODIC [%SYSTEM:RANDOMI(2,4)% %SYSTEM:RANDOMI(800,1400)%] </entry>
+                        <entry>%SYSTEM:RANDOMI(2,5)% DURATION %SYSTEM:RANDOMI(1,8)% DECLARATIVE UDP SRC %SERVER:SEND_DATA_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_DATA_PORT% PERIODIC [%SYSTEM:RANDOMI(1,4)% %SYSTEM:RANDOMI(800,1400)%] </entry>
+                        <entry>%SYSTEM:RANDOMI(12,15)% DURATION %SYSTEM:RANDOMI(1,4)% DECLARATIVE UDP SRC %SERVER:SEND_DATA_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_DATA_PORT% PERIODIC [%SYSTEM:RANDOMI(1,4)% %SYSTEM:RANDOMI(800,1400)%] </entry>
+                       <entry>%SYSTEM:RANDOMI(13,19)% DURATION %SYSTEM:RANDOMI(1,4)% DECLARATIVE UDP SRC %SERVER:SEND_DATA_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_DATA_PORT% PERIODIC [%SYSTEM:RANDOMI(1,4)% %SYSTEM:RANDOMI(800,1400)%] </entry>
+		</logicid>
+		<logicid>
+			<id>5</id>
+			<!-- Server Change State to Send TCP File -->
+			<entry>CHANGE_STATE %STATE:TCP_SEND%</entry>
+		</logicid>
+	</state>
+	<state>
+		<value>0,1</value>
+		<logicid>
+			<!-- Intel Server Event Already Queued, Only send ACK for Retry on URI Request -->
+			<id>1</id>
+			<!-- Intel Server Send ACK for URI Request -->
+			<entry>DECLARATIVE UDP SRC %SERVER:SEND_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_PORT% %SERVER:ACK_URI_REQ_PATTERN% PAYLOAD 2</entry>
+ 		</logicid>
+		<logicid>
+			<!-- Intel Server Event Already Queued, Only send ACK for Retry on File Request -->
+			<id>4</id>
+			<!-- Intel Server Send ACK for File Request -->
+			<entry>DECLARATIVE UDP SRC %SERVER:SEND_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_PORT% %SERVER:ACK_FILE_REQ_PATTERN% PAYLOAD 5</entry>
+		</logicid>
+	</state>
+	<state>
+		<!-- TCP File Response -->
+		<value>1,0</value>
+		<logicid>
+			<!-- Intel Server Response to URI Request -->
+			<id>1</id>
+			<!-- Server Change State -->
+			<entry>CHANGE_UBI_STATE %PACKET:UBI% %STATE:EVENT_QUEUED%</entry>
+			<!-- Intel Server Send ACK for URI Request -->
+			<entry>DECLARATIVE UDP SRC %SERVER:SEND_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_PORT% %SERVER:ACK_URI_REQ_PATTERN% PAYLOAD 2</entry>
+			<!-- Intel Server Send URI -->
+			<entry>%SERVER:URI_WAIT_TIME% DURATION 1.01 DECLARATIVE UDP SRC %SERVER:SEND_DATA_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_DATA_PORT% %SERVER:URI_PATTERN% PAYLOAD 3</entry>
+ 		</logicid>
+		<logicid>
+			<!-- Intel Client Response to URI -->
+			<id>3</id>
+			<!-- Client Change State -->
+			<entry>CHANGE_UBI_STATE %PACKET:UBI% %STATE:EVENT_QUEUED%</entry>
+			<!-- Client Send File Request -->
+			<entry>%CLIENT:FILE_REQ_WAIT_TIME% DURATION 75.01 INTERROGATIVE RETRYINTERVAL 15.0 NUMRETRIES 4 UDP SRC %CLIENT:SEND_PORT% DST %PACKET:SRCIP%/%SERVER:LISTEN_PORT% %CLIENT:FILE_REQ_PATTERN% PAYLOAD 4</entry>
+		</logicid>
+		<logicid>
+			<id>4</id>
+			<!-- Server Change State -->
+			<entry>CHANGE_UBI_STATE %PACKET:UBI% %STATE:EVENT_QUEUED%</entry>
+			<!-- Intel Server Send ACK for File Request -->
+			<entry>DECLARATIVE UDP SRC %SERVER:SEND_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_PORT% %SERVER:ACK_FILE_REQ_PATTERN% PAYLOAD 5</entry>
+			<!-- Change our own state -->
+			<!--entry>CHANGE_STATE %STATE:UDP_SEND%</entry-->
+
+			<!-- Intel Server Send TCP File -->
+			<entry>DECLARATIVE TCP SRC %SERVER:SEND_DATA_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_DATA_PORT% %SERVER:FILE_TCP_PATTERN%</entry>
+		</logicid>
+		<logicid>
+			<id>5</id>
+			<!-- Server Change State to Send TCP File -->
+			<entry>CHANGE_STATE %STATE:UDP_SEND%</entry>
+		</logicid>
+	</state>
+	<state>
+		<!-- TCP File Response -->
+		<value>1,1</value>
+		<logicid>
+			<!-- Intel Server Event Already Queued, Only send ACK for Retry on URI Request -->
+			<id>1</id>
+			<!-- Intel Server Send ACK for URI Request -->
+			<entry>DECLARATIVE UDP SRC %SERVER:SEND_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_PORT% %SERVER:ACK_URI_REQ_PATTERN% PAYLOAD 2</entry>
+ 		</logicid>
+		<logicid>
+			<!-- Intel Server Event Already Queued, Only send ACK for Retry on File Request -->
+			<id>4</id>
+			<!-- Intel Server Send ACK for File Request -->
+			<entry>DECLARATIVE UDP SRC %SERVER:SEND_PORT% DST %PACKET:SRCIP%/%CLIENT:LISTEN_PORT% %SERVER:ACK_FILE_REQ_PATTERN% PAYLOAD 5</entry>
+		</logicid>
+	</state>
+</RaprLogicTable>

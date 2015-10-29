@@ -1,0 +1,81 @@
+By default the dictionary definition is declared in "dictionary.xml"
+and is in the format
+
+<namespace>
+   <label>NAMESPACENAME</label>
+	<item>
+	   <field>FIELDNAME</field>
+		<value>VALUE1</value>
+		<value>VALUE2</value>
+	</item>
+</namespace>
+
+<namaspace> blocks off each name space definition.
+
+NAMESPACENAME is the id of the namespace.  Only the first one will be
+used.  This is a required field.
+
+<item> blocks off each replacement.
+
+FIELDNAME is the name of the word to be replaced without the %
+surrounding the word.  So to replace %DESTINATION% in the logic table,
+the field would be DESTINATION.  This is a required field.
+
+VALUE1 and VALUE2 are the values used to replace the field.  Multiple
+values can be assigned to the same field.  And each will be used to
+create an independent statement.  Null is a valid entry for the value.
+One or more values are required.
+
+Example 
+<RaprDictionary>
+    <namespace>
+        <label>DEFAULT</label>
+        <item>
+            <field>LOCALHOST</field>
+            <value>127.0.0.1</value>
+        </item>
+        <item>
+            <field>DST</field>
+            <value>192.168.2.102</value>
+            <value>192.168.2.103</value>
+        </item>
+    </namespace>
+</RaprDictionary>
+
+Currently the PACKET namespace is reserved for information contained
+in the incoming MGEN packet.  Information supported in the namespace are:
+
+PACKET:SRCIP - Source ip address as defined by the MGEN source field
+PACKET:SRCPORT - Source port as defined by MGEN source field
+PACKET:DSTIP - Destination IP of the MGEN packet
+PACKET:DSTPORT - Destination Port of the MGEN packet
+PACKET:SEED - Random seed stored in the RAPR packet payload
+
+The SYSTEM name space currently provide a place for random value generation.
+
+SYSTEM:RANDOMI(x,y)
+SYSTEM:RANDOMF(x,y)
+SYSTEM:RANDOMF(x,y,z)
+
+Both provide translation of a single value in the range of [x,y].  In the case
+of RANDOMI, the value is an integer and x and y are also integers.  RANDOMF
+replaces with an float in the range with z decimal places.  z is an optional 
+arguement, by default only 1 decimal place is generated.
+
+Another reserver word is HOSTID.  It will take the hostid defined in the rapr
+script.
+
+Nested Support
+
+Added ability to parse nested dictionary entries to raprDictionary 
+%%FIELDA%FIELDB% and %FIELDA%%FIELDB% are supported where the value of the 
+nested field name will be used as a lookup for the field name of the 
+resultant dictionary entry.
+
+e.g. Given %%FIELDA%FIELDB% value of FIELDA (e.g. 61) will be
+appended 61FIELDB.  61FIELDB will then be the feild name translated.
+
+Multiple values are supported for the final field translation.
+The nested field value may NOT have multiple values.
+
+

@@ -1,0 +1,47 @@
+<RaprLogicTable>
+   <state>
+      <!-- Default state -->
+      <value>0,0</value>
+      <logicid>
+	<id>1</id>
+	<percent>0.50</percent>
+	<entry>LOGICID 2</entry>
+	<entry>LOGICID 3</entry>
+      </logicid>
+      <logicid>
+          <id>2</id>
+	  <percent>0.10</percent>
+          <entry>INTERROGATIVE NUMRETRIES 0 TCP DST %SERVER%/%SERVER_PORT% PERIODIC [1 %SYSTEM:RANDOMI(76,100)%] LOGICID 4</entry>
+      </logicid>
+      <logicid>
+          <id>3</id>
+	  <percent>0.90</percent>
+          <entry>INTERROGATIVE NUMRETRIES 0 TCP DST %SERVER%/%SERVER_PORT% PERIODIC [1 %SYSTEM:RANDOMI(76,3000)%] LOGICID 5</entry>
+      </logicid>
+      <logicid>
+          <id>4</id>
+          <entry>INTERROGATIVE NUMRETRIES 0 TCP DST %PACKET:SRCIP%/%CLIENT_PORT% PERIODIC [1 %SYSTEM:RANDOMI(100,500)%]</entry>
+      </logicid>
+      <logicid>
+          <id>5</id>
+	  <entry>CHANGE_UBI_STATE %PACKET:UBI% %STATE:EVENT_QUEUED%</entry>
+          <entry>INTERROGATIVE NUMRETRIES 0 TCP DST %CLIENT_LIST%/%CLIENT_PORT% PERIODIC [1 %SYSTEM:RANDOMI(76,3000)%]</entry>
+      </logicid>
+   </state>
+   <state>
+     <!-- UBI State Change - already responded to request -->
+     <value>0,1</value>
+     <logicid>
+       <id>1</id>
+       <!-- no response -->
+       <entry></entry>
+     </logicid>
+   </state>
+   <state>
+     <!-- SENSOR:STOPPED don't reply to anything -->
+     <value>1,0</value>
+     <!-- no response -->
+     <entry></entry>
+   </state>
+</RaprLogicTable>
+

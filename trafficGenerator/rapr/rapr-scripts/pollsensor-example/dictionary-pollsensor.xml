@@ -1,0 +1,44 @@
+<RaprDictionary>
+   <namespace>
+   <label>DEFAULT</label>
+   <item>
+     <field>MULTICAST_GROUP</field>
+     <value>239.1.1.2</value>
+   </item>
+   <item>
+       <field>MULTICAST_PORT</field>
+       <value>11000</value>
+   </item>
+   <item>
+       <field>POLLER_PORT</field>
+       <value>11001</value>
+   </item>
+   <item>
+     <field>POLL_SERVER</field>
+     <value>10.0.0.2</value>
+   </item>
+
+   </namespace>
+   <!-- Dictionary entries in the poller name space should -->
+   <!-- be referred to as %SENSOR:<FIELDNAME>%, e.g.       -->
+   <!-- %SENSOR:IP%                                        -->
+   <namespace>
+   <label>SENSOR</label>
+       <item>
+           <field>STARTED</field>
+           <value>0</value>
+       </item>
+       <item>
+           <field>STOPPED</field>
+           <value>1</value>
+       </item>
+   </namespace>
+   <namespace>
+     <label>STATE</label>
+     <item>
+       <!-- Event queued for UBI -->
+       <field>EVENT_QUEUED</field>
+       <value>1</value>
+     </item>
+   </namespace>
+</RaprDictionary>

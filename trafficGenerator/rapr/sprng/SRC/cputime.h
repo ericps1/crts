@@ -1,0 +1,2 @@
+double    cputime(void);
+

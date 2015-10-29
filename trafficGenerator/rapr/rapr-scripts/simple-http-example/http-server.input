@@ -1,0 +1,33 @@
+# Load the default rapr dictionary that defines
+# paths and other system defaults.  If this script
+# is not co-located with the rapr binary specify 
+# a path
+INPUT rapr-defaults.input
+
+# Load the dictionary and logictable for the
+# http application.  
+LOAD_DICTIONARY %HTTP_EXAMPLE_PATH%/dictionary-http.xml 
+LOGICTABLE_FILE %HTTP_EXAMPLE_PATH%/logictable-http.xml 
+
+# Accept rapr commands over "rapr-server" pipe
+RAPRPIPE rapr-server
+
+# Uncomment the following lines to log mgen and/or rapr
+# logging to an output file.  The OVERWRITE_<type>LOG command 
+# will overwrite any existing log files. The <type>LOG command
+# will append to any existing log file.
+
+OVERWRITE_MGENLOG %HTTP_LOG_PATH%/mgen-server-http.log
+OVERWRITE_RAPRLOG %HTTP_LOG_PATH%/rapr-server-http.log
+
+# Listen for HTTP requests 
+LISTEN TCP %HTTP_SERVER_PORT%
+
+# Shutdown the server 120 seconds into the test
+120.0 CHANGE_STATE %SERVER:STOPPED%
+
+# Start the server back up a minute later, at 180 seconds into the test
+180.0 CHANGE_STATE %SERVER:STARTED%
+
+
+

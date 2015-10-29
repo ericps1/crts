@@ -1,0 +1,8 @@
+<state>
+    <value>0</value>
+    <logicid>
+        <id>1</id>
+        <entry>DECLARATIVE UDP SRC %LOG_SRC_SEND_PORT% DST %PACKET:SRCIP%/%LOG_SRV_UPDATE_PORT% %LOG_MGEN_TRANSMIT_PATTERN% </entry>
+    </logicid>
+</state>
+

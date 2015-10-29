@@ -1,0 +1,6 @@
+echo
+echo lcg: Checking Default FORTRAN interface:
+./check.flcg < ./lcg.data 2> /dev/null
+echo
+echo lcg: Checking Simple FORTRAN interface:
+./check_sim.flcg < ./lcg.data 2> /dev/null

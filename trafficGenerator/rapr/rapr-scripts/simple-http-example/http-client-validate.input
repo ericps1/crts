@@ -1,0 +1,51 @@
+# Load the default rapr dictionary that defines
+# paths and other system defaults.  If this script
+# is not co-located with the rapr binary specify 
+# a path
+INPUT rapr-defaults.input
+
+# Only log error conditions
+DEBUG 0
+
+# Load the dictionary and logictable for the
+# http application.  
+LOAD_DICTIONARY %HTTP_EXAMPLE_PATH%/dictionary-http.xml 
+LOGICTABLE_FILE %HTTP_EXAMPLE_PATH%/logictable-http-validate.xml 
+
+# Accept rapr commands over "rapr-client" pipe
+RAPRPIPE rapr-client
+
+# Set unique hostId per rapr participant - this will default to the
+# last octet of the node's ip address if not set
+HOSTID 1
+
+# The TXLOG enables message transmission logging 
+TXLOG 
+# Enable verbose logging
+VERBOSE
+
+# Flush will turn off buffering on message logging
+FLUSH
+
+# Uncomment the following lines to log mgen and/or rapr
+# logging to an output file.  The OVERWRITE_<type>LOG command 
+# will overwrite any existing log files. The <type>LOG command
+# will append to any existing log file.
+
+OVERWRITE_MGENLOG %HTTP_LOG_PATH%/mgen-client-http.log
+OVERWRITE_RAPRLOG %HTTP_LOG_PATH%/rapr-client-http.log
+#MGENLOG %HTTP_LOG_PATH%/mgen-client-http.log
+#RAPRLOG %HTTP_LOG_PATH%/rapr-client-http.log
+
+
+# Listen for responses from the server
+Listen TCP %HTTP_CLIENT_PORT%
+
+# Send a request every 2.5 to 5 minutes to the server
+#DURATION 3600 PERIODIC INTERVAL %SYSTEM:RANDOMI(150,300)% DECLARATIVE SRC 5000 TCP DST %SERVER:IP%/%HTTP_SERVER_PORT% PERIODIC [1 %SYSTEM:RANDOMI(76,2048)%] LOGICID 1 COUNT 1
+
+# Send a request every 15 to 30 seconds 
+#DURATION 3600 PERIODIC INTERVAL %SYSTEM:RANDOMI(15,30)% DECLARATIVE SRC 5000 TCP DST %SERVER:IP%/%HTTP_SERVER_PORT% PERIODIC [1 %SYSTEM:RANDOMI(76,2048)%] LOGICID 1 COUNT 1
+
+DURATION 360 PERIODIC INTERVAL %SYSTEM:RANDOMI(15,15)% DECLARATIVE SRC 5000 TCP DST %SERVER:IP%/%HTTP_SERVER_PORT% PERIODIC [1 %SYSTEM:RANDOMI(512,512)%] COUNT  1 LOGICID 1 
+

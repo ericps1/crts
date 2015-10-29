@@ -1,0 +1,107 @@
+<namespace>
+   <label>DEFAULT</label>
+   <item>
+      <field>MULTICAST_INTERFACE</field>
+      <value>eth0</value>
+   </item>
+   <item>
+      <field>61RESPPROB-GC1</field>
+      <value>RESPPROB 0 15</value>
+   </item>
+   <item>
+      <field>61START-GC1</field>
+      <value>2.0 DURATION 200.0</value>
+   </item>
+   <item>
+      <field>61PATTERN-GC1</field>
+      <value>BURSTDURATION 6 BURSTCOUNT 5</value>
+   </item>
+   <item>
+      <field>62RESPPROB-GC1</field>
+      <value>RESPPROB 16 50</value>
+   </item>
+   <item>
+      <field>62START-GC1</field>
+      <value>100.0 DURATION 100.0</value>
+   </item>
+   <item>
+      <field>62PATTERN-GC1</field>
+      <value>BURSTDURATION 5 BURSTCOUNT 3</value>
+   </item>
+   <item>
+      <field>63RESPPROB-GC1</field>
+      <value>RESPPROB 51 85</value>
+   </item>
+   <item>
+      <field>63START-GC1</field>
+      <value>160.0 DURATION 100.0</value>
+   </item>
+   <item>
+      <field>63PATTERN-GC1</field>
+      <value>BURSTDURATION 4 BURSTCOUNT 3</value>
+   </item>
+   <item>
+      <field>64RESPPROB-GC1</field>
+      <value>RESPPROB 86 100</value>
+   </item>
+   <item>
+      <field>64START-GC1</field>
+      <value>260.0 DURATION 200.0</value>
+   </item>   
+   <item>
+      <field>64PATTERN-GC1</field>
+      <value>BURSTDURATION 5 BURSTCOUNT 10</value>
+   </item>
+   <item>
+      <field>65RESPPROB-GC1</field>
+      <value>RESPPROB 0 15</value>
+   </item>
+   <item>
+      <field>65START-GC1</field>
+      <value>2.0 DURATION 200.0</value>
+   </item>
+   <item>
+      <field>65PATTERN-GC1</field>
+      <value>BURSTDURATION 5 BURSTCOUNT 3</value>
+   </item>
+   <item>
+      <field>LDR_FWD_1_SQUAD_1</field>
+      <value>192.168.2.61</value>
+   </item>
+   <item>
+      <field>SOLDIER1_FWD_1_SQUAD_1</field>
+      <value>192.168.2.62</value>
+   </item>
+   <item>
+      <field>SOLDIER2_FWD_1_SQUAD_1</field>
+      <value>192.168.2.63</value>
+   </item>
+   <item>
+      <field>SOLDIER3_FWD_1_SQUAD_1</field>
+      <value>192.168.2.64</value>
+   </item>
+   <item>
+      <field>VOIP_LISTEN_PORT</field>
+      <value>8000</value>
+   </item>
+   <item>
+      <field>VOIP_SEND_PORT</field>
+      <value>8001</value>
+   </item>
+   <item>
+      <field>GROUP_FWD1_SQUAD_1</field>
+      <value>239.1.1.1</value>
+   </item>
+   <item>
+      <field>GROUP_CHAT</field>
+      <value>PERIODIC [25 100]</value>
+   </item>
+   <item>
+      <field>GROUP_INTERROGATION</field>
+      <value>PERIODIC [25 100]</value>
+   </item>
+   <item>
+      <field>VOIP_PATTERN</field>
+      <value>PERIODIC [25 100]</value>
+   </item>
+</namespace>

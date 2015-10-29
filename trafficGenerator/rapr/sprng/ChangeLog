@@ -1,0 +1,18 @@
+SPRNG 4 with Autoconf/Automake 
+
+(9/25/11)
+* removed a lot of compiler warning code
+
+(8/5/11)
+* moved Fortran to F77 folders to not compile if no compiler installed
+
+(6/7/07)
+* fixed problem with autoconf for mpi
+	
+(4/17/07)
+* fixed a bug with the unpack function  simple interface
+* added directory EXAMPLES/mpisprng for mpi exams
+* added directory TESTS/mpitests for mpi tests
+* added virtual destructor in sprng class
+
+	

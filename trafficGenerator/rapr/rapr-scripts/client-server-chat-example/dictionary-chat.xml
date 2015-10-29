@@ -1,0 +1,97 @@
+<RaprDictionary>
+<namespace>
+  <label>SystemDefaults</label>
+  <!-- Change the default behavior of interrogative objects 
+       for this application -->
+  <item>
+    <!-- Default number of retries for interrogative events -->
+    <field>NUMRETRIES</field>
+    <value>0</value>
+  </item>
+  <item>
+    <!-- Default pattern for all events -->
+    <field>PATTERN</field>
+    <value>PERIODIC [1 1024]</value>
+  </item>
+</namespace>
+
+<namespace>
+   <label>DEFAULT</label>
+   <item>
+      <field>MULTICAST_INTERFACE</field>
+      <value>eth0</value>
+   </item>
+   <item>
+      <field>CHAT_LISTEN_PORT</field>
+      <value>8000</value>
+   </item>
+   <item>
+      <field>CHAT_SEND_PORT</field>
+      <value>8001</value>
+   </item>
+   <item>
+      <field>CHAT_SERVER</field>
+      <value>10.0.0.2</value>
+   </item>
+   <item>
+     <field>1_CHAT_CLIENT</field>
+     <value>10.0.0.1</value>
+   </item>
+   <item>
+     <field>2_CHAT_CLIENT</field>
+     <value>10.0.0.3</value>
+   </item>
+   <item>
+     <field>3_CHAT_CLIENT</field>
+     <value>10.0.0.5</value>
+   </item>
+   <item>
+     <field>4_CHAT_CLIENT</field>
+     <value>10.0.0.4</value>
+   </item>
+   <item>
+      <field>CHAT_CLIENTS</field>
+      <value>%1_CHAT_CLIENT%</value>
+      <value>%2_CHAT_CLIENT%</value>
+      <value>%3_CHAT_CLIENT%</value>
+      <value>%4_CHAT_CLIENT%</value>
+   </item>
+   <item>
+      <field>CHAT_MULTICAST_GROUP</field>
+      <value>239.1.1.1</value>
+   </item>
+   <item>
+      <field>CHAT_TRAFFIC_PATTERN</field>
+      <value>PERIODIC [1 76]</value>
+   </item>
+   <item>
+      <field>1_CHAT_TRAFFIC_PATTERN</field>
+      <value>POISSON [1 %SYSTEM:RANDOMI(100,300)%]</value>
+   </item>
+   <item>
+      <field>2_CHAT_TRAFFIC_PATTERN</field>
+      <value>POISSON [1 %SYSTEM:RANDOMI(300,500)%]</value>
+   </item>
+   <item>
+      <field>3_CHAT_TRAFFIC_PATTERN</field>
+      <value>POISSON [1 %SYSTEM:RANDOMI(500,1000)%]</value>
+   </item>
+   <item>
+      <field>CHAT_TRAFFIC_PATTERN_4</field>
+      <value>POISSON [1 %SYSTEM:RANDOMI(1000,8192)%]</value>
+   </item>
+   <item>
+     <field>START_A_GROUP_CHAT</field>
+     <value>DURATION 6000.0 PERIODIC INTERVAL %SYSTEM:RANDOMI(30,60)% INTERROGATIVE TCP DST %CHAT_SERVER%/%CHAT_LISTEN_PORT% %CHAT_TRAFFIC_PATTERN% LOGICID %SYSTEM:RANDOMI(1,1)% </value>
+   </item>
+</namespace>
+
+
+<namespace>
+  <label>STATE</label>
+  <item>
+    <field>RESPONSE_QUEUED</field>
+    <value>1</value>
+  </item>
+</namespace>
+</RaprDictionary>

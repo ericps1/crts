@@ -1,0 +1,2 @@
+15:25:53.079262 app>RAPR type>Application action>ApplicationStartUp
+15:25:53.081329 app>RAPR type>Declarative action>start ubi>922746880 eventSource>script_event endTime>30000.00 seed>15 payloadSeed>660547808 mgenCmd>"ON 1 UDP SRC 4000 DST 10.10.10.46/4001 PERIODIC [40.0 1000 ] DATA [0304E0285F27]"

@@ -1,0 +1,6 @@
+echo
+echo cmrg: Checking Default C++ interface:
+./check.ccmrg < ./cmrg.data 2> /dev/null
+echo
+echo cmrg: Checking Simple C++ interface:
+./check_sim.ccmrg < ./cmrg.data 2> /dev/null

@@ -1,0 +1,370 @@
+node n1 {
+    type router
+    model mdr
+    network-config {
+	hostname client1
+	!
+	interface eth0
+	 ip address 10.0.0.1/32
+	!
+    }
+    canvas c1
+    iconcoords {175.0 288.0}
+    labelcoords {175.0 320.0}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute UserDefined}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	startidx=51
+	cmdup=('cd /home/rapr/rapr-scripts;./rapr input simple-http-example/http-client.input', )
+	cmddown=('killall rapr', )
+	starttime=15.0
+	}
+    }
+    interface-peer {eth0 n3}
+}
+
+node n2 {
+    type router
+    model mdr
+    network-config {
+	hostname server
+	!
+	interface eth0
+	 ip address 10.0.0.2/32
+	!
+    }
+    canvas c1
+    iconcoords {831.0 309.0}
+    labelcoords {831.0 341.0}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute UserDefined}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	starttime=10.0
+	}
+    }
+    interface-peer {eth0 n3}
+}
+
+node n3 {
+    type wlan
+    network-config {
+	hostname wlan3
+	!
+	interface e9
+	!
+	interface e8
+	!
+	interface e7
+	!
+	interface e6
+	!
+	interface e5
+	!
+	interface e4
+	!
+	interface e3
+	!
+	interface e2
+	!
+	interface e1
+	!
+	interface e0
+	!
+	interface wireless
+	 ip address 10.0.0.0/32
+	 ipv6 address 2001:0::0/128
+	!
+	mobmodel
+	coreapi
+	basic_range
+	!
+    }
+    custom-config {
+	custom-config-id basic_range
+	custom-command {3 3 9 9 9}
+	config {
+	range=275
+	bandwidth=54000000
+	jitter=0
+	delay=20000
+	error=0
+	}
+    }
+    canvas c1
+    iconcoords {505.0 44.0}
+    labelcoords {505.0 76.0}
+    interface-peer {e0 n1}
+    interface-peer {e1 n2}
+    interface-peer {e2 n4}
+    interface-peer {e3 n5}
+    interface-peer {e4 n6}
+    interface-peer {e5 n7}
+    interface-peer {e6 n8}
+    interface-peer {e7 n9}
+    interface-peer {e8 n10}
+    interface-peer {e9 n11}
+}
+
+node n4 {
+    type router
+    model mdr
+    network-config {
+	hostname client2
+	!
+	interface eth0
+	 ip address 10.0.0.3/32
+	!
+    }
+    canvas c1
+    iconcoords {303.0 146.0}
+    labelcoords {303.0 178.0}
+    interface-peer {eth0 n3}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute}
+}
+
+node n5 {
+    type router
+    model mdr
+    network-config {
+	hostname client4
+	!
+	interface eth0
+	 ip address 10.0.0.4/32
+	!
+    }
+    canvas c1
+    iconcoords {427.0 258.0}
+    labelcoords {427.0 290.0}
+    interface-peer {eth0 n3}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute}
+}
+
+node n6 {
+    type router
+    model mdr
+    network-config {
+	hostname client3
+	!
+	interface eth0
+	 ip address 10.0.0.5/32
+	!
+    }
+    canvas c1
+    iconcoords {530.0 146.0}
+    labelcoords {530.0 178.0}
+    interface-peer {eth0 n3}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute}
+}
+
+node n7 {
+    type router
+    model mdr
+    network-config {
+	hostname n7
+	!
+	interface eth0
+	 ip address 10.0.0.6/32
+	!
+    }
+    canvas c1
+    iconcoords {630.0 262.0}
+    labelcoords {630.0 294.0}
+    interface-peer {eth0 n3}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute}
+}
+
+node n8 {
+    type router
+    model mdr
+    network-config {
+	hostname n8
+	!
+	interface eth0
+	 ip address 10.0.0.7/32
+	!
+    }
+    canvas c1
+    iconcoords {698.0 412.0}
+    labelcoords {698.0 444.0}
+    interface-peer {eth0 n3}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute}
+}
+
+node n9 {
+    type router
+    model mdr
+    network-config {
+	hostname n9
+	!
+	interface eth0
+	 ip address 10.0.0.8/32
+	!
+    }
+    canvas c1
+    iconcoords {525.0 408.0}
+    labelcoords {525.0 440.0}
+    interface-peer {eth0 n3}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute}
+}
+
+node n10 {
+    type router
+    model mdr
+    network-config {
+	hostname n10
+	!
+	interface eth0
+	 ip address 10.0.0.9/32
+	!
+    }
+    canvas c1
+    iconcoords {348.0 408.0}
+    labelcoords {348.0 440.0}
+    interface-peer {eth0 n3}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute}
+}
+
+node n11 {
+    type router
+    model mdr
+    network-config {
+	hostname n11
+	!
+	interface eth0
+	 ip address 10.0.0.10/32
+	!
+    }
+    canvas c1
+    iconcoords {678.0 138.0}
+    labelcoords {678.0 170.0}
+    interface-peer {eth0 n3}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute}
+    custom-config {
+	custom-config-id service:SMF
+	custom-command SMF
+	config {
+	cmdval=
+	}
+    }
+}
+
+link l1 {
+    nodes {n3 n1}
+}
+
+link l2 {
+    nodes {n3 n2}
+}
+
+link l3 {
+    nodes {n3 n4}
+}
+
+link l4 {
+    nodes {n3 n5}
+}
+
+link l5 {
+    nodes {n3 n6}
+}
+
+link l6 {
+    nodes {n3 n7}
+}
+
+link l7 {
+    nodes {n3 n8}
+}
+
+link l8 {
+    nodes {n3 n9}
+}
+
+link l9 {
+    nodes {n3 n10}
+}
+
+link l10 {
+    nodes {n3 n11}
+}
+
+annotation a1 {
+    iconcoords {261.0 336.0 264.0 339.0}
+    type rectangle
+    label {}
+    labelcolor black
+    fontfamily {Arial}
+    fontsize {12}
+    color #C0C0FF
+    width 0
+    border black
+    rad 1
+    canvas c1
+}
+
+annotation a2 {
+    iconcoords {476.0 419.0 481.0 421.0}
+    type rectangle
+    label {}
+    labelcolor black
+    fontfamily {Arial}
+    fontsize {12}
+    color #a8c1dc
+    width 0
+    border black
+    rad 22
+    canvas c1
+}
+
+annotation a3 {
+    iconcoords {109 84 881 512}
+    type rectangle
+    label {}
+    labelcolor black
+    fontfamily {Arial}
+    fontsize {12}
+    color #C0C0FF
+    width 4
+    border black
+    rad 9
+    canvas c1
+}
+
+annotation a4 {
+    iconcoords {364 433 614 470}
+    type rectangle
+    label {Web Transaction RAPR Example}
+    labelcolor black
+    fontfamily {Arial}
+    fontsize {12}
+    color #C0C0FF
+    width 0
+    border black
+    rad 1
+    canvas c1
+}
+
+canvas c1 {
+    name {Canvas1}
+}
+
+option global {
+    interface_names no
+    ip_addresses yes
+    ipv6_addresses no
+    node_labels yes
+    link_labels yes
+    show_api no
+    background_images no
+    annotations yes
+    grid no
+    traffic_start 0
+}
+
+option session {
+}
+

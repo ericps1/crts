@@ -1,0 +1,120 @@
+SPRNG provides both FORTRAN and C++ interfaces for the use of
+the parallel random number generator libraries. 
+
+Further documentation is available at the following URL:  
+http://sprng.cs.fsu.edu
+
+sprng4.html.tar too contains similar documentation. Please execute: 
+zcat tar xvf sprng4.html.tar.Z | tar xvof -  
+and read the file toc.html in the www directory with your web browser.
+
+
+--------------------
+CHANGES IN SPRNG 4.0
+--------------------
+
+1.  SPRNG 4.0 is a C++ Version with GMP removed.  It is not backwards compatible 
+    with any of previous versions, except for its default FORTRAN interface.
+
+2.  SPRNG 4.0 provides two interfaces, Default and Simple.  Pointer-Checking is no 
+    longer available.  
+
+3.  In previous versions, all random number generators are stored as C structures.  
+    In version 4.0, each random number is stored as an object (LFG, LCG, LCG64, 
+    CMRG, MLFG, PMLCG).  All six random number generators inherit from parent class 
+    SPRNG. In the default C++ interface, the user must call function 
+    SelectType(int gtype) before calling the initialization function.
+    This function returns the an inherited SPRNG object based on the 
+    generator type number based on 0 for LFG, 1 for LCG, 2 for LCG64, 3 for CMRG, 4 
+    for MLFG and 5 for PMLCG.  
+
+4.  In version 4.0, "sprng_cpp.h" replaces the previous "sprng.h".  Therefore, it is 
+    now necessary to include "sprng_cpp.h" for C++ programs.  The required header 
+    filer for FORTRAN remains the same (sprng_f.h).
+
+5.  SPRNG function prototypes have been slightly changed, but they are still used for 
+    the same purposes.  In C++, he functions for the default interface are SPRNG 
+    member functions.
+
+    The new C++ functions are:
+
+    a)  Default Interface
+
+        int init_sprng(int streamnum, int nstrams, int seed, int param);
+        The stream ID is stored in the SPRNG object.  This function returns 1 for 
+        success and 0 for failure.
+
+    	double sprng();
+        int isprng();
+        Return the next number base on the SPRNG object.
+   
+        int print_sprng();
+        Print stream info based on the SPRNG object.
+
+        int pack_sprng(char ** buffer);
+        Pack the current SPRNG object into buffer.  Return bytes of storage needed.
+
+        int unpack_sprng(char *packed);
+   	Unpack the stream and store it into the current SPRNG object.  Return 1 for
+        success and 0 for failure.
+
+	int free_sprng();
+	Free memory used for the stream ID.
+        
+    b)  Simple Interface
+    
+        int *init_rng_sprng (int seed, int mult, int gtype = 0); 
+        Initialize SPRNG and return pointer to memory location.
+
+        int isprng();
+        double sprng();
+        Return the next random number.
+
+        int pack_sprng(char ** buffer); 
+        Pack stream ID into buffer.  Return bytes of stroage required.
+
+	int *unpack_sprng(char *packed, int gtype = 0);
+        Upack strea ID and return the stream ID.
+ 
+        int print_sprng();
+        Print info about the stream ID.
+        
+        int make_new_seed();
+	Return a seed based on the system info.
+
+    The new FORTRAN functionsfor the Simple Interface are:
+
+        SPRNG_POINTER init_sprng(integer seed, integer mult);
+        Initialize SPRNG stream and return pointer to the location of the ID.
+
+        integer isprng();
+	real*8 sprng();
+	Return the next random number.
+
+	integer pack_sprng(character buffer);
+	Pack the stream ID into buffer and return bytes required for storage.
+	
+	SPRNG_POINTER funpack_rng(character buffer);
+	Unpack the stream and return pointer to the location of the ID.
+	
+	integer print_sprng();
+	Print info about the stream ID.
+
+	integer make_new_seed();
+	Return a new seed based on the system informatin.
+
+6.  The procedure to add a new generator to SPRNG has been changed slightly.  
+    In version 4.0, the user needs to modify SRC/.template.cpp and SRC/.template.h.  
+
+7.  We made a couple of other changes for the new version in order to conform to 
+    C++ standards.  Most of these other changes were made in directory SRC, involving 
+    combining, adding and deleting files.  For example, in SPRNG 2.0, interface.h 
+    declared SPRNG functions and the main function of sprng.h was to replace function 
+    names.  In version 4.0, we have combined these two files as one single file sprng.h.  
+    In addition, SPRNG function definitions and declarations for all interfaces were 
+    provided in many files, including simple.c, simple_.h, and simple_mpi.c.  We have 
+    combined function definitions for all user interfaces (Default and Simple) in the 
+    file sprng.cpp because we felt that this modification would be more clear in C++.  
+    A couple of other files have been removed as well, including checkid.c, which was used 
+    for pointer checking.  
+

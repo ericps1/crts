@@ -1,0 +1,124 @@
+<namespace>
+   <label>DEFAULT</label>
+   <item>
+      <field>LOCALHOST</field>
+      <value>127.0.0.1</value>
+   </item>
+   <item>
+      <field>MULTICAST_VIDEO_STREAM_1</field>
+      <value>228.1.1.1</value>
+   </item> 
+   <item>
+      <field>MULTICAST_VIDEO_STREAM_2</field>
+      <value>228.1.1.2</value>
+   </item> 
+   <item>
+      <field>MULTICAST_VIDEO_STREAM_3</field>
+      <value>228.1.1.3</value>
+   </item> 
+   <item>
+      <field>MULTICAST_SERVER_SRCPORT</field>
+      <value>2000</value>
+   </item>
+   <item>
+      <field>MULTICAST_SERVER_DSTPORT</field>
+      <value>2001</value>
+   </item>
+   <item>
+      <field>VIDEO_PATTERN</field>
+      <value>PERIODIC [30 1400]</value>
+      <value>PERIODIC [15 1400]</value>
+      <value>PERIODIC [5 1400]</value>
+      <value>BURST [REGULAR 2.0 PERIODIC [40 1400] FIXED 0.1]</value>
+      <value>POISSON [10 1400]</value> 
+   </item>
+ 
+
+   <item>
+      <field>LOG_SRV_UPDATE_PORT</field>
+      <value>1200</value>
+   </item>
+   <item>
+      <field>LOG_SRC_UPDATE_PORT</field>
+      <value>1201</value>
+   </item>
+   <item>
+      <field>LOG_CLI_LISTEN_PORT</field>
+      <value>1203</value>
+   </item>
+   <item>
+      <field>LOG_SRV_LISTEN_PORT</field>
+      <value>1204</value>
+   </item>
+   <item>
+      <field>LOG_SRV_SRV_PORT</field>
+      <value>1205</value>
+   </item>
+  <item>
+      <field>LOG_SRV_SEND_PORT</field>
+      <value>1206</value>
+   </item>
+  <item>
+      <field>LOG_CLI_SEND_PORT</field>
+      <value>1207</value>
+   </item>
+  <item>
+      <field>LOG_SRC_SEND_PORT</field>
+      <value>1208</value>
+   </item>
+   <item>
+     <field>LOG_INTERFACE</field>
+     <value>eth0</value>
+   </item>
+   <item>
+      <field>LOG_GRP_FWD_1</field>
+      <value>228.2.2.1</value>
+   </item>
+   <item>
+      <field>LOG_SRV_1</field>
+      <value>192.168.0.2</value>
+   </item>
+   <item>
+      <field>LOG_SRV_2</field>
+      <value>192.168.0.3</value>
+   </item>
+   <item>
+      <field>LOG_ACTIVE_SRV</field>
+      <value>%LOG_SRV_1%</value>
+   </item>
+   <item>
+      <field>LOG_MGEN_TRANSMIT_PATTERN</field>
+      <value>PERIODIC [1 1125] COUNT 1</value>
+   </item>
+   <item>
+      <field>LOG_MGEN_CLI_PATTERN</field>
+      <value>PERIODIC [10 1400]</value>
+   </item>
+   <item>
+      <field>LOG_MGEN_GRP_FWD_PATTERN</field>
+      <value>PERIODIC [1 250]</value>
+   </item>
+   <item>
+      <field>LOG_MGEN_QUERY_PATTERN</field>
+      <value>PERIODIC [1 250]</value>
+   </item>
+   <item>
+      <field>LOG_MGEN_SRV_TRANSMIT_PATTERN</field>
+      <value>BURST [REGULAR 150.0 PERIODIC [10.0 1400] FIXED 4.0]</value>
+   </item>
+
+   <item>
+      <field>BLANK</field>
+      <value>BLANK</value>
+   </item>
+
+</namespace>
+ 
+<namespace>
+   <label>BLANK</label>
+   <item>
+      <field>BLANK</field>
+      <value>BLANK</value>
+   </item>
+</namespace>
+ 
