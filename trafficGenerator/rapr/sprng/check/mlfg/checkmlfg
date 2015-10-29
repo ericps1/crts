@@ -1,0 +1,6 @@
+echo
+echo mlfg: Checking Default C++ interface:
+./check.cmlfg < ./mlfg.data 2> /dev/null
+echo
+echo mlfg: Checking Simple C++ interface:
+./check_sim.cmlfg < ./mlfg.data 2> /dev/null

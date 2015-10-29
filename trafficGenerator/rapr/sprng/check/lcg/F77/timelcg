@@ -1,0 +1,3 @@
+echo
+echo lcg: Timing FORTRAN interface
+././time.flcg

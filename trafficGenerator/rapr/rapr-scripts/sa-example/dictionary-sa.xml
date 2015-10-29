@@ -1,0 +1,43 @@
+<namespace>
+   <label>DEFAULT</label>
+   <item>
+      <field>LOCALHOST</field>
+      <value>127.0.0.1</value>
+   </item>
+  <item>
+      <field>SA_LISTEN_PORT</field>
+      <value>4001</value>
+   </item>
+  <item>
+      <field>SA_LISTEN_PORT</field>
+      <value>4001</value>
+   </item>
+  <item>
+      <field>SA_MULTICAST_SRC_PORT</field>
+      <value>4000</value>
+   </item>
+   <item>
+      <field>SA_MULTICAST_GROUP</field>
+      <value>224.225.1.2</value>
+   </item>
+  <item>
+      <field>SA_MULTICAST_INTERFACE</field>
+      <value>eth0</value>
+   </item>
+  <item>
+      <field>SA_MULTICAST_PATTERN</field>
+      <value>PERIODIC [0.2 100]</value>
+   </item>
+  <item>
+      <field>BLANK</field>
+      <value>BLANK</value>
+   </item>
+
+</namespace>
+<namespace>
+   <label>BLANK</label>
+   <item>
+      <field>BLANK</field>
+      <value>BLANK</value>
+   </item>
+</namespace>

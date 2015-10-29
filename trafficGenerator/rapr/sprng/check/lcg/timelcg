@@ -1,0 +1,3 @@
+echo
+echo lcg: Timing C++ interface
+././time.clcg

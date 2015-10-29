@@ -1,0 +1,26 @@
+# See raprScript-videoClient-1.rapr for comments
+# on the client script.
+#
+#START 13:15:00
+#OFFSET 63
+LOAD_DICTIONARY dictionary-videoApp.xml 
+HOSTID 63
+DEBUG 0
+VERBOSE
+INITIAL_SEED 63
+#RAPRPIPE rapr-videoClient-2
+
+OVERWRITE_MGENLOG mgen-videoClient-2.log
+OVERWRITE_RAPRLOG rapr-videoClient-2.log
+
+TXLOG
+FLUSH
+CHECK
+0.0 LOGICTABLE_FILE logictable-videoApp.xml
+ 
+# Listen for video traffic
+
+0.0 STOP 6000.0 LISTEN UDP %MULTICAST_SERVER_DSTPORT%
+0.0 STOP 6000.0 JOIN %MULTICAST_VIDEO_STREAM_2% interface %VIDEO_INTERFACE%
+
+

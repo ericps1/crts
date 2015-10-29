@@ -1,0 +1,37 @@
+# Load the default rapr dictionary that defines
+# paths and other system defaults.  If this script
+# is not co-located with the rapr binary specify 
+# a path
+INPUT rapr-defaults.input
+
+# Load the dictionary and logictable for the
+# application.  
+LOAD_DICTIONARY %CLIENT_SERVER_CHAT_EXAMPLE_PATH%/dictionary-chat.xml 
+LOGICTABLE_FILE %CLIENT_SERVER_CHAT_EXAMPLE_PATH%/logictable-chat.xml
+
+
+# Uncomment the following lines to log mgen and/or rapr
+# logging to an output file.  The OVERWRITE_<type>LOG command 
+# will overwrite any existing log files. 
+OVERWRITE_MGENLOG %CLIENT_SERVER_CHAT_EXAMPLE_LOG_PATH%/mgen-chat-server.log
+OVERWRITE_RAPRLOG %CLIENT_SERVER_CHAT_EXAMPLE_LOG_PATH%/rapr-chat-server.log
+
+#
+# Listen for chat traffic
+#
+# Start listening to udp port (see dictionary for
+# translation) at time 0 in the test, stop at time
+# 6000.0 (seconds)
+#
+0.0 STOP 6000.0 LISTEN UDP %CHAT_LISTEN_PORT%
+0.0 STOP 6000.0 LISTEN TCP %CHAT_LISTEN_PORT%
+#
+# Join multicast group (see dictionary for
+# translation) at time 0 in the test, stop at time
+# 6000.0 (seconds)
+#
+0.0 STOP 6000.0 JOIN %CHAT_MULTICAST_GROUP% interface %MULTICAST_INTERFACE%
+#
+
+
+

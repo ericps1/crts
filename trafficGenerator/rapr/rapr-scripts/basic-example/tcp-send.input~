@@ -1,0 +1,25 @@
+# Load the default rapr dictionary that defines
+# paths and other system defaults.  If this script
+# is not co-located with the rapr binary specify 
+# a path
+INPUT rapr-defaults.input
+
+# Load the dictionary and logictable for the
+# http application.  
+LOAD_DICTIONARY %BASIC_PATH%/dictionary-basic.xml 
+
+# Uncomment the following lines to log mgen and/or rapr
+# logging to an output file.  The OVERWRITE_<type>LOG command 
+# will overwrite any existing log files.
+OVERWRITE_MGENLOG %BASIC_PATH%/mgen-basic-%HOSTID%.log
+OVERWRITE_RAPRLOG %BASIC_PATH%/rapr-basic-%HOSTID%.log
+
+#
+# This command will join the SA multicast group at time 0
+# in the test and leave it at time 1800.  It will start 
+# sending traffic to the multicast group at the same time.
+# See the dictionary-sa.xml file to change the ports, 
+# destination address, and mgen pattern translations.
+# 
+# 
+0.0 STOP 300.0 DECLARATIVE TCP SRC %SEND_PORT% DST 192.168.1.1/%LISTEN_PORT% %PATTERN%

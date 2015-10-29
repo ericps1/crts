@@ -1,0 +1,51 @@
+<RaprDictionary>
+   <namespace>
+   <label>DEFAULT</label>
+   <item>
+       <field>SERVER_PORT</field>
+       <value>13001</value>
+   </item>
+   <item>
+       <field>CLIENT_PORT</field>
+       <value>13002</value>
+   </item>
+   <item>
+     <field>SERVER</field>
+     <value>10.0.0.2</value>
+   </item>
+   <item>
+     <field>CLIENT_LIST</field>
+     <value>10.0.0.1</value>
+     <value>10.0.0.3</value>
+     <value>10.0.0.4</value>
+     <value>10.0.0.5</value>
+     <value>10.0.0.6</value>
+     <value>10.0.0.7</value>
+     <value>10.0.0.8</value>
+     <value>10.0.0.9</value>
+     <value>10.0.0.10</value>
+   </item>
+   </namespace>
+   <!-- Dictionary entries in the poller name space should -->
+   <!-- be referred to as %SENSOR:<FIELDNAME>%, e.g.       -->
+   <!-- %SENSOR:IP%                                        -->
+   <namespace>
+   <label>SENSOR</label>
+       <item>
+           <field>STARTED</field>
+           <value>0</value>
+       </item>
+       <item>
+           <field>STOPPED</field>
+           <value>1</value>
+       </item>
+   </namespace>
+   <namespace>
+     <label>STATE</label>
+     <item>
+       <!-- Event queued for UBI -->
+       <field>EVENT_QUEUED</field>
+       <value>1</value>
+     </item>
+   </namespace>
+</RaprDictionary>

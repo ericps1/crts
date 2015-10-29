@@ -1,0 +1,32 @@
+# Load the default rapr dictionary that defines
+# paths and other system defaults.  If this script
+# is not co-located with the rapr binary specify 
+# a path
+INPUT rapr-defaults.input
+
+# Load the dictionary and logictable
+LOAD_DICTIONARY %POLLSENSOR_EXAMPLE_PATH%/dictionary-%POLLSENSOR_APP_NAME%.xml
+LOGICTABLE_FILE %POLLSENSOR_EXAMPLE_PATH%/logictable-%POLLSENSOR_APP_NAME%.xml
+
+# Accept rapr commands over "rapr-client" pipe
+RAPRPIPE %POLLSENSOR_APP_NAME%-%HOSTID%
+
+# Uncomment the following lines to log mgen and/or rapr
+# logging to an output file.  The OVERWRITE_<type>LOG command 
+# will overwrite any existing log files.  
+
+OVERWRITE_MGENLOG %POLLSENSOR_LOG_PATH%/mgen-sensor-%HOSTID%.log
+OVERWRITE_RAPRLOG %POLLSENSOR_LOG_PATH%/rapr-sensor-%HOSTID%.log
+
+# Listen for Sensor polling requests 
+# Join multicast group
+LISTEN UDP %MULTICAST_PORT%
+JOIN %MULTICAST_GROUP% 
+
+
+
+
+
+
+
+

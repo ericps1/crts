@@ -1,0 +1,6 @@
+echo
+echo lcg64: Checking Default C++ interface:
+./check.clcg64 < ./lcg64.data 2> /dev/null
+echo
+echo lcg64: Checking Simple C++ interface:
+./check_sim.clcg64 < ./lcg64.data 2> /dev/null

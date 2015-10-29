@@ -1,0 +1,146 @@
+RAPR
+
+Version 1.0.1
+=============
+1. New rapr-scripts directory supercedes samples apps.
+
+2. New python plotting tools in rapr-tracker directory. (Beta)
+
+3. Now requires latest mgen coming as a release soon, currently
+only available in nightly builds. (02/13/14)
+
+4. Numerous bug fixes to work with the latest MGEN
+
+5. Rapr bug fixes.  
+
+6. Changes to initial_seed processing.
+
+If hostID is set use that as the initial seed, if initial_seed is set use that, first one wins.
+
+Previously were defaulting to using the hostID as the initial seed only if
+initial seed had not been set - but this was after the script had been
+parsed.  If the HOSTID is not passed by event or set in the file this
+problem will persist.
+
+7. STLPorts no longer required.
+
+8. Moved to sprng 4.4
+
+
+Version 1.0.0
+==============
+    Updated Documentation
+        New tutorial
+        New User's and Reference Guide
+        New samples directory
+
+    Bug Fixes
+        Fix state-change operation in logic table
+        Fixed logic table location bug
+        
+    New Functionalities
+        Requires MGEN 5.0
+        Added default values for some parameters
+        Update/simplified file syntax
+        Support new MGEN 5.0 features (COUNT)
+        Standardized (fixed bug?) in seed initialization.
+        Periodicity object parameters will be retranslated upon each behavior
+          startup
+        Hostid is now defaulted to last octet of host's ip address
+        Added default dictionary capability to allow override of new 
+          system wide defaults.
+        Upper and lower case commands now allowed
+        New LOGICID keyword (synonym to PAYLOADID)
+
+
+Version 0.5.1(c)
+==============
+    Bug Fixes
+        Fixes VoIP timeout issue
+        Fixes offset timing issue
+
+Version 0.5.1(b)
+==============
+    Bug Fixes
+        Improved robustness set_logistics_server and 
+             set_logistics_server_state scriptss
+
+Version 0.5.1
+==============
+    New Functionalities
+        INTERROGATIVE objects now have a one second send window.  This
+              allows for multiple packet INTERROGATIVE requests.
+
+    Bug Fixes
+        Fixed random distribution for POISSON message pattern
+        Fixed rapr FAULT command
+        Improved robustness of app_start, app_stop, app_rti and
+            set_logistics_server_state scripts
+
+Version 0.5.0
+==============
+    New Functionalities
+        Using SPRNG (sprng.cs.fsu.edu) as the random generator,improves 
+              repeatability between test runs
+        INITIAL_SEED keyword is no longer required
+        Add HOSTID as a dictionary reserver word
+        Nested Dictionary entries now supported (see dictionary_xml.README)
+        Journalling of rapr values on reboot (see journal.README)
+        INPUT <filename> allows loading of rapr scripts in mid test
+        Stack can be moved to a known location (see compile.README)
+        
+    Bug Fixes
+        Various memory leaks
+        Display bug - old output display in GMT time, changed to localtime
+        OFFSET process will ignore any commands without a start time
+        Improve error handling
+        Improve error message readability
+    
+    Scripts
+        Update VOIP scripts
+
+Version 0.4.0
+==============
+    New Functionalities
+        VOIP application
+        Concurrency of multiple client-server streams
+        Random time and packet size in Logic Table
+        Random source port, allow OS to pick outbound port
+        Rename commands "OVERWRITE_MGENLOG" to "MGENLOG_OVERWRITE"
+        Rename commands "OVERWRITE_RAPRLOG" to "RAPRLOG_OVERWRITE"
+			
+    Bug Fixes
+        Fixed GPS data in RAPR data packet
+        Fixed STOP time and DURATION time command in rapr scripting
+        Fixed mgenflowid assignment
+        Fixed TIME display in log files to local time not GMT
+			
+    Scripts
+        New scripts for VOIP application
+        Updated scripts for Intel Server-Client
+        Remove of MGENPIPE from all rapr scripts
+
+Version 0.3.1
+==============
+    Scripts
+        New scripts for Intel Server-Cleint System
+			
+Version 0.2.1
+==============
+    Scripts
+        New scripts for Logistics Server-Client System
+		
+Version 0.2.0
+==============
+    New Functionalities
+        Run Time Interface now accept dictionary values
+        Packet payload is randomized
+        Added CHANGE_STATE command
+        Added LOGICID command
+        Added LOAD_DICTIONARY command
+        mgen executable has been rolled into rapr
+        Added xml support for logictable and dictionary
+		
+    Bug Fixes
+        Increase the number of Flow ID available
+        fixed error handling of null and invalid logic table and dictionary

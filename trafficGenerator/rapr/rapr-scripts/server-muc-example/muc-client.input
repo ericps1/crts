@@ -1,0 +1,36 @@
+# Load the default rapr dictionary that defines
+# paths and other system defaults.  If this script
+# is not co-located with the rapr binary specify 
+# a path
+INPUT rapr-defaults.input
+
+# Load the dictionary and logictable
+LOAD_DICTIONARY %SERVER_MUC_EXAMPLE_PATH%/dictionary-muc.xml
+LOGICTABLE_FILE %SERVER_MUC_EXAMPLE_PATH%/logictable-muc.xml
+
+# Accept rapr commands over "rapr-client" pipe
+RAPRPIPE %SERVER_MUC_APP_NAME%-%HOSTID%
+
+# Uncomment the following lines to log mgen and/or rapr
+# logging to an output file.  The OVERWRITE_<type>LOG command 
+# will overwrite any existing log files.  
+
+OVERWRITE_MGENLOG %SERVER_MUC_LOG_PATH%/mgen-muc-client-%HOSTID%.log
+OVERWRITE_RAPRLOG %SERVER_MUC_LOG_PATH%/rapr-muc-client-%HOSTID%.log
+
+# Listen for Sensor polling requests 
+# Join multicast group
+LISTEN TCP %CLIENT_PORT%
+LISTEN UDP %CLIENT_PORT%
+
+DURATION 2700 PERIODIC INTERVAL %SYSTEM:RANDOMI(30,120)% DECLARATIVE UDP DST 127.0.0.1/%CLIENT_PORT% PERIODIC [1 76] LOGICID 1
+
+
+
+
+
+
+
+
+
+

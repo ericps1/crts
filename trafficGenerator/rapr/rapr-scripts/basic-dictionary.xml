@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<RaprDictionary>
+  <namespace>
+    <label>SystemDefaults</label>
+    <item>
+      <field>STREAMDURATION</field>
+      <value>.99</value>
+    </item>
+    <item>
+      <field>RETRYINTERVAL</field>
+      <value>5</value>
+    </item>
+    <item>
+      <field>NUMRETRIES</field>
+      <value>4</value>
+    </item>
+    <item>
+      <field>PROTOCOL</field>
+      <value>UDP</value>
+    </item>
+  </namespace>
+  <namespace>
+    <label>DEFAULT</label>
+    <item>
+      <field>SEND_PORT</field>
+      <value>4000</value>
+    </item>
+    <item>
+      <field>LISTEN_PORT</field>
+      <value>4001</value>
+    </item>
+    <item>
+      <field>INTERFACE</field>
+      <value>ETH0</value>
+    </item>
+    <item>
+      <field>LOCALHOST</field>
+      <value>127.0.0.1</value>
+    </item>
+    <item>
+      <field>PATTERN</field>
+      <value>PERIODIC [1 1000]</value>
+    </item>
+    <item>
+      <field>N1</field>
+      <value>10.10.10.45</value>
+    </item>
+    <item>
+      <field>N2</field>
+      <value>10.10.10.46</value>
+    </item>
+  </namespace>
+</RaprDictionary>

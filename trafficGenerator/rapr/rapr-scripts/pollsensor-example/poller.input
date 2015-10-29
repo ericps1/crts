@@ -1,0 +1,35 @@
+# Load the default rapr dictionary that defines
+# paths and other system defaults.  If this script
+# is not co-located with the rapr binary specify 
+# a path
+INPUT rapr-defaults.input
+
+# Load the dictionary and logictable
+# poll sensor/video application.  Change the directory
+# location as appropriate.
+
+# Accept rapr commands over "rapr-client" pipe
+RAPRPIPE %POLLSENSOR_APP_NAME%-%HOSTID%
+
+LOAD_DICTIONARY %POLLSENSOR_EXAMPLE_PATH%/dictionary-%POLLSENSOR_APP_NAME%.xml 
+LOGICTABLE_FILE %POLLSENSOR_EXAMPLE_PATH%/logictable-%POLLSENSOR_APP_NAME%.xml 
+
+# Uncomment the following lines to log mgen and/or rapr
+# logging to an output file.  The OVERWRITE_<type>LOG command 
+# will overwrite any existing log files.  
+
+OVERWRITE_MGENLOG %POLLSENSOR_LOG_PATH%/mgen-poller-%HOSTID%.log
+OVERWRITE_RAPRLOG %POLLSENSOR_LOG_PATH%/rapr-poller-%HOSTID%.log
+
+# Listen to tcp client port
+LISTEN TCP %POLLER_PORT%
+
+# Send a sensor request for new video every 1 to 3 minutes
+
+DURATION 900 PERIODIC INTERVAL %SYSTEM:RANDOMI(60,240)% INTERROGATIVE NUMRETRIES 0 UDP DST %MULTICAST_GROUP%/%MULTICAST_PORT% PERIODIC [1 %SYSTEM:RANDOMI(100,500)%] COUNT 1 LOGICID 1
+
+# Shutdown the server 10 minutes into the test
+300.0 CHANGE_STATE %SENSOR:STOPPED%
+
+# Start the server back up 5 minutes later, at 15 minutes into the test
+500.0 CHANGE_STATE %SENSOR:STARTED%

@@ -1,0 +1,31 @@
+<RaprDictionary>
+   <namespace>
+   <label>DEFAULT</label>
+   <item>
+       <field>HTTP_SERVER_PORT</field>
+       <value>8000</value>
+   </item>
+   <item>
+       <field>HTTP_CLIENT_PORT</field>
+       <value>8001</value>
+   </item>
+   </namespace>
+   <!-- Dictionary entries in the server name space should -->
+   <!-- be referred to as %SERVER:<FIELDNAME>%, e.g.       -->
+   <!-- %SERVER:IP%                                        -->
+   <namespace>
+   <label>SERVER</label>
+       <item>
+           <field>IP</field>
+           <value>10.0.0.2</value>
+       </item>
+       <item>
+           <field>STARTED</field>
+           <value>0</value>
+       </item>
+       <item>
+           <field>STOPPED</field>
+           <value>1</value>
+       </item>
+   </namespace>
+</RaprDictionary>

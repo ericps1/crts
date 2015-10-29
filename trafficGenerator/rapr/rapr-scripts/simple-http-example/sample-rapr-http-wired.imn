@@ -1,0 +1,134 @@
+node n1 {
+    type router
+    model mdr
+    network-config {
+	hostname client1
+	!
+	interface eth0
+	 ip address 10.0.0.1/24
+	 ipv6 address 2001:0::1/64
+	!
+    }
+    canvas c1
+    iconcoords {275.0 225.0}
+    labelcoords {275.0 257.0}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute UserDefined}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	cmdup=('/home/rapr/rapr-scripts/rapr input http-example/http-client.input', )
+	cmddown=('killall rapr', )
+	starttime=15.0
+	}
+    }
+    interface-peer {eth0 n2}
+}
+
+node n2 {
+    type router
+    model mdr
+    network-config {
+	hostname server2
+	!
+	interface eth0
+	 ip address 10.0.0.2/24
+	 ipv6 address 2001:0::2/64
+	!
+    }
+    canvas c1
+    iconcoords {619.0 220.0}
+    labelcoords {619.0 252.0}
+    services {zebra OSPFv3MDR vtysh SMF IPForward DefaultMulticastRoute UserDefined}
+    custom-config {
+	custom-config-id service:UserDefined
+	custom-command UserDefined
+	config {
+	cmdup=('/home/rapr/rapr-scripts/rapr input http-example/http-server.input', )
+	cmddown=('killall rapr', )
+	starttime=10.0
+	}
+    }
+    interface-peer {eth0 n1}
+}
+
+link l1 {
+    nodes {n1 n2}
+}
+
+annotation a1 {
+    iconcoords {261.0 336.0 264.0 339.0}
+    type rectangle
+    label {}
+    labelcolor black
+    fontfamily {Arial}
+    fontsize {12}
+    color #C0C0FF
+    width 0
+    border black
+    rad 1
+    canvas c1
+}
+
+annotation a2 {
+    iconcoords {476.0 419.0 481.0 421.0}
+    type rectangle
+    label {}
+    labelcolor black
+    fontfamily {Arial}
+    fontsize {12}
+    color #a8c1dc
+    width 0
+    border black
+    rad 22
+    canvas c1
+}
+
+annotation a3 {
+    iconcoords {197 94 684 344}
+    type rectangle
+    label {}
+    labelcolor black
+    fontfamily {Arial}
+    fontsize {12}
+    color #C0C0FF
+    width 4
+    border black
+    rad 9
+    canvas c1
+}
+
+annotation a4 {
+    iconcoords {316 274 562 311}
+    type rectangle
+    label {Web Transaction RAPR Example}
+    labelcolor black
+    fontfamily {Arial}
+    fontsize {12}
+    color #C0C0FF
+    width 0
+    border black
+    rad 1
+    canvas c1
+}
+
+canvas c1 {
+    name {Canvas1}
+}
+
+option global {
+    interface_names no
+    ip_addresses yes
+    ipv6_addresses no
+    node_labels yes
+    link_labels yes
+    show_api no
+    background_images no
+    annotations yes
+    grid no
+    traffic_start 0
+}
+
+option session {
+}
+

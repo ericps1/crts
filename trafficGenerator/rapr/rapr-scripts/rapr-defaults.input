@@ -1,0 +1,17 @@
+# This input script sets the defaults for
+# all rapr apps in the examples directory3. All rapr example applications
+
+# Log only error conditions
+DEBUG 0
+
+# Enable verbose logging
+VERBOSE
+
+# Enable transmission logging
+TXLOG
+
+# Flush the log immediately
+FLUSH
+
+# Load default dictionary
+LOAD_DICTIONARY /home/brandon/rapr/rapr/rapr-scripts/rapr-default-dictionary.xml

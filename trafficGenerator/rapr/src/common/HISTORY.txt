@@ -1,0 +1,242 @@
+RAPR
+Version 1.0.0 
+============== 
+
+1. Added system wide defaults for certain object attributes.  Added
+   default dictionary (rapr/unix/raprDictionary.xml) that can be used
+   to override system wide defaults.  The system defaults are:
+
+   RETRYINTERVAL  10
+   NUMRETRIES     3
+   PATTERN        PERIODIC [1 1024]
+   STREAMDURATION .99
+   PROTOCOL       UDP* 
+
+   See the updated documentation for more details.
+
+2. Reworked seed initialization as follows:
+
+a. Upon system startup, hostID defaults to the last octet of the
+   node's ipaddress.
+
+b. Default hostID will be used as the hostID and the initial seed
+   unless overridden by the HOSTID or INITIAL_SEED commands.
+
+c. If HOSTID command is set but INITIAL_SEED is not, HOSTID will be
+   used to reinitialize seeds.
+
+d. If INITIAL_SEED is provided it will be used to reinitialize
+   seeds.
+
+e. INITIAL_SEED must be set before HOSTID is set.  The system will
+   provide checks to enforce this.
+
+f. If no INITIAL_SEED or HOSTID is set, the system will generate
+   a warning message that the default hostID (based on the last octet
+   of the node's IP address will be used.)
+
+
+3. New RAPR tutorial provided in the distribution.  Rapr Docbook
+   converted to XML Docbook format.
+
+4. New rapr/doc/samples directory.  Scripts for the HTTP example
+   discussed in the tutorial provided in
+   rapr/doc/samples/http-examples.
+
+5. New MGEN COUNT attribute supported.  When specified only COUNT
+   messages will be sent, according to the MGEN pattern specified,
+   regardless of the events duration.  For example, to send 5 messages
+   every 2 seconds:
+
+   declarative udp src 5000 dst 192.168.1.100/6000 PERIODIC [.5 512] COUNT 5
+
+6. The "change state" timing bug has been fixed.  Rapr CHANGE_STATE
+   events will take place immediately, rather than being scheduled via
+   ProtoTimer when initiated by a network event. 
+
+7. The INTERROGATIVE object will now calculate its duration based on
+   its timeout interval and number of retries if no duration is
+   specified.  The DECLARATIVE object will sent one packet if no
+   duration is specified.
+
+8. If either STOP or DURATION is set to -1.0 no stop time will be set
+   for the flow and the flow will continue indefinately unless the
+   flow is subseqently stopped via a RAPRFLOWID command or the RAPR
+
+9. Fixed RaprEvent next event scheduling bug.  The start time of rapr
+   events was getting cleared in the ClearState function.  This caused
+   the next event start time to be incorrectly scheduled.
+
+10. Fixed OFF event "bug" introduced when queuing/count support was
+   added to MGEN.  Deferred off processing that can occur with these
+   attributes was causing problems for RAPR.  RAPR needs to be in
+   control of OFF processing so it can properly reuse flow ids.
+
+11. Fixed bug so that user may omit the start time but still enter a
+   stop or duration. (e.g. one can now enter 
+
+   STOP 5.0 DECLARATIVE DST...
+
+   rather than 
+
+   0.0 STOP 0.0 DECLARATIVE DST ...
+
+12.  Added LOGICID synonym to PAYLOADID.
+
+13.  RAPR commands can now be entered in both upper case and lower
+     case.
+
+14.  The periodicity object will now retranslate its event definition
+     for the object to be spawned each time a new object starts.  The
+     PERIODIC INTERVAL is also retranslated each time. For example, the
+     following PERIODIC definition will send a single 1024 byte UDP
+     packet to 192.168.1.102 every 5 to 10 seconds for 120 seconds.
+
+     DURATION 120 PERIODIC INTERVAL %SYSTEM:RANDOMI(5,10)% DECLARATIVE
+     UDP DST 192.168.1.102/6000
+
+15.  Added EXP attribute to the PERIODIC object.  This will cause the
+     interval at which objects are spawned to be exponentially
+     distributed.
+
+16.  HOSTID will default to the last octet of the node's IP address.
+
+17.  RAPR now supports and requires MGEN 5.0.
+
+18.  Short hand notations for object types has been added.  The
+     simplest notation available is:
+
+     DECLAR DST 192.168.1.100/5000 
+     INTERR DST 192.168.1.100/5000 
+
+
+
+Version 0.5.0 
+============== 
+
+New Functionality 
+
+1. System repeatability has been fully implemented.  Each event
+handled by the system will be associated with a unique seed used to
+determine any random behavior patterns.  The unique seed will be
+assigned consistently across multiple runs of the application or
+application runs restarted with an OFFSET.  Network intiated behavior
+will be seeded from the seed value in the incoming message payload.
+Run-time event initiated behavior will use a running run time event
+seed value unless a SEED value has been specified in the event
+definition.  Sprng 2.0 is used as the random number generator.
+
+2. Seeds will be assigned based on the node's HOSTID by default.  This
+default value can be overridden by the INITIAL_SEED keyword.  The
+HOSTID should be the first entry specified in an input script so that
+any subsequent events are seeded consistently.  INITIAL_SEED, if
+specified should immediately follow HOSTID.  INITIAL_SEED is no longer
+requried for correct system processing. The algorithm used is:
+
+	  startingSeed = (MAXINTSIZE/1000) * [HOSTID|INTITIAL_SEED] 
+	  runningSeed = (startingSeed + ((MAXINTSIZE/1000)/2))
+
+3.  Reception events (JOIN, LISTEN) and rapr events (STOP, RAPRFLOWID,
+DICTIONARY_ENTRY, LOGICTABLE_FILE, DICTIONARY_FILE, CHANGE_STATE,
+FAULT, CLEAR, CHANGE_UBI_STATE, LOGIC_ID, and INPUT) can now be
+specified in the input script to start regardless of OFFSET time.  If
+no start time is associated with an event, it will be started
+regardless of any OFFSET time specified.  If the events are started at
+time 0 or later, they will be started according to normal offset
+processing rules.
+
+4. Modified OFFSET processing so that STREAM objects that are
+scheduled to start before the OFFSET time are NOT started, regardless
+of stop or duration time.
+
+5. New INPUT <fileName> script command supported which will allow the
+scheduling and parsing of an input script mid-test.  Times specified
+will be considered relative to time offset; events that exist in the
+script before the offset time will be processed immediately.
+
+6. New stream option TIMEOUT_INTERVAL supported.  If a packet has not
+been received by the stream object from any source (including the host
+node) within the interval specified, the stream object will time out
+and no longer participate in the "conversation".
+
+7. Modified NETEVENT and RTI_EVENT event start time processing.  Any
+start time specified in a behavior event definition via the run time
+interface or in the logic table will be relative to the current test
+time.  For example, given a current test time of 55.0 a run time
+command with a start time of 3.0 will be processed at T 58.0.  Any
+DURATION time specified will be relative to start time, STOP times
+will be relative to test time.
+
+8. Added CLEAR <event> keyword.  Clear can be used to stop any active
+objects of the specified type, and to remove an schedule objects of
+the specified type.  The keyword ALL will stop/remove ALL scheduled
+behavior objects.  The command may be given a start time to be invoked
+during the test timeline.  Format:
+
+      5.0 CLEAR DECLARATIVE
+      10.0 CLEAR ALL
+
+9. Added %HOSTID% keyword to dictionary.  HOSTID will always be
+translated into the HOSTID assigned via the input script.  Any HOSTID
+existing in the dictionary will be overwritten.  This functionality
+will facilitate having common script/logictable syntax across multiple
+nodes where appropriate.  Dictionary lookups may then be made as
+follows:
+
+   Given HOSTID=63
+
+   A dictionary translation of the string:
+
+      %%HOSTID%FIELD%
+
+   Would looktup 63FIELD in the dictionary:
+
+      <name>63FIELD</name>
+      <value>FIELD_VALUE</value>
+
+10. Nested dictionary translations within a field name are now supported.
+The value of the nested field will be associated with the non-nested
+field name to lookup the final value(s).  This functionality will
+facilitate handling host specific dictionary variances when name space
+is devoted to host specific translations.  For example:
+
+   Given dictionary entries of:
+
+   <name>NESTED_FIELD</name>
+   <value>VALUE_OF_NESTED_FIELD</value>
+
+   <name>VALUE_OF_NESTED_FIELD-NON_NESTED_FIELD</name>
+   <value>FINAL_VALUE</value>
+
+   The script entry of:
+
+   %%NESTED_FIELD%-NON_NESTED_FIELD%
+
+   will be translated to FINAL_VALUE.
+
+11. Added ENABLE_LOAD_EMULATOR keyword to enable system load emulation.
+
+12. Source port can now be assigned by system.  SRC port may either be
+set to 0 or not specified altogether.  
+    0.0 STOP 30.0 DEC UDP DST ...
+    0.0 STOP 30.0 DEC UDP SRC 0 DST ...
+
+
+Other Fixes
+
+1. Rewrote command parsing functions.
+
+2. Fixed a bug in offset processing so that Behavior Events with no stop
+or duration specified are started if event start time is after offset
+time.
+
+3. Fixed timeout handling for Declarative objects so that if not stop
+time is specified, timeout is set to 0.01 so Mgen commands have a
+chance to get processed.
+
+4. Fixed standard out error messages to display "Error:" keyword.
+
+5. Fixed error handling in a number of areas.
+
+6. Fixed compile time warnings.
+

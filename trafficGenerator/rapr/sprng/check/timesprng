@@ -1,0 +1,18 @@
+echo
+echo lcg: Timing C++ interface:
+././lcg/time.clcg
+echo
+echo lfg: Timing C++ interface:
+././lfg/time.clfg
+echo
+echo mlfg: Timing C++ interface:
+././mlfg/time.cmlfg
+echo
+echo lcg64: Timing C++ interface:
+././lcg64/time.clcg64
+echo
+echo cmrg: Timing C++ interface:
+././cmrg/time.ccmrg
+echo
+echo pmlcg: Timing C++ interface:
+././pmlcg/time.cpmlcg

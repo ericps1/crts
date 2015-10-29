@@ -1,0 +1,25 @@
+
+<state>
+   <value>0</value>
+      <logicid>
+         <id>1000</id>
+         <entry></entry>
+      </logicid>
+</state>
+<state>
+    <value>1</value>
+    <logicid>
+        <id>2</id>
+        <entry>0.0 DURATION 2.0 DECLARATIVE UDP SRC %LOG_SRV_SEND_PORT% DST %PACKET:SRCIP%/%LOG_CLI_LISTEN_PORT% %LOG_MGEN_CLI_PATTERN% </entry>
+	<entry>LOGICID 21</entry>
+    </logicid>
+    <logicid>
+       <id>3</id>
+          <entry>0.0 STOP 10000.0 RAPRFLOWID 1 DECLARATIVE UDP SRC %LOG_SRV_SEND_PORT% DST %LOG_ACTIVE_SRV%/%LOG_SRV_SRV_PORT% %LOG_MGEN_SRV_TRANSMIT_PATTERN% </entry>
+    </logicid>
+    <logicid>
+        <id>21</id>
+	<percent>0.3</percent>
+        <entry>0.0 DECLARATIVE UDP SRC %LOG_SRV_SEND_PORT% DST %LOG_GRP_FWD_1%/%LOG_SRC_UPDATE_PORT% %LOG_MGEN_GRP_FWD_PATTERN% PAYLOAD 1 interface eth0</entry>
+    </logicid>
+</state>

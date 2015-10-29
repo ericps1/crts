@@ -1,0 +1,245 @@
+﻿Functionality and Forms of XML document for Logic Table
+
+The Logic Table is defined by an xml document with custom keywords. By
+default the name of the file is "logictable.xml"
+
+Overall layout of the xml is as follows:
+
+<state>
+   <value>STATE</value>
+	<logicid>
+	   <id>ID</id>
+		<percent>PERCENT</percent>
+	        <entry>ENTRY</entry>	
+	        <entry>ENTRY</entry>
+	</logicid>
+</state>
+
+The <state> flag forms a block around logic id's that share the same
+state value.  Multiple state block can be defined in the same file.
+
+STATE defines the state identifier for the state of the enclosed
+section.  State has the format "x.y.z" where x,y, and z are integers
+are supported.  The value is required.  See additional notes on UBI
+state below.
+
+<logicid> is the identifier for the action to be performed.
+
+ID is the integer id assigned to the action.  This is a required field.
+
+PERCENT is an optional field defining the percentage of triggering
+event.  The percentage is a float between 0 and 1.  If the value is
+not defined, a 1 is assigned as the default, (always do the behavior).
+assigned.
+
+ENTRY is the text entry defining the action that needs to be taken.
+Multiple entries can be specified in the same logic id.  A Minimum of
+one entry is required, there is no maximum limit.
+
+Example
+
+<state>
+   <value>0.1.2</value>
+	<logicid>
+   	<id>1</id>
+		<entry>STOP 5.0 DECLARATIVE UDP SRC 5001 DST 192.168.1.102/5000 PERIODIC [1 1024] PAYLOAD 9</entry>
+	</logicid>
+   <logicid>
+      <id>10</id>
+		<percent>0.8</percent>
+		<entry>DECLARATIVE UDP SRC 6001 DST %PACKET:SRCIP%/5001 PERIODIC [1 1024] PAYLOAD 11 SEED %PACKET:SEED%</entry>
+   </logicid>
+   <logicid>
+   	<id>8</id>
+		<entry>DECLARATIVE UDP SRC 5001 DST 192.168.1.102/5000 PERIODIC [1 1024]</entry>
+		<entry>0.0 DURATION 10.0 INTERROGATIVE RETRYINTERVAL 1.0 NUMRETRIES 5 UDP SRC 5001 DST 192.168.1.100/5000o PERIODIC [1 1024] FAILURE 4</entry>
+   </logicid>
+</state>
+
+
+Word Replacement within Logic Table entries
+
+Word replacement is supported in the xml file.  The process is to
+allow scripting of the logic table to be more flexible and
+standardized across multiple machines.
+
+Given a dictionary translation defined as:
+
+   <item>
+      <field>TN-61</field>
+      <value>192.168.2.61</value>
+   </item>
+
+
+DECLARATIVE UDP SRC 6001 DST %TN-61%/5001 PERIODIC [1 1024] PAYLOAD 11
+
+Would be translated to:
+
+DECLARATIVE UDP SRC 6001 DST 192.168.2.61/5001 PERIODIC [1 1024] PAYLOAD 11
+
+as the logic table is interpreted.
+
+Replacement also supports the use of namespace to define a different
+item with the same name.  For example, the IP address of the incoming
+packet and the ip address of the machine are different items, but
+might be both assigned the same dictionary name.  Namespaces can be
+used to differentiate them.  
+
+For example the PACKET namespace is reserved for information stored in
+the incoming packet.  Reserved PACKET definitions include:
+
+PACKET:SRCIP - Source ip address as defined by the MGEN source field
+PACKET:SRCPORT - Source port as defined by MGEN source field
+PACKET:DSTIP - Destination IP of the MGEN packet
+PACKET:DSTPORT - Destination Port of the MGEN packet
+PACKET:SEED - Random seed stored in the RAPR packet payload
+
+
+SRCIP might also be defined in another namespace however, HOST for
+example, and would be reference as
+
+<namespace>
+	<label>HOST</label>
+        <item>
+           <field>SRCIP</field>
+           <value>192.168.1.2</value>
+        </item>
+</namespace>
+
+HOST:SRCIP
+
+In the event that the namespace is not specified for %SRCIP% for
+example, then the replacement will be the first match of the field
+name over all the namespaces.
+
+Replacement can also be used to insert multiple values into the same
+statement.  In the logic table definition above, the %DESINATION% can
+be replaced with two different values.  If DESTINATION = {192.168.0.2,
+192.168.0.3} then the resultant replacement would give two independent
+statements,
+
+DECLARATIVE UDP SRC 6001 DST 192.168.02/5001 PERIODIC [1 1024] PAYLOAD 11
+DECLARATIVE UDP SRC 6001 DST 192.168.03/5001 PERIODIC [1 1024] PAYLOAD 11
+
+There is no dependence or interaction between the two statements, both
+are treated as if they were separately declared to begin with.
+
+***Rapr Logic Table format updates in version 0.4.1
+
+Logic table format has been updated to enable UBI state change functionalities.
+
+The old style format of logictable.xml :
+
+<state>
+    <value>0</value>
+    <logicid>
+	    ...
+	 </logicid>
+</state>
+<state>
+   ...
+</state>
+
+has been updated to:
+
+<RaprLogicTable>
+	<state>
+		<value>0,0</value>
+		<logicid>
+		   ...
+		<logicid>
+	</state>
+	<state>
+	   ...
+	</state>
+</RaprLogicTable>
+
+The new top level tag of <RaprLogicTable> is optional and old style
+format is still supported.
+
+The new state value is separated by a comma, as in
+<value>GlobalState,UBIState</value>.  The first part remains the
+n-tuple format from the old style, i.e. 0.1.2.3.  The second part is a
+single non-negative integer denoting UBI State.  The UBI state is
+optional, Rapr will translate all global state format into the new one
+automatically.
+
+
+***UBI State Functionality
+
+UBI is an unique identifier associated with each behavior triggered by
+the script or logic table.  The idea behind UBI State is to be able to
+handle multiple packet requests and retries from INTERROGATIVE events
+that did not successfully receive a response packet.
+
+An example might best illustrate an application of this new
+functionality: Node A requests a response from Node B.  Node B is
+configured to respond to the request with an "acknowledgement" (or
+single declarative response) and after a random interval, to send a
+"file" (a multi-packet declarative response) back to the Node A.  When
+Node B receives the triggering request, it will respond with the
+acknowledgement and schedule the transmission of the file after the
+random interval.
+
+Prior to UBI state change functionality, if Node A did not not receive
+the initial acknowledgement, and retransmitted a second request for
+the information, Node B would respond with a second acknowledgement
+and schedule the transmission of a second file after a random
+interval.
+
+UBI State change can be used to direct Node B to "remember" that is
+has already successfully received the initial response.  When Node B
+receives the first response, it can change the state associated with
+the initial message, so that any subsequent responses only generate
+"acknowledgements" of the request, not additional file responses (if
+that is the desired behavior).
+
+Every action received will start at UBI State 0.  A change in the UBI
+State of each action can be accomplished by a "CHANGE_UBI_STATE
+%packet:ubi% x" command where x is the new UBI State.  This command is
+only available in the Logic Table as it only pertains to incoming data
+packet.  The idea is to be able to determine whether a request from an
+interrogative event has already been acted upon or is it the first
+time encountering the packet.  
+
+In our previous release of RAPR, the same effect was achieved through
+the global state change.  That method did not scale well past 2 client
+and did not allow the server to be able to handle multiple concurrent
+requests. The UBI State allows for localized control on a much finer
+grain of detail. For an example of how UBI State works, the new INTEL
+logic table contains the new functionality to both handle multiple
+packet requests and retries in case of failure.
+
+
+***Rapr Dictionary xml change
+
+Similar to the logictable.xml, the dictionary.xml gained an optional
+top level tag.
+
+Old format:
+
+<namespace>
+   <label>DEFAULT</label>
+	<item>
+	   ...
+	</item>
+</namespace>
+<namespace>
+   ...
+</namespace>
+
+New format
+<RaprDictionary>
+	<namespace>
+   	<label>DEFAULT</label>
+		<item>
+	   	...
+		</item>
+	</namespace>
+	<namespace>
+   	...
+	</namespace>
+</RaprDictionary>
+
+Same as logic table this new tag is optional and the old format still works.
+
