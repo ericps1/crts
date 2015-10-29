@@ -2,7 +2,7 @@
 ##################################################
 # Gnuradio Python Flow Graph
 # Title: Python Tx
-# Generated: Thu Oct 29 12:51:22 2015
+# Generated: Thu Oct 29 13:13:17 2015
 ##################################################
 
 from gnuradio import blocks
@@ -25,12 +25,14 @@ class python_tx(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
-        self.blocks_tuntap_pdu_0 = blocks.tuntap_pdu("tun0", 10000)
+        self.blocks_tuntap_pdu_0 = blocks.tuntap_pdu("tunCRTS", 10000)
         self.blocks_socket_pdu_0 = blocks.socket_pdu("TCP_SERVER", "192.168.1.55", "52001", 10000, False)
+        self.blocks_message_debug_0 = blocks.message_debug()
 
         ##################################################
         # Connections
         ##################################################
+        self.msg_connect((self.blocks_tuntap_pdu_0, 'pdus'), (self.blocks_message_debug_0, 'print_pdu'))    
         self.msg_connect((self.blocks_tuntap_pdu_0, 'pdus'), (self.blocks_socket_pdu_0, 'pdus'))    
 
 
