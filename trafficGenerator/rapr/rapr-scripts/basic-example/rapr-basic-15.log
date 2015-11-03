@@ -1,3 +1,0 @@
-17:58:40.041501 app>RAPR type>Application action>ApplicationStartUp
-17:58:40.045926 app>RAPR type>Declarative action>start ubi>251658240 eventSource>script_event endTime>300.00 seed>19 payloadSeed>1636812278 mgenCmd>"ON 1 TCP SRC 4001 DST 127.0.0.1/4001 PERIODIC [1 1024 ] DATA [0304F6C58F61]"
-17:58:44.107588 RAPRSTOP

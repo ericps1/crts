@@ -1,7 +1,0 @@
-<state>
-   <value>0</value>
-        <logicid>
-                <id>1</id>
-                <entry>STREAM RESPPROB 86 100 BURSTDELAY 0 2 BURSTRANGE 4 10 UDP SRC %VOIP_SEND_PORT% DST %PACKET:DSTIP%/%VOIP_LISTEN_PORT% %GROUP_CHAT%</entry>
-        </logicid>
- </state>

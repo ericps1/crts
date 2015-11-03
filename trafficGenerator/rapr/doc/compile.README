@@ -1,9 +1,0 @@
-Stack movement
-
-A new compile option in the rapr source tree moves the stack that RAPR uses to
-a set location.  In order to enable the compile of this function, edit the
-rapr/unix/Makefile.linux and remove the comment from the line containing the
--D_TESTBED.  This option must be compiled on a 2.6.10 Linux kernel to work
-and to run the resulting executable, the EXEC_SHIELD on the linux kernel must
-be turn off.  Otherwise, the execution would result in a
-"Cannot execute: stack too low at bfe78ef0" error.
