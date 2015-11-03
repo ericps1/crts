@@ -234,6 +234,8 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
         CE = new CE_Two_Channel_DSA_PU();
     if(!strcmp(ce, "CE_FEC_Adaptation"))
         CE = new CE_FEC_Adaptation();
+    if(!strcmp(ce, "CE_CORNET3Dtx"))
+        CE = new CE_CORNET3Dtx();
     if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
         CE = new CE_Two_Channel_DSA_Link_Reliability();
 //EDIT SET_CE END FLAG
