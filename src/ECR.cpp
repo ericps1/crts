@@ -21,6 +21,7 @@
 #include "../cognitive_engines/CE_Two_Channel_DSA_PU.hpp"
 #include "../cognitive_engines/CE_FEC_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
+#include "../cognitive_engines/CE_CORNET3Dtx.hpp"
 //EDIT INCLUDE END FLAG
 
 #define DEBUG 0
@@ -234,10 +235,10 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
         CE = new CE_Two_Channel_DSA_PU();
     if(!strcmp(ce, "CE_FEC_Adaptation"))
         CE = new CE_FEC_Adaptation();
-    if(!strcmp(ce, "CE_CORNET3Dtx"))
-        CE = new CE_CORNET3Dtx();
     if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
         CE = new CE_Two_Channel_DSA_Link_Reliability();
+    if(!strcmp(ce, "CE_CORNET3Dtx"))
+        CE = new CE_CORNET3Dtx();
 //EDIT SET_CE END FLAG
 ///@endcond
 }
