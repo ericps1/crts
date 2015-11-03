@@ -158,6 +158,7 @@ void Initialize_CR(struct node_parameters *np, void * ECR_p){
         system(command);
         printf("Running command: %s\n", command);
         system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
+        system("route add -net 10.10.10.0 netmask 255.255.255.0 dev tunCRTS");
         system(command);
         system("ifconfig");
     }
@@ -424,9 +425,7 @@ int main(int argc, char ** argv){
         
         // send UDP packet via CR
         dprintf("CRTS: Sending UDP packet using CRTS client socket\n");
-        int send_return = 0;
-        if(!np.cr_type == python)
-            send_return = sendto(CRTS_client_sock, message, sizeof(message), 0, (struct sockaddr*)&CRTS_client_addr, sizeof(CRTS_client_addr));    
+        int send_return = sendto(CRTS_client_sock, message, sizeof(message), 0, (struct sockaddr*)&CRTS_client_addr, sizeof(CRTS_client_addr));    
         if(send_return < 0) printf("Failed to send message\n");
         
         // read all available data from the UDP socket

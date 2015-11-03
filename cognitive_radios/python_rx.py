@@ -1,8 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
 ##################################################
-# Gnuradio Python Flow Graph
+# GNU Radio Python Flow Graph
 # Title: Python Rx
-# Generated: Thu Oct 29 13:34:03 2015
+# Generated: Mon Nov  2 12:00:43 2015
 ##################################################
 
 from gnuradio import blocks
@@ -11,6 +12,7 @@ from gnuradio import gr
 from gnuradio.eng_option import eng_option
 from gnuradio.filter import firdes
 from optparse import OptionParser
+
 
 class python_rx(gr.top_block):
 
@@ -25,7 +27,7 @@ class python_rx(gr.top_block):
         ##################################################
         # Blocks
         ##################################################
-        self.blocks_tuntap_pdu_0 = blocks.tuntap_pdu("tunCRTS", 10000)
+        self.blocks_tuntap_pdu_0 = blocks.tuntap_pdu("tunCRTS", 10000, True)
         self.blocks_socket_pdu_0 = blocks.socket_pdu("TCP_CLIENT", "192.168.1.55", "52001", 10000, False)
         self.blocks_message_debug_0 = blocks.message_debug()
 
@@ -35,16 +37,19 @@ class python_rx(gr.top_block):
         self.msg_connect((self.blocks_socket_pdu_0, 'pdus'), (self.blocks_message_debug_0, 'print_pdu'))    
         self.msg_connect((self.blocks_socket_pdu_0, 'pdus'), (self.blocks_tuntap_pdu_0, 'pdus'))    
 
-
     def get_samp_rate(self):
         return self.samp_rate
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
 
-if __name__ == '__main__':
-    parser = OptionParser(option_class=eng_option, usage="%prog: [options]")
-    (options, args) = parser.parse_args()
-    tb = python_rx()
+
+def main(top_block_cls=python_rx, options=None):
+
+    tb = top_block_cls()
     tb.start()
     tb.wait()
+
+
+if __name__ == '__main__':
+    main()
