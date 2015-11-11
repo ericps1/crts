@@ -102,8 +102,7 @@ void CE_CORNET3Dtx::execute(void * _args){
     if (buffer[0]=='0' && buffer[1]=='8'  ) 
         ECR->set_tx_modulation(LIQUID_MODEM_PSK128);
     if (buffer[0]=='0' && buffer[1]=='9'  ) 
-
-        ECR->set_tx_modulation(LIQUID_MODEM_QAM8);
+       ECR->set_tx_modulation(LIQUID_MODEM_QAM8);
     if (buffer[0]=='0' && buffer[1]=='0'  )   
         ECR->set_tx_modulation(LIQUID_MODEM_QAM16);
     if (buffer[0]=='1' && buffer[1]=='1'  )     
@@ -150,6 +149,8 @@ void CE_CORNET3Dtx::execute(void * _args){
         ECR->set_tx_fec1(LIQUID_FEC_SECDED3932);
     if (buffer[4]=='6')    
         ECR->set_tx_fec1(LIQUID_FEC_SECDED7264);
+  //  float tx_freq = buffer[6];
+    //    ECR->set_tx_freq ( tx_freq);
     write(newsockfd,"I got your message",18);
     close(newsockfd);
     close(sockfd);

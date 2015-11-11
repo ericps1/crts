@@ -20,6 +20,7 @@
 // EDIT INCLUDE START FLAG
 #include "../cognitive_engines/CE_Template.hpp"
 #include "../cognitive_engines/CE_Subcarrier_Alloc.hpp"
+#include "../cognitive_engines/CE_CORNET3Drx.hpp"
 #include "../cognitive_engines/CE_Mod_Adaptation.hpp"
 #include "../cognitive_engines/CE_Network_Loading.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
