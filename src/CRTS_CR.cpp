@@ -30,7 +30,8 @@
 
 int sig_terminate;
 time_t stop_time_s;
-
+std::ofstream log_fstream;
+    
 void Receive_command_from_controller(int *TCP_controller, struct scenario_parameters *sp, struct node_parameters *np){
     // Listen to socket for message from controller
     char command_buffer[1+sizeof(struct scenario_parameters)+sizeof(struct node_parameters)];
@@ -168,8 +169,6 @@ void log_rx_data(struct scenario_parameters *sp, struct node_parameters *np, int
     gettimeofday(&tv, NULL);
 
     // open file, append parameters, and close
-    std::ofstream log_fstream;
-    log_fstream.open(np->net_rx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
     if(log_fstream.is_open()){
         log_fstream.write((char*)&tv, sizeof(tv));
         log_fstream.write((char*)&bytes, sizeof(bytes));
@@ -177,7 +176,6 @@ void log_rx_data(struct scenario_parameters *sp, struct node_parameters *np, int
     else
         printf("Error opening log file: %s\n", np->net_rx_log_file);
 
-    log_fstream.close();
 }
 
 void uhd_quiet(uhd::msg::type_t type, const std::string &msg){}
@@ -269,13 +267,9 @@ int main(int argc, char ** argv){
 	
 	// open CRTS rx log file to delete any current contents
     if (np.log_net_rx){
-        std::ofstream log_fstream;
+        //std::ofstream log_fstream;
         log_fstream.open(net_rx_log_file, std::ofstream::out | std::ofstream::trunc);
-        if (log_fstream.is_open())
-        {
-            log_fstream.close();
-        }
-        else
+        if (!log_fstream.is_open())
         {
             std::cout<<"Error opening log file:"<<net_rx_log_file<<std::endl;
         }
@@ -411,15 +405,15 @@ int main(int argc, char ** argv){
         Receive_command_from_controller(&TCP_controller, &sp, &np);
 
         // Wait (used for test purposes only)
-        //usleep(np.tx_delay_us);
         tx_time_delta += np.tx_delay_us;
         tx_time.tv_sec = sp.start_time_s + (long int) floorf(tx_time_delta/1e6);
         tx_time.tv_usec = fmod(tx_time_delta, 1e6);
-         while(1){
+        while(1){
             gettimeofday(&tv, NULL);
             if((tv.tv_sec == tx_time.tv_sec && tv.tv_usec> tx_time.tv_usec) || tv.tv_sec > tx_time.tv_sec ) 
                 break;
-        }
+        	//usleep(1e3);
+		}
         
         // send UDP packet via CR
         dprintf("CRTS: Sending UDP packet using CRTS client socket\n");
@@ -434,9 +428,9 @@ int main(int argc, char ** argv){
         if(recv_len > 0){
             // TODO: Say what address message was received from.
             // (It's in CRTS_server_addr)
-            dprintf("\nCRTS received message:\n");
-            for(int j=0; j<recv_len; j++)
-                dprintf("%c", recv_buffer[j]);
+            printf("\nCRTS received %i bytes:\n", recv_len);
+            //for(int j=0; j<recv_len; j++)
+            //    dprintf("%c", recv_buffer[j]);
             if(np.log_net_rx){
 				log_rx_data(&sp, &np, recv_len);
 			}
@@ -456,7 +450,11 @@ int main(int argc, char ** argv){
     char term_message = terminate_msg;
     write(TCP_controller, &term_message, 1);
 
-    if(np.generate_octave_logs){
+	// close the log file
+    log_fstream.close();
+
+	// auto-generate octave logs from binary logs
+	if(np.generate_octave_logs){
         char command[100];
         char prefixStr[20];
         if (sp.totalNumReps > 1)
@@ -485,6 +483,7 @@ int main(int argc, char ** argv){
         }
     }
 
+	// close all network connections
     close(TCP_controller);
     close(CRTS_client_sock);
     close(CRTS_server_sock);

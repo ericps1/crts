@@ -10,6 +10,7 @@
 #include <fstream>
 #include <errno.h>
 #include <sys/time.h>
+#include <sched.h>
 #include "ECR.hpp"
 #include "TUN.hpp"
 
@@ -97,7 +98,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     pthread_mutex_init(&rx_mutex, NULL);    // receiver mutex
     pthread_cond_init(&rx_cond,   NULL);    // receiver condition
     pthread_create(&rx_process,   NULL, ECR_rx_worker, (void*)this);
-    
+   
     // create and start tx thread
     frame_num = 0;
     tx_running = false; // transmitter is not running initially
@@ -105,7 +106,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     pthread_mutex_init(&tx_mutex, NULL); // transmitter mutex
     pthread_cond_init(&tx_cond, NULL); // transmitter condition
     pthread_create(&tx_process, NULL, ECR_tx_worker, (void*)this);    
-    
+ 
     // Start CE thread
     dprintf("Starting CE thread...\n");
     ce_running = false; // ce is not running initially
@@ -114,8 +115,55 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     pthread_cond_init(&CE_execute_sig, NULL);
     pthread_cond_init(&CE_cond, NULL); // cognitive engine condition 
     pthread_create(&CE_process, NULL, ECR_ce_worker, (void*)this);
-    
-    // initialize default tx values
+   
+   	// Set thread priorities
+    /*int rval = 0;
+	struct sched_param param;
+	int policy;
+	param.sched_priority = 99;
+	rval = pthread_setschedparam(rx_process, SCHED_FIFO, &param); 
+	rval = pthread_getschedparam(rx_process, &policy, &param);
+	printf("Rx thread priority: %d\n", param.sched_priority);
+	*/
+
+    /*param.sched_priority = 0;
+	rval = pthread_setschedparam(tx_process, SCHED_FIFO, &param); 
+	rval = pthread_getschedparam(tx_process, &policy, &param);
+	printf("Tx thread priority: %d\n", param.sched_priority);
+	*/
+
+    /*param.sched_priority = 0;
+	rval = pthread_setschedparam(CE_process, SCHED_FIFO, &param); 
+	rval = pthread_getschedparam(CE_process, &policy, &param);
+	printf("CE thread priority: %d\n", param.sched_priority);
+
+    rval = pthread_setschedparam(0, SCHED_FIFO, &param); 
+	rval = pthread_getschedparam(0, &policy, &param);
+	printf("Main thread priority: %d\n", param.sched_priority);
+	*/
+
+	// Constrain threads to specific cores
+	/*cpu_set_t set;
+	
+	CPU_ZERO(&set);
+	CPU_SET(0, &set);
+	CPU_SET(1, &set);
+	sched_setaffinity(rx_process, sizeof(cpu_set_t), &set);
+
+	CPU_ZERO(&set);
+	CPU_SET(2, &set);
+	sched_setaffinity(tx_process, sizeof(cpu_set_t), &set);
+
+	CPU_ZERO(&set);
+	CPU_SET(2, &set);
+	sched_setaffinity(CE_process, sizeof(cpu_set_t), &set);
+
+    CPU_ZERO(&set);
+	CPU_SET(2, &set);
+	sched_setaffinity(0, sizeof(cpu_set_t), &set);
+	*/
+
+	// initialize default tx values
     dprintf("Initializing USRP settings...\n");
     set_tx_freq(460.0e6f);
     set_tx_rate(500e3);
@@ -137,7 +185,11 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
 // Destructor
 ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
 
-    //if (ce_running) 
+    // close log files
+	log_tx_fstream.close();
+	log_rx_fstream.close();
+	
+	//if (ce_running) 
 	stop_ce();
 	
 	// signal condition (tell ce worker to continue)
@@ -149,13 +201,14 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio(){
     void * ce_exit_status;
     pthread_join(CE_process, &ce_exit_status);
 
-    //if (rx_running) 
+    dprintf("Stopping transceiver\n");
+	//if (rx_running) 
 	stop_rx();
 	//if (tx_running) 
 	stop_tx();
 
 	// sleep so tx/rx threads are ready for signal
-	usleep(1e4);
+	usleep(1e6);
 
 	// signal condition (tell rx worker to continue)
     dprintf("destructor signaling rx condition...\n");
@@ -854,7 +907,10 @@ void * ECR_rx_worker(void * _arg)
 
     // set up receive buffer
     const size_t max_samps_per_packet = ECR->usrp_rx->get_device()->get_max_recv_samps_per_packet();
-    std::vector<std::complex<float> > buffer(max_samps_per_packet);
+    //std::vector<std::complex<float> > buffer(max_samps_per_packet);
+
+	std::complex<float> *buffer;
+	buffer = (std::complex<float>*) malloc(max_samps_per_packet*sizeof(std::complex<float>));
 
     while (ECR->rx_thread_running) {
         // wait for signal to start; lock mutex
@@ -863,11 +919,11 @@ void * ECR_rx_worker(void * _arg)
         // this function unlocks the mutex and waits for the condition;
         // once the condition is set, the mutex is again locked
         pthread_cond_wait(&(ECR->rx_cond), &(ECR->rx_mutex));
-    
-        // unlock the mutex
+   
+		// unlock the mutex
         pthread_mutex_unlock(&(ECR->rx_mutex));
         // condition given; check state: run or exit
-        if (!ECR->rx_running) {
+        if (!ECR->rx_thread_running) {
             dprintf("rx_worker finished\n");
             break;
         }
@@ -875,31 +931,26 @@ void * ECR_rx_worker(void * _arg)
         // run receiver
         while (ECR->rx_running) {
 
-            pthread_mutex_lock(&(ECR->rx_mutex));
-        
-			// grab data from device
-            size_t num_rx_samps = ECR->usrp_rx->get_device()->recv(
-                &buffer.front(), buffer.size(), ECR->metadata_rx,
-                uhd::io_type_t::COMPLEX_FLOAT32,
-                uhd::device::RECV_MODE_ONE_PACKET
+            // grab data from device
+            size_t num_rx_samps = 0;
+			num_rx_samps = ECR->usrp_rx->get_device()->recv(
+               	buffer, max_samps_per_packet, ECR->metadata_rx,
+               	uhd::io_type_t::COMPLEX_FLOAT32,
+               	uhd::device::RECV_MODE_ONE_PACKET
             );
-
-            // push data through frame synchronizer
-            unsigned int j;
-            for (j=0; j<num_rx_samps; j++) {
-            // grab sample from usrp buffer
-            std::complex<float> usrp_sample = buffer[j];
-
-            // push resulting samples through synchronizer
-            ofdmflexframesync_execute(ECR->fs, &usrp_sample, 1);
+			
+			// push resulting samples through synchronizer
+            pthread_mutex_lock(&(ECR->rx_mutex)); 
+			ofdmflexframesync_execute(ECR->fs, buffer, num_rx_samps);
             pthread_mutex_unlock(&(ECR->rx_mutex));
-        	}
-        
+        	
         } // while rx_running
         dprintf("rx_worker finished running\n");
 
     } // while true
-    
+   
+	free(buffer);
+
     dprintf("rx_worker exiting thread\n");
     pthread_exit(NULL);
 }
@@ -973,11 +1024,11 @@ int rxCallback(unsigned char * _header,
     }
 
     // print payload
-    dprintf("\nReceived Payload:\n");
+    /*dprintf("\nReceived Payload:\n");
     for (unsigned int i=0; i<_payload_len; i++)
         dprintf("%c", _payload[i]);
     dprintf("\n");
-	
+	*/
 
     char payload[_payload_len];
     for(unsigned int i=0; i<_payload_len; i++)
@@ -988,12 +1039,12 @@ int rxCallback(unsigned char * _header,
         if(ExtensibleCognitiveRadio::DATA == ((_header[0]>>6) & 0x3) )
         {
             // Pass payload to tun interface
-            dprintf("Passing payload to tun interface\n");
-            nwrite = cwrite(ECR->tunfd, payload, (int)_payload_len);
-            if(nwrite != (int)_payload_len) 
-                printf("Number of bytes written to TUN interface not equal to payload length\n"); 
-            else
-                ECR->frame_counter++;
+            printf("Received payload length: %u\n", _payload_len);
+			for(unsigned int i=0; i < (_payload_len/288); i++){
+				nwrite = cwrite(ECR->tunfd, &payload[i*288], 288);
+            	if(nwrite != 288) 
+                	printf("Number of bytes written to TUN interface not equal to the expected amount\n"); 
+   			}
         }
     }
 
@@ -1146,18 +1197,11 @@ void ExtensibleCognitiveRadio::print_metrics(ExtensibleCognitiveRadio * ECR){
 void ExtensibleCognitiveRadio::log_rx_metrics(){
     
     // open file, append metrics, and close
-    std::ofstream log_fstream;
-    log_fstream.open(phy_rx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
-    if (log_fstream.is_open())
+    if (log_rx_fstream.is_open())
     {
-        log_fstream.write((char*)&CE_metrics, sizeof(struct metric_s));
-		log_fstream.write((char*)&rx_params, sizeof(struct rx_parameter_s));
+        log_rx_fstream.write((char*)&CE_metrics, sizeof(struct metric_s));
+		log_rx_fstream.write((char*)&rx_params, sizeof(struct rx_parameter_s));
     }
-    else
-    {
-        std::cerr<<"Error opening log file:"<<phy_rx_log_file<<std::endl;
-    }
-    log_fstream.close();
 }
 
 void ExtensibleCognitiveRadio::log_tx_parameters(){
@@ -1167,38 +1211,33 @@ void ExtensibleCognitiveRadio::log_tx_parameters(){
     gettimeofday(&tv, NULL);
 																					    
     // open file, append parameters, and close
-    std::ofstream log_fstream;
-    log_fstream.open(phy_tx_log_file, std::ofstream::out|std::ofstream::binary|std::ofstream::app);
-    if (log_fstream.is_open())
+    if (log_tx_fstream.is_open())
     {
-        log_fstream.write((char*)&tv, sizeof(tv));
-        log_fstream.write((char*)&tx_params, sizeof(struct tx_parameter_s));
+        log_tx_fstream.write((char*)&tv, sizeof(tv));
+        log_tx_fstream.write((char*)&tx_params, sizeof(struct tx_parameter_s));
     }
-    else
-    {
-        std::cerr<<"Error opening log file:"<<phy_tx_log_file<<std::endl;
-    }
-    log_fstream.close();
 }
 
 void ExtensibleCognitiveRadio::reset_log_files(){
 
 	if (log_phy_rx_flag){
-        std::ofstream log_fstream;
-		log_fstream.open(phy_rx_log_file, std::ofstream::out | std::ofstream::trunc);
-		if(log_fstream.is_open())
-			log_fstream.close();
-        else
+        //if(log_rx_fstream.is_open())
+		//	log_rx_fstream.close();	
+		log_rx_fstream.open(phy_rx_log_file, std::ofstream::out | std::ofstream::trunc);
+		if(!log_rx_fstream.is_open()){
 			printf("Error opening rx log file: %s\n", phy_rx_log_file);
+			exit(1);
+		}
 	}
 
 	if (log_phy_tx_flag){
-        std::ofstream log_fstream;
-		log_fstream.open(phy_tx_log_file, std::ofstream::out | std::ofstream::trunc);
-		if(log_fstream.is_open())
-			log_fstream.close();
-        else
+        //if(!log_tx_fstream.is_open())
+		//	log_tx_fstream.close();
+		log_tx_fstream.open(phy_tx_log_file, std::ofstream::out | std::ofstream::trunc);
+		if(!log_tx_fstream.is_open()){
 			printf("Error opening tx log file: %s\n", phy_tx_log_file);
+			exit(1);
+		}
 	}
 }
 
