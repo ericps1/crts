@@ -14,7 +14,7 @@ the master\_scenario\_file.cfg file. This file tells the experiment controller
 how many scenarios to run and their names. Make the values match:
 
     NumberofScenarios = 1;
-	scenario\_1 = "2_Node_FDD_Network.cfg";
+	scenario\_1 = "Two_Node_FDD_Network.cfg";
     reps\_scenario\_1 = 1;
 
 Now open the scenario configuration file 2\_Node\_FDD\_Network.cfg This file 
@@ -46,5 +46,5 @@ Go to /logs/octave and you should see several auto-generated .m files. To view
 a plot of the network throughput vs. time for each node run:
 
     $ octave
-    > 2_Node_FDD_Network_N1_NET_RX
+    > Two_Node_FDD_Network_N1_NET_RX
 	> Plot_CR_NET_RX
