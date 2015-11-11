@@ -16,6 +16,7 @@
 //EDIT INCLUDE START FLAG
 #include "../cognitive_engines/CE_Template.hpp"
 #include "../cognitive_engines/CE_Subcarrier_Alloc.hpp"
+#include "../cognitive_engines/CE_CORNET3Drx.hpp"
 #include "../cognitive_engines/CE_Mod_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_PU.hpp"
@@ -227,6 +228,8 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
         CE = new CE_Template();
     if(!strcmp(ce, "CE_Subcarrier_Alloc"))
         CE = new CE_Subcarrier_Alloc();
+    if(!strcmp(ce, "CE_CORNET3Drx"))
+        CE = new CE_CORNET3Drx();
     if(!strcmp(ce, "CE_Mod_Adaptation"))
         CE = new CE_Mod_Adaptation();
     if(!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
