@@ -667,21 +667,115 @@ int main(int argc, char **argv) {
     }
   }
 
-  // this is used to create a child process for python radios which can be
-  // killed later
-  pid_t pid = 0;
+    // this is used to create a child process for python radios which can be killed later
+    pid_t python_pid;
+    // pointer to ECR which may or may not be used
+    ExtensibleCognitiveRadio *ECR = NULL;
+    
+    // Create and start the ECR or python CR so that they are in a ready
+    // state when the experiment begins
+    if(np.cr_type == ecr)
+    {
+        dprintf("Creating ECR object...\n");
+        ECR = new ExtensibleCognitiveRadio;
+        
+        // set the USRP's timer to 0
+        uhd::time_spec_t t0(0, 0, 1e6);
+        ECR->usrp_rx->set_time_now(t0, 0);
 
-  // Create and start the ECR or python CR so that they are in a ready
-  // state when the experiment begins
-  if (np.cr_type == ecr) {
-    dprintf("Creating ECR object...\n");
-    ECR = new ExtensibleCognitiveRadio;
+        Initialize_CR(&np, (void*) ECR);
+        
+    }
+    else if(np.cr_type == python)
+    {
+        //Create tun interface
+        system("sudo ip tuntap add dev tunCRTS mode tun");
+        system("sudo ip link set dev tunCRTS up");
+        dprintf("CRTS: Forking child process\n");
+        //Calling fork creates a duplicate of the calling process that proceeeds from this point
+        //In the new process, python_pid will be 0, which is how we know it is the child
+        //In the parent however, python_pid will be the process id of the new process created by fork.
+        //Then when we replace the child process below with execvp, the new process inherits the old pid,
+        //allowing us to kill it later. See the very end of main()
+        python_pid = fork();
+        
+        // define child's process
+        if(python_pid == 0){
+            //The execvp fuction used below takes two arguments
+            //1. The command to run, python in this case
+            //2. An array of null-terminated arguemnts
+            //      The first item should be the program to run (python, I'm not exactly sure why this needs to be
+            //          specified when it's the first argument to execvp)
+            //      The second item is the file to run, this case the cognitive radio file.
+            //      The next items in the array are the actual arguments from the node_parameters
+            //      The final item must be a NULL pointer
+            //      So the final size of the array is np.num_arguments + 1 (program to run) + 1 (file to run) + 1 NULL
+            //          pointer = np.num_arguments + 3
+            char* c_arguments[np.num_arguments + 3];
+            //Allocate space for and place "python" in first slot
+            c_arguments[0] = new char[strlen("python")];
+            strcpy(c_arguments[0], "python");
+            //Allocate space for and place entire path of python radio file to run
+            //Python radios are stored in the cognitive_radios folder inside the main crts folder
+            char path_to_radio[1000];
+            if(getcwd(path_to_radio, sizeof(path_to_radio)) != NULL)
+            {
+                strcat(path_to_radio, "/cognitive_radios/");
+                strcat(path_to_radio, np.python_file);
+            }
+            else
+            {
+                perror("cwd");
+                exit(1);
+            }
+            c_arguments[1] = new char[strlen(path_to_radio)];
+            strcpy(c_arguments[1], path_to_radio);
 
-    // set the USRP's timer to 0
-    uhd::time_spec_t t0(0, 0, 1e6);
-    ECR->usrp_rx->set_time_now(t0, 0);
+            //Allocate space for and place arguments from np.arguments into array
+            for(int i = 2; i < np.num_arguments + 2; i++)
+            {
+                c_arguments[i] = new char[strlen(np.arguments[i-2])];
+                strcpy(c_arguments[i], np.arguments[i - 2]);
+            }
+            //End array with a NULL pointer
+            c_arguments[np.num_arguments + 2] = (char*)0;
+            //Call execvp to start python radio. execvp replaces the current process (in this case the child of CRTS_CR
+            //forked above), so the original CRTS_CR keeps running.
+            execvp("python", c_arguments);
+        
+        }
+        else
+        {
+            sleep(5);
+            printf("CRTS Child: Initializing python CR\n");
+            Initialize_CR(&np, NULL);
+        }
+        
+    } 
+    // Define address structure for CRTS socket server used to receive network traffic
+    struct sockaddr_in CRTS_server_addr;
+    memset(&CRTS_server_addr, 0, sizeof(CRTS_server_addr));
+    CRTS_server_addr.sin_family = AF_INET;
+    // Only receive packets addressed to the CRTS_IP
+    CRTS_server_addr.sin_addr.s_addr = inet_addr(np.CRTS_IP);
+    CRTS_server_addr.sin_port = htons(port);
+    socklen_t clientlen = sizeof(CRTS_server_addr);
+    int CRTS_server_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    rx_stat_fb_timer = timer_create();
+    // Define address structure for CRTS socket client used to send network traffic
+    struct sockaddr_in CRTS_client_addr;
+    memset(&CRTS_client_addr, 0, sizeof(CRTS_client_addr));
+    CRTS_client_addr.sin_family = AF_INET;
+    CRTS_client_addr.sin_addr.s_addr = inet_addr(np.TARGET_IP);
+    CRTS_client_addr.sin_port = htons(port);
+    int CRTS_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+    // Bind CRTS server socket
+    bind(CRTS_server_sock, (sockaddr*)&CRTS_server_addr, clientlen);
+
+    // set CRTS sockets to non-blocking
+    fcntl(CRTS_client_sock, F_SETFL, O_NONBLOCK);
+    fcntl(CRTS_server_sock, F_SETFL, O_NONBLOCK);
     
     int argc = 0;
     char ** argv = NULL;
