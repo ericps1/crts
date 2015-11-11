@@ -1039,7 +1039,7 @@ int rxCallback(unsigned char * _header,
         if(ExtensibleCognitiveRadio::DATA == ((_header[0]>>6) & 0x3) )
         {
             // Pass payload to tun interface
-            printf("Received payload length: %u\n", _payload_len);
+            dprintf("Received payload length: %u\n", _payload_len);
 			for(unsigned int i=0; i < (_payload_len/288); i++){
 				nwrite = cwrite(ECR->tunfd, &payload[i*288], 288);
             	if(nwrite != 288) 

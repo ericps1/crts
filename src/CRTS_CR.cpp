@@ -428,7 +428,7 @@ int main(int argc, char ** argv){
         if(recv_len > 0){
             // TODO: Say what address message was received from.
             // (It's in CRTS_server_addr)
-            printf("\nCRTS received %i bytes:\n", recv_len);
+            dprintf("CRTS received %i bytes:\n", recv_len);
             //for(int j=0; j<recv_len; j++)
             //    dprintf("%c", recv_buffer[j]);
             if(np.log_net_rx){
