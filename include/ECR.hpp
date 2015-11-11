@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd/types/tune_request.hpp>
+#include <fstream>
 #include "CE.hpp"
 
 // thread functions
@@ -680,6 +681,9 @@ public:
     char phy_rx_log_file[100];
     char phy_tx_log_file[100];
 	void reset_log_files();
+
+	std::ofstream log_rx_fstream;
+	std::ofstream log_tx_fstream;
 
     //=================================================================================
 	// USRP Objects
