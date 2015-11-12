@@ -100,6 +100,7 @@ CE_FEC_Adaptation::execute(void * _args)
 
 	}
 	else
+		// for this example we assume there won't be USRP overflows or underruns
 		dprintf("CE was triggered by a timeout\n");
 }
 

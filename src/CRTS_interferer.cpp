@@ -90,7 +90,7 @@ static inline void Receive_command_from_controller(Interferer * Int,
 		switch (command_buffer[0])
 		{
 				case scenario_params_msg: // settings for upcoming scenario
-						printf("Received settings for scenario\n");
+						dprintf("Received settings for scenario\n");
 
 						// copy scenario parameters
 						memcpy(sp ,&command_buffer[1], sizeof(struct scenario_parameters));
@@ -155,12 +155,12 @@ static inline void Receive_command_from_controller(Interferer * Int,
 						break;
 
 				case manual_start_msg: // updated start time (used for manual mode)
-						printf("Received an updated start time\n");
+						dprintf("Received an updated start time\n");
 						memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
 						stop_time_s = sp->start_time_s + sp->runTime;
 						break;
 				case terminate_msg: // terminate program
-						printf("Received termination command from controller\n");
+						dprintf("Received termination command from controller\n");
 						exit(1);
 						break; 
 		}

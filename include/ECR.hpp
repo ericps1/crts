@@ -8,6 +8,7 @@
 #include <liquid/liquid.h>
 //#include <liquid/ofdmtxrx.h>
 #include <pthread.h>
+#include <uhd/utils/msg.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd/types/tune_request.hpp>
 #include <fstream>
@@ -45,11 +46,21 @@ public:
         /// of time as defined by ExtensibleCognitiveRadio::ce_timeout_ms.
         /// It is now executed as a timeout event.
         TIMEOUT = 0,    // event is triggered by a timer
-        /// \brief A PHY layer event has caused the execution 
+        
+		/// \brief A PHY layer event has caused the execution 
         /// of the CE. Usually this means a frame was received
         /// by the radio.
         PHY,    // event is triggered by the reception of a physical layer frame
-    };
+    	
+        /// \brief The receiver processing is not able to keep up with the 
+        /// current settings.
+		UHD_OVERFLOW,
+
+		/// \brief The transmitter is not providing samples fast enough
+		/// the the USRP
+		UHD_UNDERRUN
+
+	};
 
     /// \brief Defines the types of frames used by the ECR
 	enum FrameType{
@@ -739,6 +750,9 @@ private:
     // String for commands for TUN interface
     char systemCMD[200];
 
+	friend void uhd_msg_handler(uhd::msg::type_t type, const std::string &msg);
+	static int uhd_msg;
+
     //=================================================================================
 	// Private Receiver Objects
 	//=================================================================================
@@ -765,7 +779,12 @@ private:
 	
 	// transmitter properties/objects
     tx_parameter_s tx_params;
-    ofdmflexframegen fg;            // frame generator object
+    tx_parameter_s tx_params_updated;
+    int update_tx_flag;
+	int update_usrp_tx;
+	int recreate_fg;
+	void update_tx_params();
+	ofdmflexframegen fg;            // frame generator object
     unsigned int fgbuffer_len;      // length of frame generator buffer
     std::complex<float> * fgbuffer; // frame generator output buffer [size: numSubcarriers + cp_len x 1]
     unsigned char tx_header[8];        // header container (must have length 8)
