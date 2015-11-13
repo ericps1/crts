@@ -28,14 +28,12 @@ int newsockfd, sockfd, portno;
 // constructor
 CE_CORNET3Dtx::CE_CORNET3Dtx()
 {
-
     socklen_t clilen;
     struct sockaddr_in serv_addr, cli_addr;
-    printf ("constructor");
     sockfd = socket(AF_INET, SOCK_STREAM, 0);  // tcp socket
     if (sockfd < 0) 
     {
-        printf ("ERROR opening socket");
+        printf ("ERROR opening socket\n");
         // exit (1);
     }
     bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -44,46 +42,67 @@ CE_CORNET3Dtx::CE_CORNET3Dtx()
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
     if (bind(sockfd, (struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) {
-        printf ("error on binding");     
+        printf ("error on binding\n");     
         //exit(1);
     }
+    printf("waiting for connection\n");
     listen(sockfd,5);
     clilen = sizeof(cli_addr);
     newsockfd = accept(sockfd,(struct sockaddr *) &cli_addr, &clilen);
     if (newsockfd < 0)
     { 
-        printf("ERROR on accept");
+        printf("ERROR on accept\n");
         //exit (1);
     }
     //close(sockfd);
 }
 
 // destructor
-CE_CORNET3Dtx::~CE_CORNET3Dtx() {}
+CE_CORNET3Dtx::~CE_CORNET3Dtx() {
+    close(newsockfd);
+    close(sockfd);
+}
 
 // execute function
 void CE_CORNET3Dtx::execute(void * _args){
     // type cast pointer to cognitive radio object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
-    int i, timer;
-    char buffer[256];
+    int i = 0;
     //int newsockfd
-    for (timer=0; timer<=10; timer++)
-    {
-        i= recv (newsockfd,buffer, 8, 0);
-    }
+   // for (timer=0; timer<=10; timer++)
+   // {
+    //    i= recv (newsockfd,buffer,5 , 0);
+  //  }
 
+	// setup file descriptor to listen for data on TCP controller link.
+	fd_set fds;
+	struct timeval timeout;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 100;
+	FD_ZERO(&fds);
+	FD_SET(newsockfd, &fds);
 
-    /*for (timer=0; timer<=100; timer++)
-      {
-      i= read(newsockfd,buffer,256);
-      }*/
-    printf ("\n buffer= %s ", buffer);     
-    if (i < 0) 
-    { 
-        printf("ERROR on read");
-        //exit (1);
-    }
+    // if data is available, read it in
+	if(select(newsockfd+1, &fds, NULL, NULL, &timeout)){
+		// read the first byte which designates the message type
+		i = recv(newsockfd, buffer, 5, 0);
+	}
+
+		/*for (timer=0; timer<=100; timer++)
+		  {
+		  i= read(newsockfd,buffer,256);
+		  }*/
+		if (i < 0) 
+		{ 
+			perror("read");
+			printf("ERROR on read");
+			//exit (1);
+		}
+		else if(i > 0)
+		{
+
+			printf ("buffer= %s\n", buffer);     
+		
 
     if (buffer[0]=='0' && buffer[1]=='1'  )       
         ECR->set_tx_modulation(LIQUID_MODEM_OOK);
@@ -151,9 +170,8 @@ void CE_CORNET3Dtx::execute(void * _args){
         ECR->set_tx_fec1(LIQUID_FEC_SECDED7264);
   //  float tx_freq = buffer[6];
     //    ECR->set_tx_freq ( tx_freq);
-    write(newsockfd,"I got your message",18);
-    close(newsockfd);
-    close(sockfd);
+   // write(newsockfd,"I got your message",18);
+	}
 }
 
 // custom function definitions
