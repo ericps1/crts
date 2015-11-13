@@ -23,7 +23,7 @@ CE_Simultaneous_RX_And_Sensing::CE_Simultaneous_RX_And_Sensing()
 	// initialize buffers to 0
 	memset(buffer, 0, fft_length*sizeof(float _Complex));
 	memset(buffer_F, 0, fft_length*sizeof(float _Complex));
-	memset(fft_avg, 0, fft_length*sizeof(float _Complex));
+	memset(fft_avg, 0, fft_length*sizeof(float));
 	
 	// create fft plan to be used for spectrum sensing
 	fft = fft_create_plan(fft_length,
@@ -45,35 +45,40 @@ void CE_Simultaneous_RX_And_Sensing::execute(void * _args){
 	gettimeofday(&tv, NULL);
 
 	// turn on sensing after once the required time has past
-	if( (tv.tv_sec > sense_time_s) || ((tv.tv_sec == sense_time_s)&&(tv.tv_usec >= sense_time_us)) )
+	if( (tv.tv_sec > sense_time_s) || ((tv.tv_sec == sense_time_s)&&(tv.tv_usec >= sense_time_us)) ){
+		printf("Turning on sensing\n");
 		ECR->set_ce_sensing(1);
+		
+		// calculate next sense time
+		sense_time_s = tv.tv_sec + (long int)floorf(sensing_delay_ms/1e3);
+		sense_time_us = tv.tv_usec + (long int)floorf(sensing_delay_ms*1e3);
 	
+	}
+
 	// handle samples
 	if(ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::USRP_RX_SAMPS){
 	
 		fft_counter++;
-		memcpy(buffer, ECR->ce_usrp_rx_buffer, ECR->ce_usrp_rx_buffer_length);	
+		memcpy(buffer, ECR->ce_usrp_rx_buffer, ECR->ce_usrp_rx_buffer_length*sizeof(float _Complex));	
 		fft_execute(fft);
 		
 		for(int i=0; i<fft_length; i++){
-			fft_avg[i] += cabsf(buffer[i])/fft_averaging;
+			fft_avg[i] += cabsf(buffer_F[i])/(float)fft_averaging;
 		}
 		
 		// reset once averaging has finished
-		if(fft_counter = fft_averaging){
-			memset(fft_avg, 0, fft_length*sizeof(float _Complex));
-			fft_counter = 0;
-
-			// calculate next sense time
-			sense_time_s = tv.tv_sec + (long int)floorf(sensing_delay_ms/1e3);
-			sense_time_us = tv.tv_usec + (long int)floorf(sensing_delay_ms*1e3);
-	
+		if(fft_counter == fft_averaging){
 			// stop forwarding usrp samples to CE
 			ECR->set_ce_sensing(0);
-
+			
+			// display FFT result
 			for(int i=0; i<fft_length; i++)
 				printf("FFT value %i: %f\n", i, fft_avg[i]);
 			printf("\n");
+		
+			// reset counter and average fft buffer
+			memset(fft_avg, 0, fft_length*sizeof(float));
+			fft_counter = 0;
 		}
 	}
 

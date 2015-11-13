@@ -995,14 +995,17 @@ void * ECR_rx_worker(void * _arg)
             pthread_mutex_unlock(&(ECR->rx_mutex));
         	
         	if(ECR->ce_sensing_flag){
-				// copy usrp sample buffer
-				memcpy(ECR->ce_usrp_rx_buffer, buffer, max_samps_per_packet*sizeof(std::complex<float>));
-				
-				// signal CE
 				pthread_mutex_lock(&ECR->CE_mutex);
-        		ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::USRP_RX_SAMPS;        // set event type to phy once mutex is locked
-        		pthread_cond_signal(&ECR->CE_execute_sig);
-        		pthread_mutex_unlock(&ECR->CE_mutex);
+				// recheck flag incase it was unset by the CE while waiting to lock mutex
+				if(ECR->ce_sensing_flag){
+					// copy usrp sample buffer
+					memcpy(ECR->ce_usrp_rx_buffer, buffer, max_samps_per_packet*sizeof(std::complex<float>));
+				
+					// signal CE
+					ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::USRP_RX_SAMPS;
+					pthread_cond_signal(&ECR->CE_execute_sig);
+        		}
+				pthread_mutex_unlock(&ECR->CE_mutex);
 			}
 				
 			
