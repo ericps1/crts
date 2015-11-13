@@ -22,6 +22,7 @@
 #include "../cognitive_engines/CE_Two_Channel_DSA_PU.hpp"
 #include "../cognitive_engines/CE_FEC_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
+#include "../cognitive_engines/CE_Simultaneous_RX_And_Sensing.hpp"
 #include "../cognitive_engines/CE_uhd_msg.hpp"
 //EDIT INCLUDE END FLAG
 
@@ -105,6 +106,9 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio(){
     tunfd = tun_alloc(tun_name, IFF_TUN);
 
     usleep(1e6);
+
+	// start the ce without sensing by default
+	ce_sensing_flag = 0;
 
     // create and start rx thread
     dprintf("Starting rx thread...\n");
@@ -304,6 +308,8 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
         CE = new CE_FEC_Adaptation();
     if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
         CE = new CE_Two_Channel_DSA_Link_Reliability();
+    if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
+        CE = new CE_Simultaneous_RX_And_Sensing();
     if(!strcmp(ce, "CE_uhd_msg"))
         CE = new CE_uhd_msg();
 //EDIT SET_CE END FLAG
@@ -328,6 +334,10 @@ void ExtensibleCognitiveRadio::set_ce_timeout_ms(float new_timeout_ms){
 
 float ExtensibleCognitiveRadio::get_ce_timeout_ms(){
     return ce_timeout_ms;
+}
+
+void ExtensibleCognitiveRadio::set_ce_sensing(int ce_sensing){
+	ce_sensing_flag = ce_sensing;
 }
 
 void uhd_msg_handler(uhd::msg::type_t type, const std::string &msg){
@@ -946,10 +956,11 @@ void * ECR_rx_worker(void * _arg)
 
     // set up receive buffer
     const size_t max_samps_per_packet = ECR->usrp_rx->get_device()->get_max_recv_samps_per_packet();
-    //std::vector<std::complex<float> > buffer(max_samps_per_packet);
-
+    ECR->ce_usrp_rx_buffer_length = max_samps_per_packet;
+	
 	std::complex<float> *buffer;
 	buffer = (std::complex<float>*) malloc(max_samps_per_packet*sizeof(std::complex<float>));
+	ECR->ce_usrp_rx_buffer = (std::complex<float>*) malloc(max_samps_per_packet*sizeof(std::complex<float>));
 
     while (ECR->rx_thread_running) {
         // wait for signal to start; lock mutex
@@ -983,7 +994,19 @@ void * ECR_rx_worker(void * _arg)
 			ofdmflexframesync_execute(ECR->fs, buffer, num_rx_samps);
             pthread_mutex_unlock(&(ECR->rx_mutex));
         	
-        	// check for uhd msg
+        	if(ECR->ce_sensing_flag){
+				// copy usrp sample buffer
+				memcpy(ECR->ce_usrp_rx_buffer, buffer, max_samps_per_packet*sizeof(std::complex<float>));
+				
+				// signal CE
+				pthread_mutex_lock(&ECR->CE_mutex);
+        		ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::USRP_RX_SAMPS;        // set event type to phy once mutex is locked
+        		pthread_cond_signal(&ECR->CE_execute_sig);
+        		pthread_mutex_unlock(&ECR->CE_mutex);
+			}
+				
+			
+			// check for uhd msg
 			switch(ECR->uhd_msg){
 				case 1:
 					// Signal CE thread
@@ -1011,6 +1034,7 @@ void * ECR_rx_worker(void * _arg)
     } // while true
    
 	free(buffer);
+	free(ECR->ce_usrp_rx_buffer);
 
     dprintf("rx_worker exiting thread\n");
     pthread_exit(NULL);

@@ -58,8 +58,11 @@ public:
 
 		/// \brief The transmitter is not providing samples fast enough
 		/// the the USRP
-		UHD_UNDERRUN
+		UHD_UNDERRUN,
 
+		/// \brief This event enables the design of custom spectrum sensing
+		/// which can be employed without interrupting the normal reception of frames.
+		USRP_RX_SAMPS
 	};
 
     /// \brief Defines the types of frames used by the ECR
@@ -473,8 +476,20 @@ public:
     /// ExtensibleCognitiveRadio::metric_s
     /// made accessible to the Cognitive_Engine.
     struct metric_s CE_metrics;
-    
-    //=================================================================================
+   
+	/// \brief Allows you to turn on/off the USRP_RX_SAMPLES events which allow
+	/// you to perform custom spectrum sensing in the CE while the liquid-ofdm
+	/// receiver continues to run
+	void set_ce_sensing(int ce_sensing);
+
+	/// \brief USRP samples will be written to this buffer if the ce_sensing_flag
+	/// is set.
+    std::complex<float> *ce_usrp_rx_buffer;
+
+	/// \brief Length of the buffer for USRP samples
+	int ce_usrp_rx_buffer_length;
+	
+	//=================================================================================
 	// Networking Methods
 	//=================================================================================
 	
@@ -729,9 +744,10 @@ private:
     float ce_timeout_ms;
 
     // variables to enable/disable ce events
-    bool ce_phy_events;
-    
-    // cognitive engine threading objects
+    bool ce_phy_events; 
+    int ce_sensing_flag;
+
+	// cognitive engine threading objects
     pthread_t CE_process;
     pthread_mutex_t CE_mutex;
 	pthread_cond_t CE_cond;
