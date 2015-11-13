@@ -60,3 +60,8 @@ allocation can be changed on the fly by the CE. If you run uhd\_fft on a
 nearby node before running this scenario you can observe the initial
 subcarrier allocation defined in the scenario configuration file followed
 by switching between a custom allocation and the default liquid-dsp allocation.
+
+## 9. Python\_Flowgraph\_Example
+
+This scenario demonstrates how to setup and use a cognitive radio written in python
+rather than the ECR.
