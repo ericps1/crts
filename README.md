@@ -268,12 +268,6 @@ must specify the cr\_type ("python") and a python\_file (python_txrx.py in the e
 in the top-level cognitive_radios folder. In addition, you can supply arguments to pass to your radio by using the
 arguments field. An example scenario file for a python radio can be found in scenarios/Python\_Flowgraph_Example.cfg.
 
-python\_txrx.py was developed using the GNURadio-companion and slightly modified by hand. It reads data from the tunCRTS virtual interface
-using the TUNTAP PDU block, and passes it along to a second node via a Socket PDU block in server mode. The second node
-receives the data from a Socket PDU block in client mode, then passes it to the TUNTAP PDU block to write the data to
-the tunCRTS virtual interface. This radio can be used as a template for other python radios, by replacing the Socket PDU
-blocks with USRP blocks to send the data over the air, rather than over the network.
-
 ### Interferers
 
 The testing scenarios for CRTS may involve generic interferers. There are a number
