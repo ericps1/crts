@@ -19,13 +19,13 @@ void CE_Two_Channel_DSA_Link_Reliability::execute(void * _args){
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
 
     // If we recieved a frame and the payload is valid
-    if((ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT) && ECR->CE_metrics.payload_valid)
+    if((ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY) && ECR->CE_metrics.payload_valid)
         cons_invalid_payloads = 0;
     else
         cons_invalid_payloads += 1;
 
     // If we recieved a frame and the control is valid
-    if((ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT) && ECR->CE_metrics.control_valid)
+    if((ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY) && ECR->CE_metrics.control_valid)
         cons_invalid_control = 0;
     else
         cons_invalid_control += 1;

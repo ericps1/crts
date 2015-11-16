@@ -42,11 +42,11 @@ CE_Mod_Adaptation::execute(void * _args)
 		float EVM_old = EVM_buff[ind];
 		float EVM_new;
 
-		/*
+		/*	
 		 * Due to an invalid received frame, EVM may be a NaN.
 		 * If this is the case assign a proper value to indicate
 		 * a very bad EVM.
-		 */
+		*/ 
 		if(isnanf(ECR->CE_metrics.stats.evm)){
 			EVM_new = 0;
 		}
@@ -81,7 +81,7 @@ CE_Mod_Adaptation::execute(void * _args)
 		// set control info to update the transmitter modulation scheme
 		memcpy(control_info, &desired_rx_mod, sizeof(int));
 		ECR->set_tx_control_info(control_info);
-
+		
 		// increment the EVM buffer index and wrap around
 		ind++;
 		if (ind >= EVM_buffer_len)
@@ -90,7 +90,8 @@ CE_Mod_Adaptation::execute(void * _args)
 		// obtain the desired tx modulation based on the received control information
 		ECR->get_rx_control_info(control_info);
 		desired_tx_mod = *(int *) control_info;
-
+		dprintf("Desired tx mod: %i\n", desired_tx_mod);
+		
 		// update transmitter modulation if necessary
 		if (ECR->CE_metrics.control_valid
 		        && current_tx_mod != desired_tx_mod
@@ -102,6 +103,7 @@ CE_Mod_Adaptation::execute(void * _args)
 
 	}
 	else
+		// for this example we assume there won't be any USRP overflows or underruns
 		dprintf("CE was triggered by a timeout\n");
 }
 

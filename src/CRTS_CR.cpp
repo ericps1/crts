@@ -239,7 +239,7 @@ int main(int argc, char ** argv){
     dprintf("Connected to server\n");
     
     // Quiet UHD output
-    uhd::msg::register_handler(&uhd_quiet);
+    //uhd::msg::register_handler(&uhd_quiet);
     
     // Port to be used by CRTS server and client
     int port = 4444;
