@@ -109,7 +109,10 @@ void CE_CORNET3Dtx::execute(void * _args){
     if (buffer[0]=='0' && buffer[1]=='2'  )
         ECR->set_tx_modulation(LIQUID_MODEM_BPSK);
     if (buffer[0]=='0' && buffer[1]=='3'  )    
+    {
+        printf("Setting ms to qpsk\n");
         ECR->set_tx_modulation(LIQUID_MODEM_QPSK);
+    }
     if (buffer[0]=='0' && buffer[1]=='4'  )   
         ECR->set_tx_modulation(LIQUID_MODEM_PSK8);
     if (buffer[0]=='0' && buffer[1]=='5'  )
@@ -122,7 +125,7 @@ void CE_CORNET3Dtx::execute(void * _args){
         ECR->set_tx_modulation(LIQUID_MODEM_PSK128);
     if (buffer[0]=='0' && buffer[1]=='9'  ) 
        ECR->set_tx_modulation(LIQUID_MODEM_QAM8);
-    if (buffer[0]=='0' && buffer[1]=='0'  )   
+    if (buffer[0]=='1' && buffer[1]=='0'  )   
         ECR->set_tx_modulation(LIQUID_MODEM_QAM16);
     if (buffer[0]=='1' && buffer[1]=='1'  )     
         ECR->set_tx_modulation(LIQUID_MODEM_QAM32);
@@ -136,38 +139,52 @@ void CE_CORNET3Dtx::execute(void * _args){
         ECR->set_tx_modulation(LIQUID_MODEM_ASK8);
     if (buffer[0]=='1' && buffer[1]=='6'  )        
         ECR->set_tx_modulation(LIQUID_MODEM_ASK16);
-    if (buffer[0]=='1' && buffer[1]=='7'  )         
+    if (buffer[0]=='1' && buffer[1]=='7'  )        
+        ECR->set_tx_modulation(LIQUID_MODEM_ASK32);
+    if (buffer[0]=='1' && buffer[1]=='8'  )        
+        ECR->set_tx_modulation(LIQUID_MODEM_ASK64);
+    if (buffer[0]=='1' && buffer[1]=='9'  )        
+        ECR->set_tx_modulation(LIQUID_MODEM_ASK128);
+    if (buffer[2] == '1')
+        ECR->set_tx_crc (LIQUID_CRC_NONE);
+    if (buffer[2] == '2')
+        ECR->set_tx_crc (LIQUID_CRC_CHECKSUM);
+    if (buffer[2]=='3'  )    
         ECR->set_tx_crc (LIQUID_CRC_8);
-    if (buffer[2]=='2'  )    
+    if (buffer[2]=='4'  )   
         ECR->set_tx_crc (LIQUID_CRC_16);
-    if (buffer[2]=='3'  )   
-        ECR->set_tx_crc (LIQUID_CRC_24);
-    if (buffer[2]=='4'  )    
+    if (buffer[2]=='5'  )    
+        ECR->set_tx_crc (LIQUID_CRC_24); 
+    if (buffer[2]=='6'  )    
         ECR->set_tx_crc (LIQUID_CRC_32); 
     if (buffer[3]=='1'  )
-        ECR->set_tx_fec0(LIQUID_FEC_HAMMING74);
+        ECR->set_tx_fec0(LIQUID_FEC_NONE);
     if (buffer[3]=='2'  )
-        ECR->set_tx_fec0(LIQUID_FEC_HAMMING128);
+        ECR->set_tx_fec0(LIQUID_FEC_HAMMING74);
     if (buffer[3]=='3')
-        ECR->set_tx_fec0(LIQUID_FEC_GOLAY2412); 
+        ECR->set_tx_fec0(LIQUID_FEC_HAMMING128); 
     if (buffer[3]=='4')
-        ECR->set_tx_fec0(LIQUID_FEC_SECDED2216);
+        ECR->set_tx_fec0(LIQUID_FEC_GOLAY2412);
     if (buffer[3]=='5')
-        ECR->set_tx_fec0(LIQUID_FEC_SECDED3932);
+        ECR->set_tx_fec0(LIQUID_FEC_SECDED2216);
     if (buffer[3]=='6')
+        ECR->set_tx_fec0(LIQUID_FEC_SECDED3932); 
+    if (buffer[3]=='7')
         ECR->set_tx_fec0(LIQUID_FEC_SECDED7264); 
     if (buffer[4]=='1')
-        ECR->set_tx_fec1(LIQUID_FEC_HAMMING74);
+        ECR->set_tx_fec1(LIQUID_FEC_NONE);
     if (buffer[4]=='2')
-        ECR->set_tx_fec1(LIQUID_FEC_HAMMING128);
+        ECR->set_tx_fec1(LIQUID_FEC_HAMMING74);
     if (buffer[4]=='3')
-        ECR->set_tx_fec1(LIQUID_FEC_GOLAY2412); 
+        ECR->set_tx_fec1(LIQUID_FEC_HAMMING128); 
     if (buffer[4]=='4')
-        ECR->set_tx_fec1(LIQUID_FEC_SECDED2216);
+        ECR->set_tx_fec0(LIQUID_FEC_GOLAY2412);
     if (buffer[4]=='5')
-        ECR->set_tx_fec1(LIQUID_FEC_SECDED3932);
-    if (buffer[4]=='6')    
-        ECR->set_tx_fec1(LIQUID_FEC_SECDED7264);
+        ECR->set_tx_fec0(LIQUID_FEC_SECDED2216);
+    if (buffer[4]=='6')
+        ECR->set_tx_fec0(LIQUID_FEC_SECDED3932); 
+    if (buffer[4]=='7')
+        ECR->set_tx_fec0(LIQUID_FEC_SECDED7264); 
   //  float tx_freq = buffer[6];
     //    ECR->set_tx_freq ( tx_freq);
    // write(newsockfd,"I got your message",18);
