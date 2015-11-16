@@ -838,6 +838,7 @@ void ExtensibleCognitiveRadio::get_rx_control_info(
 // update the actual parameters being used by the transmitter
 void ExtensibleCognitiveRadio::update_tx_params() {
 
+<<<<<<< HEAD
   // copy all the new parameters
   tx_params = tx_params_updated;
   
@@ -875,6 +876,21 @@ void ExtensibleCognitiveRadio::update_tx_params() {
     ofdmflexframegen_reset(fg);
     reset_fg = false;
   }
+=======
+	// recreate the frame generator only if necessary
+	if(recreate_fg){
+        printf("recreating generator\n");
+		ofdmflexframegen_destroy(fg);
+    	fg = ofdmflexframegen_create(tx_params.numSubcarriers, tx_params.cp_len, tx_params.taper_len, tx_params.subcarrierAlloc, &tx_params.fgprops);
+    }
+
+    printf("calling setprops, ms: %u\n", tx_params.fgprops.mod_scheme);
+	ofdmflexframegen_setprops(fg, &tx_params.fgprops);
+	
+	// make sure the frame generator buffer is appropriately sized
+	fgbuffer_len = tx_params.numSubcarriers + tx_params.cp_len;
+    fgbuffer = (std::complex<float> *) realloc((void*)fgbuffer, fgbuffer_len * sizeof(std::complex<float>));
+>>>>>>> Debugging CRTS-CORNET3D
 
   ofdmflexframegen_setprops(fg, &tx_params.fgprops);
 
@@ -1311,6 +1327,7 @@ void *ECR_rx_worker(void *_arg) {
       case 1:
         // Signal CE thread
         pthread_mutex_lock(&ECR->CE_mutex);
+<<<<<<< HEAD
         ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::UHD_OVERFLOW;
         pthread_cond_signal(&ECR->CE_execute_sig);
         pthread_mutex_unlock(&ECR->CE_mutex);
@@ -1320,6 +1337,21 @@ void *ECR_rx_worker(void *_arg) {
         // Signal CE thread
         pthread_mutex_lock(&ECR->CE_mutex);
         ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::UHD_UNDERRUN;
+=======
+        ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::PHY;        // set event type to phy once mutex is locked
+        if(_header_valid)
+        {
+            printf("mod scheme received: %u\n", _stats.mod_scheme);
+            if(ExtensibleCognitiveRadio::DATA == ((_header[0] >> 6) & 0x3) )
+                ECR->CE_metrics.CE_frame = ExtensibleCognitiveRadio::DATA;
+            else
+                ECR->CE_metrics.CE_frame = ExtensibleCognitiveRadio::CONTROL;
+        }
+        else
+        {
+            ECR->CE_metrics.CE_frame = ExtensibleCognitiveRadio::UNKNOWN;
+        }
+>>>>>>> Debugging CRTS-CORNET3D
         pthread_cond_signal(&ECR->CE_execute_sig);
         pthread_mutex_unlock(&ECR->CE_mutex);
         ECR->uhd_msg = 0;
@@ -1666,6 +1698,60 @@ void *ECR_tx_worker(void *_arg) {
             exit(1);
           }
         }
+<<<<<<< HEAD
+=======
+        
+		memset(buffer, 0, buffer_len);
+            
+        fd_set fds;
+		struct timeval timeout;
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 1000;
+
+		// run transmitter
+        while (ECR->tx_running) {
+            nread = 0;
+			int bps = modulation_types[ECR->tx_params.fgprops.mod_scheme].bps;
+			int payload_sym_length = ECR->tx_params.payload_sym_length;
+			int payload_byte_length = (int)ceilf((float)(payload_sym_length*bps)/8.0);
+
+			while(nread <= payload_byte_length && ECR->tx_running){
+				FD_ZERO(&fds);
+			    FD_SET(ECR->tunfd, &fds);
+			
+			    // check if anything is available on the TUN interface
+				if(select(ECR->tunfd+1, &fds, NULL, NULL, &timeout) > 0){
+         
+					// grab data from TUN interface
+            		nread += cread(ECR->tunfd, (char*)(&buffer[nread]), buffer_len);
+            		if (nread < 0) {
+            	    	printf("Error reading from interface");
+            	    	close(ECR->tunfd);
+            	    	exit(1);
+            		}
+				}
+			}
+            
+            payload = buffer;
+            payload_len = nread;
+     
+            if(ECR->update_tx_flag){
+				printf("updating tx parameters\n");
+				ECR->update_tx_params();
+			}
+			// transmit frame
+            ofdmflexframegen_print(ECR->fg);
+            ECR->transmit_frame(ECR->tx_header,
+            	    payload,
+            	    payload_len);
+        } // while tx_running
+        dprintf("tx_worker finished running\n");
+    } // while true
+    //
+    dprintf("tx_worker exiting thread\n");
+    pthread_exit(NULL);
+}
+>>>>>>> Debugging CRTS-CORNET3D
 
         pthread_mutex_lock(&ECR->tx_params_mutex); 
         if (ECR->update_tx_flag) {
