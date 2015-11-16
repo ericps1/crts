@@ -62,7 +62,7 @@ CE_CORNET3Drx::CE_CORNET3Drx()
 
 // destructor
 CE_CORNET3Drx::~CE_CORNET3Drx() {
- close(newsockfdr);
+    close(newsockfdr);
     close(sockfdr);
 
 }
@@ -71,35 +71,33 @@ CE_CORNET3Drx::~CE_CORNET3Drx() {
 void CE_CORNET3Drx::execute(void * _args){
     // type cast pointer to cognitive radio object
     ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
-//    int i=0,j=0,l=0;
-    
-//char a[256], b[256];
+
     if(ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT)
     {
-	    if(ECR->CE_metrics.control_valid && ECR->CE_metrics.payload_valid)
-	    {    
-		    error = 0;
-		    good_packets++;
-	    }
-	    else if (!ECR->CE_metrics.control_valid || !ECR->CE_metrics.payload_valid)
-	    {
-		    error += 1;
-		    bad_packets++;
-	    }
-	    last++;
-	    if(last % 10 == 0)bad_packets++;	
-	    per = (float)bad_packets/(bad_packets + good_packets);
- 	    std::ostringstream ss;
-	    ss << per;
-	    std::string s_per(ss.str());
-	    printf("sper: %s\n", s_per.c_str());
-  	    write(newsockfdr,s_per.c_str(),s_per.size());
-	 //   char data_to_send[4];
- //memcpy(&data_to_send, &bad_packets, sizeof(error));
- //send(newsockfdr, (const char*)data_to_send, 4, 0);
+        if(ECR->CE_metrics.control_valid && ECR->CE_metrics.payload_valid)
+        {    
+            error = 0;
+            good_packets++;
+        }
+        else if (!ECR->CE_metrics.control_valid || !ECR->CE_metrics.payload_valid)
+        {
+            error += 1;
+            bad_packets++;
+        }
+        last++;
+        if(last % 10 == 0)bad_packets++;	
+        per = (float)bad_packets/(bad_packets + good_packets);
+        std::ostringstream ss;
+        ss << per;
+        std::string s_per(ss.str());
+        printf("sper: %s\n", s_per.c_str());
+        write(newsockfdr,s_per.c_str(),s_per.size());
+        //   char data_to_send[4];
+        //memcpy(&data_to_send, &bad_packets, sizeof(error));
+        //send(newsockfdr, (const char*)data_to_send, 4, 0);
     }
     else
-	printf("timeout\n");
-    
+        printf("timeout\n");
+
 }
 
