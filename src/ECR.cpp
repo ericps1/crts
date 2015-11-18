@@ -879,12 +879,10 @@ void ExtensibleCognitiveRadio::update_tx_params() {
 =======
 	// recreate the frame generator only if necessary
 	if(recreate_fg){
-        printf("recreating generator\n");
 		ofdmflexframegen_destroy(fg);
     	fg = ofdmflexframegen_create(tx_params.numSubcarriers, tx_params.cp_len, tx_params.taper_len, tx_params.subcarrierAlloc, &tx_params.fgprops);
     }
 
-    printf("calling setprops, ms: %u\n", tx_params.fgprops.mod_scheme);
 	ofdmflexframegen_setprops(fg, &tx_params.fgprops);
 	
 	// make sure the frame generator buffer is appropriately sized
@@ -1341,7 +1339,6 @@ void *ECR_rx_worker(void *_arg) {
         ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::PHY;        // set event type to phy once mutex is locked
         if(_header_valid)
         {
-            printf("mod scheme received: %u\n", _stats.mod_scheme);
             if(ExtensibleCognitiveRadio::DATA == ((_header[0] >> 6) & 0x3) )
                 ECR->CE_metrics.CE_frame = ExtensibleCognitiveRadio::DATA;
             else
@@ -1736,11 +1733,9 @@ void *ECR_tx_worker(void *_arg) {
             payload_len = nread;
      
             if(ECR->update_tx_flag){
-				printf("updating tx parameters\n");
 				ECR->update_tx_params();
 			}
 			// transmit frame
-            ofdmflexframegen_print(ECR->fg);
             ECR->transmit_frame(ECR->tx_header,
             	    payload,
             	    payload_len);
