@@ -66,7 +66,7 @@ void CE_CORNET3Dtx::execute(void * _args){
     // if data is available, read it in
     if(select(newsockfd+1, &fds, NULL, NULL, &timeout)){
         // read the first byte which designates the message type
-        i = recv(newsockfd, buffer, 5, 0);
+        i = recv(newsockfd, buffer, 7, 0);
     }
 
     if (i < 0) 
