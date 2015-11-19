@@ -565,15 +565,13 @@ unsigned int ExtensibleCognitiveRadio::get_tx_taper_len() {
 // set control info (must have length 6)
 void ExtensibleCognitiveRadio::set_tx_control_info(
     unsigned char *_control_info) {
-  for (int i = 0; i < 6; i++)
-    tx_header[i + 2] = _control_info[i];
-  memcpy(_control_info, &tx_header[2], 6 * sizeof(unsigned char));
+  memcpy(&tx_header[2], _control_info, 6 * sizeof(unsigned char));
 }
 
 // get control info
 void ExtensibleCognitiveRadio::get_tx_control_info(
     unsigned char *_control_info) {
-  memcpy(&tx_header[2], _control_info, 6 * sizeof(unsigned char));
+  memcpy(_control_info, &tx_header[2], 6 * sizeof(unsigned char));
 }
 
 // set tx payload length
