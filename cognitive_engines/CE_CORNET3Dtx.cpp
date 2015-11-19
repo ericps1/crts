@@ -75,11 +75,12 @@ void CE_CORNET3Dtx::execute(void * _args){
     }
     else if(i > 0)
     {
-	if(buffer[0] == '9')
-	{
-	    printf("quit received\n");
-	    system("killall CRTS_controller");
-	}
+        //If user closes CORNET3D, it sends a message starting with 9 to tell 
+        //the CE to shut down. Killing CRTS_controller (which runs on the same
+        //node as the transmitter) causes a graceful shutdown on both all nodes
+        if(buffer[0] == '9')
+            system("killall CRTS_controller");
+        
         //Modulation Scheme encoded into buffer[0] and buffer[1]
         if (buffer[0]=='0' && buffer[1]=='1'  )       
             ECR->set_tx_modulation(LIQUID_MODEM_OOK);
@@ -159,7 +160,7 @@ void CE_CORNET3Dtx::execute(void * _args){
             ECR->set_tx_fec0(LIQUID_FEC_CONV_V39); 
         if (buffer[3]=='1' && buffer[4] == '1')
             ECR->set_tx_fec0(LIQUID_FEC_CONV_V615); 
-        
+
         //Outer FEC encoded in buffer[5] and buffer[6]
         if (buffer[5]=='0' && buffer[6] == '1')
             ECR->set_tx_fec1(LIQUID_FEC_NONE);
