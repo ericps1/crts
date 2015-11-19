@@ -44,7 +44,7 @@ title('Modulation Scheme');
 xlabel('Time (s)');
 ylabel('Modulation Scheme');
 ylim([25 30]);
-labels = {'Unknown','PSK2','PSK4','PSK8','PSK16','PSK32','PSK64','PSK128','PSK256','DPSK2','DPSK4','DPSK8','DPSK16','DPSK32','DPSK64','DPSK128','DPSK256','ASK2','ASK4','ASK8','ASK16','ASK32','ASK64','ASK128','ASK256','QAM4', 'QAM16', 'QAM32', 'QAM64', 'QAM128', 'QAM256','APSK2','APSK4','APSK8','APSK16','APSK32','APSK64','APSK128','APSK256','BPSK','QPSK','OOK','SQAM32','SQAM128','V29','Optimal QAM16','Optimal QAM32','Optimal QAM64','Optimal QAM128','Optimal QAM256','VT Logo'};
+labels = {'Unknown','PSK2','PSK4','PSK8','PSK16','PSK32','PSK64','PSK128','PSK256','DPSK2','DPSK4','DPSK8','DPSK16','DPSK32','DPSK64','DPSK128','DPSK256','ASK2','ASK4','ASK8','ASK16','ASK32','ASK64','ASK128','ASK256','QAM4', 'QAM8', 'QAM16', 'QAM32', 'QAM64', 'QAM128', 'QAM256','APSK2','APSK4','APSK8','APSK16','APSK32','APSK64','APSK128','APSK256','BPSK','QPSK','OOK','SQAM32','SQAM128','V29','Optimal QAM16','Optimal QAM32','Optimal QAM64','Optimal QAM128','Optimal QAM256','VT Logo'};
 set(gca, 'YTick', 0:52, 'YTickLabel', labels);
 
 figure;
