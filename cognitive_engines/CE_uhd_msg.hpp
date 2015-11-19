@@ -4,12 +4,12 @@
 #include "CE.hpp"
 
 class CE_uhd_msg : public Cognitive_Engine {
-    
-    private:
-    public:
-        CE_uhd_msg();
-        ~CE_uhd_msg();
-        virtual void execute(void * _args);
+
+private:
+public:
+  CE_uhd_msg();
+  ~CE_uhd_msg();
+  virtual void execute(void *_args);
 };
 
 #endif
