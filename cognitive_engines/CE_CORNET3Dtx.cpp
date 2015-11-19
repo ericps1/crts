@@ -71,12 +71,11 @@ void CE_CORNET3Dtx::execute(void * _args){
 
     if (i < 0) 
     { 
-        perror("read");
-        printf("ERROR on read");
-        //exit (1);
+        perror("recv");
     }
     else if(i > 0)
     {
+        //Modulation Scheme encoded into buffer[0] and buffer[1]
         if (buffer[0]=='0' && buffer[1]=='1'  )       
             ECR->set_tx_modulation(LIQUID_MODEM_OOK);
         if (buffer[0]=='0' && buffer[1]=='2'  )
@@ -94,28 +93,31 @@ void CE_CORNET3Dtx::execute(void * _args){
         if (buffer[0]=='0' && buffer[1]=='8'  ) 
             ECR->set_tx_modulation(LIQUID_MODEM_PSK128);
         if (buffer[0]=='0' && buffer[1]=='9'  ) 
+            ECR->set_tx_modulation(LIQUID_MODEM_QAM4);
+        if (buffer[0]=='1' && buffer[1]=='0'  ) 
             ECR->set_tx_modulation(LIQUID_MODEM_QAM8);
-        if (buffer[0]=='1' && buffer[1]=='0'  )   
+        if (buffer[0]=='1' && buffer[1]=='1'  )   
             ECR->set_tx_modulation(LIQUID_MODEM_QAM16);
-        if (buffer[0]=='1' && buffer[1]=='1'  )     
-            ECR->set_tx_modulation(LIQUID_MODEM_QAM32);
         if (buffer[0]=='1' && buffer[1]=='2'  )     
+            ECR->set_tx_modulation(LIQUID_MODEM_QAM32);
+        if (buffer[0]=='1' && buffer[1]=='3'  )     
             ECR->set_tx_modulation(LIQUID_MODEM_QAM64);
-        if (buffer[0]=='1' && buffer[1]=='3'  )         
-            ECR->set_tx_modulation(LIQUID_MODEM_ASK2);
         if (buffer[0]=='1' && buffer[1]=='4'  )         
-            ECR->set_tx_modulation(LIQUID_MODEM_ASK4);
+            ECR->set_tx_modulation(LIQUID_MODEM_ASK2);
         if (buffer[0]=='1' && buffer[1]=='5'  )         
+            ECR->set_tx_modulation(LIQUID_MODEM_ASK4);
+        if (buffer[0]=='1' && buffer[1]=='6'  )         
             ECR->set_tx_modulation(LIQUID_MODEM_ASK8);
-        if (buffer[0]=='1' && buffer[1]=='6'  )        
-            ECR->set_tx_modulation(LIQUID_MODEM_ASK16);
         if (buffer[0]=='1' && buffer[1]=='7'  )        
-            ECR->set_tx_modulation(LIQUID_MODEM_ASK32);
+            ECR->set_tx_modulation(LIQUID_MODEM_ASK16);
         if (buffer[0]=='1' && buffer[1]=='8'  )        
-            ECR->set_tx_modulation(LIQUID_MODEM_ASK64);
+            ECR->set_tx_modulation(LIQUID_MODEM_ASK32);
         if (buffer[0]=='1' && buffer[1]=='9'  )        
+            ECR->set_tx_modulation(LIQUID_MODEM_ASK64);
+        if (buffer[0]=='2' && buffer[1]=='0'  )        
             ECR->set_tx_modulation(LIQUID_MODEM_ASK128);
 
+        //Checksum encoded into buffer[2]
         if (buffer[2] == '1')
             ECR->set_tx_crc (LIQUID_CRC_NONE);
         if (buffer[2] == '2')
@@ -128,55 +130,55 @@ void CE_CORNET3Dtx::execute(void * _args){
             ECR->set_tx_crc (LIQUID_CRC_24); 
         if (buffer[2]=='6'  )    
             ECR->set_tx_crc (LIQUID_CRC_32); 
-        if (buffer[3]=='1'  )
+
+        //Inner FEC encoded in buffer[3] and buffer[4]
+        if (buffer[3]=='0' && buffer[4] == '1')
             ECR->set_tx_fec0(LIQUID_FEC_NONE);
-        if (buffer[3]=='2'  )
+        if (buffer[3]=='0' && buffer[4] == '2')
             ECR->set_tx_fec0(LIQUID_FEC_HAMMING74);
-        if (buffer[3]=='3')
+        if (buffer[3]=='0' && buffer[4] == '3')
             ECR->set_tx_fec0(LIQUID_FEC_HAMMING128); 
-        if (buffer[3]=='4')
+        if (buffer[3]=='0' && buffer[4] == '4')
             ECR->set_tx_fec0(LIQUID_FEC_GOLAY2412);
-        if (buffer[3]=='5')
+        if (buffer[3]=='0' && buffer[4] == '5')
             ECR->set_tx_fec0(LIQUID_FEC_SECDED2216);
-        if (buffer[3]=='6')
+        if (buffer[3]=='0' && buffer[4] == '6')
             ECR->set_tx_fec0(LIQUID_FEC_SECDED3932); 
-        if (buffer[3]=='7')
+        if (buffer[3]=='0' && buffer[4] == '7')
             ECR->set_tx_fec0(LIQUID_FEC_SECDED7264); 
-        if (buffer[4]=='1')
+        if (buffer[3]=='0' && buffer[4] == '8')
+            ECR->set_tx_fec0(LIQUID_FEC_CONV_V27); 
+        if (buffer[3]=='0' && buffer[4] == '9')
+            ECR->set_tx_fec0(LIQUID_FEC_CONV_V29); 
+        if (buffer[3]=='1' && buffer[4] == '0')
+            ECR->set_tx_fec0(LIQUID_FEC_CONV_V39); 
+        if (buffer[3]=='1' && buffer[4] == '1')
+            ECR->set_tx_fec0(LIQUID_FEC_CONV_V615); 
+        
+        //Outer FEC encoded in buffer[5] and buffer[6]
+        if (buffer[5]=='0' && buffer[6] == '1')
             ECR->set_tx_fec1(LIQUID_FEC_NONE);
-        if (buffer[4]=='2')
+        if (buffer[5]=='0' && buffer[6] == '2')
             ECR->set_tx_fec1(LIQUID_FEC_HAMMING74);
-        if (buffer[4]=='3')
+        if (buffer[5]=='0' && buffer[6] == '3')
             ECR->set_tx_fec1(LIQUID_FEC_HAMMING128); 
-        if (buffer[4]=='4')
-            ECR->set_tx_fec0(LIQUID_FEC_GOLAY2412);
-        if (buffer[4]=='5')
-            ECR->set_tx_fec0(LIQUID_FEC_SECDED2216);
-        if (buffer[4]=='6')
-            ECR->set_tx_fec0(LIQUID_FEC_SECDED3932); 
-        if (buffer[4]=='7')
-            ECR->set_tx_fec0(LIQUID_FEC_SECDED7264); 
+        if (buffer[5]=='0' && buffer[6] == '4')
+            ECR->set_tx_fec1(LIQUID_FEC_GOLAY2412);
+        if (buffer[5]=='0' && buffer[6] == '5')
+            ECR->set_tx_fec1(LIQUID_FEC_SECDED2216);
+        if (buffer[5]=='0' && buffer[6] == '6')
+            ECR->set_tx_fec1(LIQUID_FEC_SECDED3932); 
+        if (buffer[5]=='0' && buffer[6] == '7')
+            ECR->set_tx_fec1(LIQUID_FEC_SECDED7264); 
+        if (buffer[5]=='0' && buffer[6] == '8')
+            ECR->set_tx_fec1(LIQUID_FEC_CONV_V27); 
+        if (buffer[5]=='0' && buffer[6] == '9')
+            ECR->set_tx_fec1(LIQUID_FEC_CONV_V29); 
+        if (buffer[5]=='1' && buffer[6] == '0')
+            ECR->set_tx_fec1(LIQUID_FEC_CONV_V39); 
+        if (buffer[5]=='1' && buffer[6] == '1')
+            ECR->set_tx_fec1(LIQUID_FEC_CONV_V615); 
     }
-
-
-
-    /*
-       counter++;
-       if(counter == 10)
-       {
-       if(flip == 1)
-       {
-       ECR->set_tx_modulation(LIQUID_MODEM_QAM4);
-       flip *= -1;
-       }
-       else
-       {
-       ECR->set_tx_modulation(LIQUID_MODEM_BPSK);
-       flip*=-1;
-       }
-       counter = 0;
-       }*/
-
 }
 
 
