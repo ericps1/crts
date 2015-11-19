@@ -522,9 +522,9 @@ void ExtensibleCognitiveRadio::set_tx_subcarrier_alloc(char *_subcarrierAlloc) {
   // destroy frame gen, set subcarrier allocation, recreate frame gen
   if (_subcarrierAlloc) {
     tx_params_updated.subcarrierAlloc = (unsigned char *)realloc(
-        (void *)tx_params.subcarrierAlloc, tx_params.numSubcarriers);
+        (void *)tx_params_updated.subcarrierAlloc, tx_params_updated.numSubcarriers);
     memcpy(tx_params_updated.subcarrierAlloc, _subcarrierAlloc,
-           tx_params.numSubcarriers);
+           tx_params_updated.numSubcarriers);
   } else {
     free(tx_params_updated.subcarrierAlloc);
     tx_params_updated.subcarrierAlloc = NULL;
