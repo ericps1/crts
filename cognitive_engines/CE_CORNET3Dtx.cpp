@@ -75,6 +75,11 @@ void CE_CORNET3Dtx::execute(void * _args){
     }
     else if(i > 0)
     {
+	if(buffer[0] == '9')
+	{
+	    printf("quit received\n");
+	    system("killall CRTS_controller");
+	}
         //Modulation Scheme encoded into buffer[0] and buffer[1]
         if (buffer[0]=='0' && buffer[1]=='1'  )       
             ECR->set_tx_modulation(LIQUID_MODEM_OOK);
