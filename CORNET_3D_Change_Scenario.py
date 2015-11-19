@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import fileinput
 import sys
+from subprocess import call
 
 # Replace text for setting transmitter and receiver addresses in the scenario file
 def replaceTextInScenarioFile(txIPAddress,rxIPAddress):
@@ -11,7 +12,7 @@ def replaceTextInScenarioFile(txIPAddress,rxIPAddress):
         strNode2 = "node2: {"
 
         strCORNETIP = '    CORNET_IP = '
-        for line in fileinput.input("CORNET_3D.cfg", inplace=True):
+        for line in fileinput.input("scenarios/CORNET_3D.cfg", inplace=True):
                 # First parse until "node1: {" is found
                 if line.startswith("node1: {"):
                         parsedFirstNode = True
@@ -30,3 +31,4 @@ def replaceTextInScenarioFile(txIPAddress,rxIPAddress):
                         print line,
 
 replaceTextInScenarioFile(sys.argv[1], sys.argv[2])
+call(["./CRTS_controller"])
