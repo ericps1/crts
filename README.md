@@ -198,6 +198,11 @@ operation of the ECR via get() function calls as well as metrics passed from
 the receiver DSP. It can then control any of the operating parameters of the
 radio using set() function calls defined for the ECR.
 
+The cognitive engine is defined by an execute function which can be triggered by
+several events. The engine will need to respond accordingly depending on the type
+of event that occurred. The event types include the reception of a physical layer
+frame, a timeout, or USRP overflows and underruns.
+
 To make a new cognitive engine a user needs to define a new cognitive engine
 subclass. The CE\_Template.cpp and CE\_Template.hpp can be used as a guide in terms
 of the structure, and some of the other examples show how the CE can interact
