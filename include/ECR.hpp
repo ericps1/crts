@@ -808,6 +808,7 @@ private:
 
   // receiver properties/objects
   struct rx_parameter_s rx_params;
+  struct rx_parameter_s rx_params_updated;
   ofdmflexframesync fs; // frame synchronizer object
   unsigned int frame_num;
 
@@ -817,6 +818,11 @@ private:
   pthread_cond_t rx_cond;   // receive condition
   bool rx_running;          // is receiver running? (physical receiver)
   bool rx_thread_running;   // is receiver thread running?
+  bool d_rx_recreate_fs;
+  bool d_update_rx;
+  bool d_update_usrp_rx;
+  bool d_tune_rx_freq;
+  void update_rx_params();
   friend void *ECR_rx_worker(void *);
 
   // receiver callback
