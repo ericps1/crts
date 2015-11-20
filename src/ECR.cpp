@@ -15,14 +15,14 @@
 #include "TUN.hpp"
 
 // EDIT INCLUDE START FLAG
-#include "../cognitive_engines/CE_Template.hpp"
-#include "../cognitive_engines/CE_Subcarrier_Alloc.hpp"
-#include "../cognitive_engines/CE_Mod_Adaptation.hpp"
-#include "../cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
-#include "../cognitive_engines/CE_Two_Channel_DSA_PU.hpp"
-#include "../cognitive_engines/CE_FEC_Adaptation.hpp"
-#include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
 #include "../cognitive_engines/CE_uhd_msg.hpp"
+#include "../cognitive_engines/CE_Subcarrier_Alloc.hpp"
+#include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
+#include "../cognitive_engines/CE_Template.hpp"
+#include "../cognitive_engines/CE_Two_Channel_DSA_PU.hpp"
+#include "../cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
+#include "../cognitive_engines/CE_Mod_Adaptation.hpp"
+#include "../cognitive_engines/CE_FEC_Adaptation.hpp"
 // EDIT INCLUDE END FLAG
 
 #define DEBUG 0
@@ -64,6 +64,12 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
   tx_params.fgprops.fec0 = LIQUID_FEC_HAMMING128;
   tx_params.fgprops.fec1 = LIQUID_FEC_NONE;
   tx_params.fgprops.mod_scheme = LIQUID_MODEM_QAM4;
+
+  d_rx_recreate_fs = false;
+  d_update_rx = false;
+  d_tune_rx_freq = false;
+  d_update_usrp_rx = false;
+  rx_params_updated = rx_params;
 
   // copy tx_params to tx_params_updated and initialize update flags to 0
   tx_params_updated = tx_params;
@@ -295,22 +301,22 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio() {
 void ExtensibleCognitiveRadio::set_ce(char *ce) {
   ///@cond INTERNAL
   // EDIT SET_CE START FLAG
-  if (!strcmp(ce, "CE_Template"))
-    CE = new CE_Template();
-  if (!strcmp(ce, "CE_Subcarrier_Alloc"))
-    CE = new CE_Subcarrier_Alloc();
-  if (!strcmp(ce, "CE_Mod_Adaptation"))
-    CE = new CE_Mod_Adaptation();
-  if (!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
-    CE = new CE_Two_Channel_DSA_Spectrum_Sensing();
-  if (!strcmp(ce, "CE_Two_Channel_DSA_PU"))
-    CE = new CE_Two_Channel_DSA_PU();
-  if (!strcmp(ce, "CE_FEC_Adaptation"))
-    CE = new CE_FEC_Adaptation();
-  if (!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
-    CE = new CE_Two_Channel_DSA_Link_Reliability();
-  if (!strcmp(ce, "CE_uhd_msg"))
-    CE = new CE_uhd_msg();
+    if(!strcmp(ce, "CE_uhd_msg"))
+        CE = new CE_uhd_msg();
+    if(!strcmp(ce, "CE_Subcarrier_Alloc"))
+        CE = new CE_Subcarrier_Alloc();
+    if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
+        CE = new CE_Two_Channel_DSA_Link_Reliability();
+    if(!strcmp(ce, "CE_Template"))
+        CE = new CE_Template();
+    if(!strcmp(ce, "CE_Two_Channel_DSA_PU"))
+        CE = new CE_Two_Channel_DSA_PU();
+    if(!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
+        CE = new CE_Two_Channel_DSA_Spectrum_Sensing();
+    if(!strcmp(ce, "CE_Mod_Adaptation"))
+        CE = new CE_Mod_Adaptation();
+    if(!strcmp(ce, "CE_FEC_Adaptation"))
+        CE = new CE_FEC_Adaptation();
   // EDIT SET_CE END FLAG
   ///@endcond
 }
@@ -586,9 +592,44 @@ void ExtensibleCognitiveRadio::get_rx_control_info(
   memcpy(_control_info, CE_metrics.control_info, 6 * sizeof(unsigned char));
 }
 
+void ExtensibleCognitiveRadio::update_rx_params() {
+  if(d_update_rx){
+    rx_params = rx_params_updated;
+
+    if(d_update_usrp_rx){
+      usrp_rx->set_rx_rate(rx_params.rx_rate);
+      usrp_rx->set_rx_gain(rx_params.rx_gain_uhd);
+
+      if(d_tune_rx_freq){
+        uhd::tune_request_t tune;
+        tune.rf_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
+        tune.dsp_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
+        tune.rf_freq = rx_params.rx_freq;
+        tune.dsp_freq = rx_params.rx_dsp_freq;
+        usrp_rx->set_rx_freq(tune);
+        d_tune_rx_freq = false;
+      }
+      else{
+        usrp_rx->set_rx_freq(rx_params.rx_freq);
+      }
+      d_update_usrp_rx = false;
+    }
+
+    /* Check of liquid dsp OFDM framer needs any modifications */
+    if(d_rx_recreate_fs){
+      ofdmflexframesync_destroy(fs);
+      fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
+                                    rx_params.taper_len, rx_params.subcarrierAlloc,
+                                    rxCallback, (void *)this);
+      d_rx_recreate_fs = false;
+    }
+    d_update_rx = false;
+  }
+
+}
+
 // update the actual parameters being used by the transmitter
 void ExtensibleCognitiveRadio::update_tx_params() {
-
   // copy all the new parameters
   tx_params = tx_params_updated;
 
@@ -702,23 +743,20 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char *_header,
 
 // set receiver frequency
 void ExtensibleCognitiveRadio::set_rx_freq(float _rx_freq) {
-  rx_params.rx_freq = _rx_freq;
-  rx_params.rx_dsp_freq = 0.0;
-  usrp_rx->set_rx_freq(_rx_freq);
+  rx_params_updated.rx_freq = _rx_freq;
+  rx_params_updated.rx_dsp_freq = 0.0;
+  d_update_rx = true;
+  d_update_usrp_rx = true;
+  d_tune_rx_freq = false;
 }
 
 // set receiver frequency
 void ExtensibleCognitiveRadio::set_rx_freq(float _rx_freq, float _dsp_freq) {
-  rx_params.rx_freq = _rx_freq;
-  rx_params.rx_dsp_freq = _dsp_freq;
-
-  uhd::tune_request_t tune;
-  tune.rf_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
-  tune.dsp_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
-  tune.rf_freq = _rx_freq;
-  tune.dsp_freq = _dsp_freq;
-
-  usrp_rx->set_rx_freq(tune);
+  rx_params_updated.rx_freq = _rx_freq;
+  rx_params_updated.rx_dsp_freq = _dsp_freq;
+  d_update_rx = true;
+  d_update_usrp_rx = true;
+  d_tune_rx_freq = true;
 }
 
 // set receiver frequency
@@ -728,8 +766,9 @@ float ExtensibleCognitiveRadio::get_rx_freq() {
 
 // set receiver sample rate
 void ExtensibleCognitiveRadio::set_rx_rate(float _rx_rate) {
-  rx_params.rx_rate = _rx_rate;
-  usrp_rx->set_rx_rate(_rx_rate);
+  rx_params_updated.rx_rate = _rx_rate;
+  d_update_rx = true;
+  d_update_usrp_rx = true;
 }
 
 // get receiver sample rate
@@ -737,8 +776,9 @@ float ExtensibleCognitiveRadio::get_rx_rate() { return rx_params.rx_rate; }
 
 // set receiver hardware (UHD) gain
 void ExtensibleCognitiveRadio::set_rx_gain_uhd(float _rx_gain_uhd) {
-  rx_params.rx_gain_uhd = _rx_gain_uhd;
-  usrp_rx->set_rx_gain(_rx_gain_uhd);
+  rx_params_updated.rx_gain_uhd = _rx_gain_uhd;
+  d_update_rx = true;
+  d_update_usrp_rx = true;
 }
 
 // get receiver hardware (UHD) gain
@@ -757,14 +797,9 @@ void ExtensibleCognitiveRadio::reset_rx() { ofdmflexframesync_reset(fs); }
 // set number of subcarriers
 void ExtensibleCognitiveRadio::set_rx_subcarriers(
     unsigned int _numSubcarriers) {
-  // stop rx, destroy frame sync, set subcarriers, recreate frame sync
-  pthread_mutex_lock(&rx_mutex);
-  ofdmflexframesync_destroy(fs);
-  rx_params.numSubcarriers = _numSubcarriers;
-  fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
-                                rx_params.taper_len, rx_params.subcarrierAlloc,
-                                rxCallback, (void *)this);
-  pthread_mutex_unlock(&rx_mutex);
+  rx_params_updated.numSubcarriers = _numSubcarriers;
+  d_update_rx = true;
+  d_rx_recreate_fs = true;
 }
 
 // get number of subcarriers
@@ -774,30 +809,18 @@ unsigned int ExtensibleCognitiveRadio::get_rx_subcarriers() {
 
 // set subcarrier allocation
 void ExtensibleCognitiveRadio::set_rx_subcarrier_alloc(char *_subcarrierAlloc) {
-  // destroy frame gen, set cp length, recreate frame gen
-  // int rx_state = rx_running;
-  // if(rx_state)
-  //	stop_rx();
-  // usleep(1.0);
-  pthread_mutex_lock(&rx_mutex);
-
-  ofdmflexframesync_destroy(fs);
   if (_subcarrierAlloc) {
-    rx_params.subcarrierAlloc = (unsigned char *)realloc(
-        (void *)rx_params.subcarrierAlloc, rx_params.numSubcarriers);
-    memcpy(rx_params.subcarrierAlloc, _subcarrierAlloc,
-           rx_params.numSubcarriers);
+    rx_params_updated.subcarrierAlloc = (unsigned char *)realloc(
+             rx_params_updated.subcarrierAlloc,
+             rx_params_updated.numSubcarriers);
+    memcpy(rx_params_updated.subcarrierAlloc, _subcarrierAlloc,
+           rx_params_updated.numSubcarriers);
   } else {
-    free(rx_params.subcarrierAlloc);
-    rx_params.subcarrierAlloc = NULL;
+    free(rx_params_updated.subcarrierAlloc);
+    rx_params_updated.subcarrierAlloc = NULL;
   }
-  fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
-                                rx_params.taper_len, rx_params.subcarrierAlloc,
-                                rxCallback, (void *)this);
-
-  pthread_mutex_unlock(&rx_mutex);
-  // if(rx_state)
-  //	start_rx();
+  d_rx_recreate_fs = true;
+  d_update_rx = true;
 }
 
 // get subcarrier allocation
@@ -807,14 +830,9 @@ void ExtensibleCognitiveRadio::get_rx_subcarrier_alloc(char *subcarrierAlloc) {
 
 // set cp_len
 void ExtensibleCognitiveRadio::set_rx_cp_len(unsigned int _cp_len) {
-  // destroy frame gen, set cp length, recreate frame gen
-  pthread_mutex_lock(&rx_mutex);
-  ofdmflexframesync_destroy(fs);
-  rx_params.cp_len = _cp_len;
-  fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
-                                rx_params.taper_len, rx_params.subcarrierAlloc,
-                                rxCallback, (void *)this);
-  pthread_mutex_unlock(&rx_mutex);
+  rx_params_updated.cp_len = _cp_len;
+  d_rx_recreate_fs = true;
+  d_update_rx = true;
 }
 
 // get cp_len
@@ -825,13 +843,9 @@ unsigned int ExtensibleCognitiveRadio::get_rx_cp_len() {
 // set taper_len
 void ExtensibleCognitiveRadio::set_rx_taper_len(unsigned int _taper_len) {
   // destroy frame gen, set cp length, recreate frame gen
-  pthread_mutex_lock(&rx_mutex);
-  ofdmflexframesync_destroy(fs);
-  rx_params.taper_len = _taper_len;
-  fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
-                                rx_params.taper_len, rx_params.subcarrierAlloc,
-                                rxCallback, (void *)this);
-  pthread_mutex_unlock(&rx_mutex);
+  rx_params_updated.taper_len = _taper_len;
+  d_rx_recreate_fs = true;
+  d_update_rx = true;
 }
 
 // get taper_len
@@ -946,6 +960,10 @@ void *ECR_rx_worker(void *_arg) {
         break;
       }
 
+      /* Update RX params for the next run */
+      ECR->update_rx_params();
+      delete[] ECR->CE_metrics.payload;
+      ECR->CE_metrics.payload = NULL;
     } // while rx_running
     dprintf("rx_worker finished running\n");
 
