@@ -25,11 +25,11 @@
 #ifndef __TIMER_H__
 #define __TIMER_H__
 
-// 
+//
 // timer object interface declarations
 //
 
-typedef struct timer_s * timer;
+typedef struct timer_s *timer;
 
 // create timer object
 timer timer_create();
@@ -44,4 +44,3 @@ void timer_tic(timer _q);
 float timer_toc(timer _q);
 
 #endif // __TIMER_H__
-

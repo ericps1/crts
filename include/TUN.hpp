@@ -27,4 +27,3 @@ void do_debug(char *msg, ...);
  * my_err: prints custom error messages on stderr.                        *
  **************************************************************************/
 void my_err(char *msg, ...);
-
