@@ -2,7 +2,11 @@
 #define DEFAULT_CONTROLLER_IP_ADDRESS "192.168.1.56"
 
 #define USRP_BUFFER_LENGTH 256
+<<<<<<< HEAD
 #define TX_BUFFER_LENGTH   5120
+=======
+#define TX_BUFFER_LENGTH 51200
+>>>>>>> develop
 
 #define GMSK_PAYLOAD_LENGTH 50
 #define GMSK_HEADER_LENGTH 8
@@ -17,7 +21,5 @@
 #define OFDM_PAYLOAD_LENGTH 128
 
 #define DAC_RATE 64e6
+<<<<<<< HEAD
 */
-
-
-

@@ -196,7 +196,7 @@ void terminate(int signum) { sig_terminate = 1; }
 //  FUNCTION:  Fill Buffer for Transmission
 // ========================================================================
 void FillBufferForTransmission(unsigned int randomFlag,
-                               std::vector<std::complex<float>> &tx_buffer) {
+                               std::vector<std::complex<float> > &tx_buffer) {
   for (unsigned int i = 0; i < tx_buffer.size(); i++) {
     if (randomFlag == 1) {
       tx_buffer[i].real(0.5 * (float)rand() / (float)RAND_MAX - 0.25);
@@ -213,7 +213,7 @@ void FillBufferForTransmission(unsigned int randomFlag,
 //
 //  Based upon liquid-usrp gmskframe_tx.cc
 // ========================================================================
-unsigned int BuildGMSKTransmission(std::vector<std::complex<float>> &tx_buffer,
+unsigned int BuildGMSKTransmission(std::vector<std::complex<float> > &tx_buffer,
                                    Interferer Int) {
   crc_scheme gmskCrcScheme = LIQUID_CRC_16;
   fec_scheme gmskFecSchemeInner = LIQUID_FEC_NONE;
@@ -298,7 +298,7 @@ unsigned int BuildGMSKTransmission(std::vector<std::complex<float>> &tx_buffer,
 //  FUNCTION:  Build RRC Transmission
 // ========================================================================
 
-unsigned int BuildRRCTransmission(std::vector<std::complex<float>> &tx_buffer)
+unsigned int BuildRRCTransmission(std::vector<std::complex<float> > &tx_buffer)
 
 {
   unsigned int samplesInBuffer = 0;
@@ -333,7 +333,7 @@ unsigned int BuildRRCTransmission(std::vector<std::complex<float>> &tx_buffer)
 //  FUNCTION:  Build OFDM Transmission
 // ========================================================================
 
-int BuildOFDMTransmission(std::vector<std::complex<float>> &tx_buffer,
+int BuildOFDMTransmission(std::vector<std::complex<float> > &tx_buffer,
                           Interferer Int, struct node_parameters *np)
 
 {
@@ -362,11 +362,8 @@ int BuildOFDMTransmission(std::vector<std::complex<float>> &tx_buffer,
   float g = powf(10.0f, Int.tx_gain_soft / 20.0f);
 
   // reduce amplitude of signal to avoid clipping
-  float max_real = 0.0f;
   for (int j = 0; j < samps_to_transmit; j++) {
     tx_buffer[j] *= g;
-    if (tx_buffer[j].real() > max_real)
-      max_real = tx_buffer[j].real();
   }
   return samps_to_transmit;
 }
@@ -403,14 +400,14 @@ void log_tx_parameters() {
 // ========================================================================
 
 void TransmitInterference(Interferer Int,
-                          std::vector<std::complex<float>> &tx_buffer,
+                          std::vector<std::complex<float> > &tx_buffer,
                           int samplesInBuffer, node_parameters np,
                           scenario_parameters sp) {
   int tx_samp_count = 0;
   int usrp_samps = USRP_BUFFER_LENGTH;
 
-  // if(log_phy_tx_flag)
-  //		log_tx_parameters();
+  if (log_phy_tx_flag)
+    log_tx_parameters();
 
   Int.metadata_tx.start_of_burst = false;
   Int.metadata_tx.end_of_burst = false;
@@ -473,7 +470,7 @@ void ChangeFrequency(Interferer Int) {
 // ========================================================================
 void PerformDutyCycle_On(Interferer Int, node_parameters np,
                          scenario_parameters sp, float time_onCycle) {
-  std::vector<std::complex<float>> tx_buffer(2 * TX_BUFFER_LENGTH);
+  std::vector<std::complex<float> > tx_buffer(2 * TX_BUFFER_LENGTH);
   unsigned int samplesInBuffer = 0;
   unsigned int randomFlag = (Int.interference_type == (NOISE)) ? 1 : 0;
   timer_tic(onTimer);
@@ -487,7 +484,6 @@ void PerformDutyCycle_On(Interferer Int, node_parameters np,
     if ((Int.tx_freq_hop_type != (NONE)) && (a >= Int.tx_freq_hop_dwell_time)) {
       timer_tic(dwellTimer);
       ChangeFrequency(Int);
-      // usleep(100);
     }
 
     // Generate One Frame of Data to Transmit
@@ -512,9 +508,6 @@ void PerformDutyCycle_On(Interferer Int, node_parameters np,
 
     } // interference type switch
 
-    /*Receive_command_from_controller(&Int, &np, &sp);
-    if (sig_terminate)
-                    break;*/
     TransmitInterference(Int, tx_buffer, samplesInBuffer, np, sp);
     Receive_command_from_controller(&Int, &np, &sp);
     if (sig_terminate)
@@ -612,7 +605,6 @@ int main(int argc, char **argv) {
   // Read initial scenario info from controller
   printf("Receiving command from controller\n");
   Receive_command_from_controller(&Int, &np, &sp);
-  // fcntl(TCP_controller, F_SETFL, O_NONBLOCK);
 
   //===================================================================
   // Set up GMSK objects

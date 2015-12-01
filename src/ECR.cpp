@@ -347,7 +347,6 @@ void uhd_msg_handler(uhd::msg::type_t type, const std::string &msg) {
 
   if ((!strcmp(msg.c_str(), "O")) || (!strcmp(msg.c_str(), "D")))
     ExtensibleCognitiveRadio::uhd_msg = 1;
-
   if (!strcmp(msg.c_str(), "U"))
     ExtensibleCognitiveRadio::uhd_msg = 2;
 }
@@ -532,9 +531,9 @@ void ExtensibleCognitiveRadio::set_tx_subcarrier_alloc(char *_subcarrierAlloc) {
   // destroy frame gen, set subcarrier allocation, recreate frame gen
   if (_subcarrierAlloc) {
     tx_params_updated.subcarrierAlloc = (unsigned char *)realloc(
-        (void *)tx_params.subcarrierAlloc, tx_params.numSubcarriers);
+        (void *)tx_params_updated.subcarrierAlloc, tx_params_updated.numSubcarriers);
     memcpy(tx_params_updated.subcarrierAlloc, _subcarrierAlloc,
-           tx_params.numSubcarriers);
+           tx_params_updated.numSubcarriers);
   } else {
     free(tx_params_updated.subcarrierAlloc);
     tx_params_updated.subcarrierAlloc = NULL;
@@ -575,15 +574,13 @@ unsigned int ExtensibleCognitiveRadio::get_tx_taper_len() {
 // set control info (must have length 6)
 void ExtensibleCognitiveRadio::set_tx_control_info(
     unsigned char *_control_info) {
-  for (int i = 0; i < 6; i++)
-    tx_header[i + 2] = _control_info[i];
-  memcpy(_control_info, &tx_header[2], 6 * sizeof(unsigned char));
+  memcpy(&tx_header[2], _control_info, 6 * sizeof(unsigned char));
 }
 
 // get control info
 void ExtensibleCognitiveRadio::get_tx_control_info(
     unsigned char *_control_info) {
-  memcpy(&tx_header[2], _control_info, 6 * sizeof(unsigned char));
+  memcpy(_control_info, &tx_header[2], 6 * sizeof(unsigned char));
 }
 
 // set tx payload length
@@ -656,7 +653,7 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char *_header,
   // TODO: flush buffers
 
   // vector buffer to send data to device
-  std::vector<std::complex<float>> usrp_buffer(fgbuffer_len);
+  std::vector<std::complex<float> > usrp_buffer(fgbuffer_len);
 
   float tx_gain_soft_lin = powf(10.0f, tx_params.tx_gain_soft / 20.0f);
 
