@@ -14,6 +14,12 @@ enum cr_type {
   ecr // Radios created using ECR
 };
 
+enum net_traffic_type {
+  NET_TRAFFIC_STREAM = 0,
+  NET_TRAFFIC_BURST,
+  NET_TRAFFIC_POISSON
+};
+
 enum duplex {
   FDD = 0, // frequency division duplexing
   TDD,     // time division duplexing (not implemented)
@@ -43,10 +49,21 @@ struct node_parameters {
   char python_file[100];
   char arguments[20][50];
   int num_arguments;
+  
+  // network settings
   char CORNET_IP[20];
   char CRTS_IP[20];
   char TARGET_IP[20];
+  int net_traffic_type;
+  int net_burst_length;
+  float net_mean_throughput;
+  
+  
+  // CE settings
   char CE[100];
+  float ce_timeout_ms;
+  
+  // log/print settings
   int print_metrics;
   int log_phy_rx;
   int log_phy_tx;
@@ -54,7 +71,6 @@ struct node_parameters {
   char phy_rx_log_file[100];
   char phy_tx_log_file[100];
   char net_rx_log_file[100];
-  float ce_timeout_ms;
   int generate_octave_logs;
   int generate_python_logs;
 
@@ -85,7 +101,6 @@ struct node_parameters {
   int tx_crc;
   int tx_fec0;
   int tx_fec1;
-  float tx_delay_us;
   int tx_subcarrier_alloc_method;
   int tx_guard_subcarriers;
   int tx_central_nulls;

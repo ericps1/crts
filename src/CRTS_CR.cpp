@@ -16,6 +16,7 @@
 #include <fstream>
 #include <errno.h>
 #include <signal.h>
+#include <random>
 #include "ECR.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
@@ -378,6 +379,19 @@ int main(int argc, char **argv) {
     sig_terminate = 1;
   }
 
+  float t_step = 8.0*288.0/np.net_mean_throughput;
+  float tx_time_delta = 0;
+  struct timeval tx_time;
+  fd_set fds;
+  struct timeval timeout;
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 1;
+
+  // Poisson RV generator
+  std::default_random_engine rand_generator;
+  std::poisson_distribution<int> poisson_generator(1e6);
+  int poisson_rv;
+  
   // Wait for the start-time before beginning the scenario
   struct timeval tv;
   time_t time_s;
@@ -402,49 +416,61 @@ int main(int argc, char **argv) {
   }
 
   // main loop
-  float tx_time_delta = 0;
-  struct timeval tx_time;
   while (time_s < stop_time_s && !sig_terminate) {
     // Listen for any updates from the controller (non-blocking)
     dprintf("CRTS: Listening to controller for command\n");
     Receive_command_from_controller(&TCP_controller, &sp, &np);
 
     // Wait (used for test purposes only)
-    tx_time_delta += np.tx_delay_us;
-    tx_time.tv_sec = sp.start_time_s + (long int)floorf(tx_time_delta / 1e6);
+    switch(np.net_traffic_type){
+	case(NET_TRAFFIC_STREAM):
+	  tx_time_delta += t_step*1e6;
+	  break;
+    case(NET_TRAFFIC_BURST):
+	  tx_time_delta += t_step*np.net_burst_length*1e6;
+	  break;
+	case(NET_TRAFFIC_POISSON):
+	  poisson_rv = poisson_generator(rand_generator);
+	  tx_time_delta += t_step * (float)poisson_rv;
+	  break;
+	}
+	tx_time.tv_sec = sp.start_time_s + (long int)floorf(tx_time_delta / 1e6);
     tx_time.tv_usec = fmod(tx_time_delta, 1e6);
     while (1) {
       gettimeofday(&tv, NULL);
       if ((tv.tv_sec == tx_time.tv_sec && tv.tv_usec > tx_time.tv_usec) ||
           tv.tv_sec > tx_time.tv_sec)
-        break;
-      // usleep(1e3);
+        break;      
     }
 
-    // send UDP packet via CR
-    dprintf("CRTS: Sending UDP packet using CRTS client socket\n");
-    int send_return =
-        sendto(CRTS_client_sock, message, sizeof(message), 0,
-               (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
-    if (send_return < 0)
-      printf("Failed to send message\n");
+    for(int i=0; i<np.net_burst_length; i++){
+	  // send UDP packet via CR
+      dprintf("CRTS: Sending UDP packet using CRTS client socket\n");
+      int send_return =
+          sendto(CRTS_client_sock, message, sizeof(message), 0,
+                 (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
+      if (send_return < 0)
+        printf("Failed to send message\n");
+    }
 
     // read all available data from the UDP socket
     int recv_len = 0;
     dprintf("CRTS: Reading from CRTS server socket\n");
-    recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0,
-                        (struct sockaddr *)&CRTS_server_addr, &clientlen);
-    // print out received messages
-    if (recv_len > 0) {
-      // TODO: Say what address message was received from.
-      // (It's in CRTS_server_addr)
-      dprintf("CRTS received %i bytes:\n", recv_len);
-      // for(int j=0; j<recv_len; j++)
-      //    dprintf("%c", recv_buffer[j]);
-      if (np.log_net_rx) {
-        log_rx_data(&sp, &np, recv_len);
+    FD_ZERO(&fds);
+	FD_SET(CRTS_server_sock, &fds);
+	while (select(CRTS_server_sock+1, &fds, NULL, NULL, &timeout) > 0 ){
+	  recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0,
+                          (struct sockaddr *)&CRTS_server_addr, &clientlen);
+      // print out received messages
+      if (recv_len > 0) {
+        // TODO: Say what address message was received from.
+        // (It's in CRTS_server_addr)
+        dprintf("CRTS received %i bytes:\n", recv_len);
+        if (np.log_net_rx) {
+          log_rx_data(&sp, &np, recv_len);
+        }
       }
-    }
+	}
 
     // Update the current time
     gettimeofday(&tv, NULL);

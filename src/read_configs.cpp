@@ -208,6 +208,29 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   if (config_setting_lookup_float(node_config, "ce_timeout_ms", &tmpD))
     np.ce_timeout_ms = tmpD;
 
+  if (config_setting_lookup_float(node_config, "net_mean_throughput", &tmpD))
+    np.net_mean_throughput = tmpD;
+  else
+    np.net_mean_throughput = 1e3;
+
+  if (config_setting_lookup_string(node_config, "net_traffic_type", &tmpS)) {
+    if (!strcmp(tmpS, "stream"))
+      np.net_traffic_type = NET_TRAFFIC_STREAM;
+    else if (!strcmp(tmpS, "burst"))
+      np.net_traffic_type = NET_TRAFFIC_BURST;
+    else if (!strcmp(tmpS, "poisson"))
+      np.net_traffic_type = NET_TRAFFIC_POISSON;
+    else
+      np.duplex = NET_TRAFFIC_STREAM;
+  } 
+
+  if (np.net_traffic_type == NET_TRAFFIC_BURST){
+    if (config_setting_lookup_int(node_config, "net_burst_length", &tmpI))
+      np.net_burst_length = tmpI;
+    else
+      np.net_burst_length = 1;
+  }
+
   if (config_setting_lookup_string(node_config, "duplex", &tmpS)) {
     if (!strcmp(tmpS, "FDD"))
       np.duplex = FDD;
@@ -525,11 +548,6 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
         np.tx_fec1 = k;
     }
   }
-
-  if (config_setting_lookup_float(node_config, "tx_delay_us", &tmpD))
-    np.tx_delay_us = tmpD;
-  else
-    np.tx_delay_us = 1e3;
 
   if (config_setting_lookup_string(node_config, "interference_type", &tmpS)) {
     if (!strcmp(tmpS, "CW"))
