@@ -825,6 +825,10 @@ private:
 
   // receiver properties/objects
   struct rx_parameter_s rx_params;
+  int update_rx_flag;
+  int update_usrp_rx;
+  int recreate_fs;
+  void update_rx_params();
   ofdmflexframesync fs; // frame synchronizer object
   unsigned int frame_num;
 
