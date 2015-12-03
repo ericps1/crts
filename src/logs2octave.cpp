@@ -9,6 +9,7 @@ void help_logs2octave() {
   printf(" -t : Log file contains cognitive radio transmit parameters.\n");
   printf(" -i : Log file contains interferer transmit parameters.\n");
   printf(" -c : Log file contains CRTS rx data.\n");
+  printf(" -n : Log file contains CRTS tx data.\n");
 }
 
 int main(int argc, char **argv) {
@@ -18,7 +19,7 @@ int main(int argc, char **argv) {
   char node_prefix[50];
   node_prefix[0] = '\0';
 
-  enum log_t { phy_rx = 0, phy_tx, int_tx, net_rx };
+  enum log_t { phy_rx = 0, phy_tx, int_tx, net_rx, net_tx };
 
   log_t log_type = phy_rx;
 
@@ -31,8 +32,7 @@ int main(int argc, char **argv) {
   int l_opt = 0;
 
   int d;
-  // while((d = getopt(argc, argv, "hl:rtic")) != EOF){
-  while ((d = getopt(argc, argv, "hl:p:rtic")) != EOF) {
+  while ((d = getopt(argc, argv, "hl:p:rticn")) != EOF) {
     switch (d) {
     case 'h':
       help_logs2octave();
@@ -44,7 +44,6 @@ int main(int argc, char **argv) {
       strcat(output_file, ".m");
       l_opt = 1;
       break;
-    // case 'o': strcpy(output_file, optarg); o_opt = 1;	   break;
     case 'p':
       strcpy(node_prefix, optarg);
       strcat(node_prefix, "_");
@@ -59,6 +58,9 @@ int main(int argc, char **argv) {
       break;
     case 'c':
       log_type = net_rx;
+      break;
+    case 'n':
+      log_type = net_tx;
       break;
     }
   }
@@ -187,12 +189,32 @@ int main(int argc, char **argv) {
   if (log_type == net_rx) {
     struct timeval log_time;
     int bytes;
+    int packet_num;
     while (fread((struct timeval *)&log_time, sizeof(struct timeval), 1,
                  file_in)) {
       fread((int *)&bytes, sizeof(int), 1, file_in);
+      fread((int *)&packet_num, sizeof(int), 1, file_in);
       fprintf(file_out, "%snet_rx_t(%i) = %li + 1e-6*%li;\n", node_prefix, i,
               log_time.tv_sec, log_time.tv_usec);
       fprintf(file_out, "%snet_rx_bytes(%i) = %i;\n\n", node_prefix, i, bytes);
+      fprintf(file_out, "%snet_rx_packet_num(%i) = %i;\n\n", node_prefix, i, packet_num);
+      i++;
+    }
+  }
+
+  // handle CRTS tx data logs
+  if (log_type == net_tx) {
+    struct timeval log_time;
+    int bytes;
+	int packet_num;
+    while (fread((struct timeval *)&log_time, sizeof(struct timeval), 1,
+                 file_in)) {
+      fread((int *)&bytes, sizeof(int), 1, file_in);
+      fread((int *)&packet_num, sizeof(int), 1, file_in);
+      fprintf(file_out, "%snet_tx_t(%i) = %li + 1e-6*%li;\n", node_prefix, i,
+              log_time.tv_sec, log_time.tv_usec);
+      fprintf(file_out, "%snet_tx_bytes(%i) = %i;\n\n", node_prefix, i, bytes);
+      fprintf(file_out, "%snet_tx_packet_num(%i) = %i;\n\n", node_prefix, i, packet_num);
       i++;
     }
   }
