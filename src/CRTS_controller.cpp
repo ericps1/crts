@@ -311,8 +311,10 @@ int main(int argc, char **argv) {
         char msg_type = scenario_params_msg;
         send(client[j], (void *)&msg_type, sizeof(char), 0);
         send(client[j], (void *)&sp, sizeof(struct scenario_parameters), 0);
-        send(client[j], (void *)&np[j], sizeof(struct node_parameters), 0);
-      }
+        print_node_parameters(&np[j]);
+		send(client[j], (void *)&np[j], sizeof(struct node_parameters), 0);
+        printf("Sent %i bytes\n", sizeof(struct node_parameters));
+	  }
 
       // if in manual mode update the start time for all nodes
       if (manual_execution && !sig_terminate) {

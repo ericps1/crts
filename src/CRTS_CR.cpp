@@ -66,8 +66,6 @@ void Receive_command_from_controller(int *TCP_controller,
       }
     }
 
-    // int flags;
-
     // Parse command based on the message type
     switch (command_buffer[0]) {
     case scenario_params_msg: // settings for upcoming scenario
@@ -81,7 +79,8 @@ void Receive_command_from_controller(int *TCP_controller,
       rflag = recv(*TCP_controller,
                    &command_buffer[1 + sizeof(struct scenario_parameters)],
                    sizeof(struct node_parameters), 0);
-      memcpy(np, &command_buffer[1 + sizeof(struct scenario_parameters)],
+      printf("Received %i bytes\n", rflag);
+	  memcpy(np, &command_buffer[1 + sizeof(struct scenario_parameters)],
              sizeof(struct node_parameters));
       print_node_parameters(np);
       break;
@@ -393,15 +392,13 @@ int main(int argc, char **argv) {
   // Define parameters and message for sending
   int packet_counter = 0;
   const int packet_num_bytes = 4; // number of bytes used for the packet number
-  int packet_num_prs[packet_num_bytes]; // pseudo-random sequence used to modify packet number
-  char message[256];
-  strcpy(message, np.CRTS_IP);
+  unsigned char packet_num_prs[packet_num_bytes]; // pseudo-random sequence used to modify packet number
+  unsigned char message[256];
+  strcpy((char*)message, np.CRTS_IP);
   srand(12);
   for (int i=0; i < packet_num_bytes; i++)
     packet_num_prs[i] = rand() & 0xff;
-  for (int i=15+packet_num_bytes; i < 256; i++)
-    message[i] = rand() & 0xff;
-
+  
   // initialize sig_terminate flag and check return from socket call
   sig_terminate = 0;
   if (CRTS_client_sock < 0) {
@@ -482,17 +479,19 @@ int main(int argc, char **argv) {
 	  
 	  // update packet number
 	  packet_counter++;
+	  //printf("Transmit packet number %i\n", packet_counter);
+	  int rx_packet_num = 0;
 	  for (int i=0; i < packet_num_bytes; i++)
-        message[i+15] = (char) ( packet_counter>>(8*(packet_num_bytes-i-1)) & 0xff ) | packet_num_prs[i];
+        message[i+15] = ((packet_counter>>(8*(packet_num_bytes-i-1))) & 0xff )^packet_num_prs[i];
       
-      // fill the rest with random data
-      for (int i=15+packet_num_bytes; i < 256; i++)
-        message[i] = (char) (rand() & 0xff);
+	  // fill the rest with random data
+      //for (int i=15+packet_num_bytes; i < 256; i++)
+      //  message[i] = (rand() & 0xff);
 
 	  // send UDP packet via CR
       dprintf("CRTS: Sending UDP packet using CRTS client socket\n");
       int send_return =
-          sendto(CRTS_client_sock, message, sizeof(message), 0,
+          sendto(CRTS_client_sock, (char*)message, sizeof(message), 0,
                  (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
       if (send_return < 0)
         printf("Failed to send message\n");
@@ -514,17 +513,21 @@ int main(int argc, char **argv) {
 	  // determine packet number
       int rx_packet_num = 0;
 	  for (int i=0; i < packet_num_bytes; i++)
-        rx_packet_num += ((int)message[15+i]^packet_num_prs[i]) << (8*(packet_num_bytes-i-1));
+        rx_packet_num += (((unsigned char)recv_buffer[15+i])^packet_num_prs[i]) << (8*(packet_num_bytes-i-1));
+
 
 	  // print out/log details of received messages
       if (recv_len > 0) {
         // TODO: Say what address message was received from.
         // (It's in CRTS_server_addr)
-        dprintf("CRTS received %i bytes:\n", recv_len);
+        printf("CRTS received packet %i containing %i bytes:\n", rx_packet_num, recv_len);
         if (np.log_net_rx) {
           log_rx_data(&sp, &np, recv_len, rx_packet_num);
         }
       }
+	
+	  FD_ZERO(&fds);
+	  FD_SET(CRTS_server_sock, &fds);
 	}
 
     // Update the current time

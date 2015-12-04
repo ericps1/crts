@@ -208,28 +208,31 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   if (config_setting_lookup_float(node_config, "ce_timeout_ms", &tmpD))
     np.ce_timeout_ms = tmpD;
 
-  if (config_setting_lookup_float(node_config, "net_mean_throughput", &tmpD))
+  if (config_setting_lookup_float(node_config, "net_mean_throughput", &tmpD)){
     np.net_mean_throughput = tmpD;
+	printf("net mean throughput: %f\n", np.net_mean_throughput);
+  }
   else
     np.net_mean_throughput = 1e3;
 
+  // look up network traffic type
+  np.net_burst_length = 1;
   if (config_setting_lookup_string(node_config, "net_traffic_type", &tmpS)) {
-    if (!strcmp(tmpS, "stream"))
-      np.net_traffic_type = NET_TRAFFIC_STREAM;
-    else if (!strcmp(tmpS, "burst"))
+    if (!strcmp(tmpS, "stream")){
+      printf("net traffic is stream\n");
+	  np.net_traffic_type = NET_TRAFFIC_STREAM;
+	}
+    else if (!strcmp(tmpS, "burst")){
       np.net_traffic_type = NET_TRAFFIC_BURST;
+	  // look up the burst length if traffic type is burst
+	  if (config_setting_lookup_int(node_config, "net_burst_length", &tmpI))
+        np.net_burst_length = tmpI;
+	}
     else if (!strcmp(tmpS, "poisson"))
       np.net_traffic_type = NET_TRAFFIC_POISSON;
     else
       np.duplex = NET_TRAFFIC_STREAM;
   } 
-
-  if (np.net_traffic_type == NET_TRAFFIC_BURST){
-    if (config_setting_lookup_int(node_config, "net_burst_length", &tmpI))
-      np.net_burst_length = tmpI;
-    else
-      np.net_burst_length = 1;
-  }
 
   if (config_setting_lookup_string(node_config, "duplex", &tmpS)) {
     if (!strcmp(tmpS, "FDD"))
