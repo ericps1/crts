@@ -745,7 +745,7 @@ WARN_LOGFILE           =
 
 # These settings assume doxygen is being executed in the
 # doc/ directory of the CRTS source tree.
-INPUT                  = ../ ../src/ ../include/ ../cognitive_engines/README.md ../scenarios/ ../logs/
+INPUT                  = ../ ../src/ ../include/ ../logs/ ../scenarios ../cognitive_engines/README.md ../tutorials
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -765,7 +765,7 @@ INPUT_ENCODING         = UTF-8
 # *.md, *.mm, *.dox, *.py, *.f90, *.f, *.for, *.tcl, *.vhd, *.vhdl, *.ucf,
 # *.qsf, *.as and *.js.
 
-FILE_PATTERNS          = *.c *.cc *.cpp *.c++ *.h *.hpp *.md
+FILE_PATTERNS          = *.c *.cc *.cpp *.c++ *.h *.hpp *.md *.cfg
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
@@ -833,7 +833,7 @@ EXAMPLE_RECURSIVE      = NO
 # that contain images that are to be included in the documentation (see the
 # \image command).
 
-IMAGE_PATH             =
+IMAGE_PATH             = images #../images
 
 # The INPUT_FILTER tag can be used to specify a program that doxygen should
 # invoke to filter for each input file. Doxygen will invoke the filter program
