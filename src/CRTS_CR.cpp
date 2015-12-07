@@ -385,6 +385,9 @@ int main(int argc, char **argv) {
   // Bind CRTS server socket
   bind(CRTS_server_sock, (sockaddr *)&CRTS_server_addr, clientlen);
 
+  //
+  fcntl(CRTS_client_sock, F_SETFL, O_NONBLOCK);
+  
   // Define a buffer for receiving and a temporary message for sending
   int recv_buffer_len = 8192 * 2;
   char recv_buffer[recv_buffer_len];
@@ -495,7 +498,10 @@ int main(int argc, char **argv) {
                  (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
       if (send_return < 0)
         printf("Failed to send message\n");
-	  
+	  int err = errno;
+	  if (err == EWOULDBLOCK)
+	   printf("\n\nSOCKET BLOCKED\n\n");
+
 	  if (np.log_net_tx) {
           log_tx_data(&sp, &np, send_return, packet_counter);
       }
