@@ -47,9 +47,14 @@ int main() {
     }
   }
 
-  printf("Configuring CRTS to use the following cognitive engines:\n");
+  printf("Configuring CRTS to use the following cognitive engines:\n\n");
   for (int i = 0; i < num_ces; i++)
     printf("%s\n", ce_list[i].c_str());
+
+  printf("\nThe following files will be included as additional sources:\n\n");
+  for (int i = 0; i < num_srcs; i++)
+    printf("%s\n", src_list[i].c_str());
+  printf("\n");
 
   // create string vector
   std::vector<std::string> file_lines;

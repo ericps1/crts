@@ -5,6 +5,26 @@
 #include <liquid/liquid.h>
 #include "timer.h"
 
+#define DEFAULT_RUN_TIME 20
+#define DEFAULT_CONTROLLER_IP_ADDRESS "192.168.1.56"
+
+#define USRP_BUFFER_LENGTH 256
+#define TX_BUFFER_LENGTH 5120
+
+#define GMSK_PAYLOAD_LENGTH 50
+#define GMSK_HEADER_LENGTH 8
+
+#define RRC_SAMPS_PER_SYM 2
+#define RRC_FILTER_SEMILENGTH 32
+#define RRC_BETA 0.35
+
+#define OFDM_CP_LENGTH 4
+#define OFDM_TAPER_LENGTH 4
+#define OFDM_HEADER_LENGTH 8
+#define OFDM_PAYLOAD_LENGTH 128
+
+#define DAC_RATE 64e6
+
 class Interferer {
 public:
   Interferer(/*string with name of CE_execute function*/);

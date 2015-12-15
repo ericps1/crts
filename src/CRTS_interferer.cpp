@@ -64,96 +64,105 @@ FILE *GMSK2_log;
 static inline void
 Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
                                 struct scenario_parameters *sp) {
+  fd_set fds;
+  struct timeval timeout;
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 1;
+  FD_ZERO(&fds);
+  FD_SET(TCP_controller, &fds);
+
   // Listen to socket for message from controller
-  char command_buffer[1 + sizeof(struct scenario_parameters) +
-                      sizeof(struct node_parameters)];
-  int rflag = recv(TCP_controller, command_buffer,
-                   1 + sizeof(struct scenario_parameters) +
-                       sizeof(struct node_parameters),
-                   0);
-  int err = errno;
-  if (rflag <= 0) {
-    if ((err == EAGAIN) || (err == EWOULDBLOCK)) {
-      return;
-    } else {
-      close(TCP_controller);
-      printf("Socket failure\n");
-      exit(1);
-    }
-  }
-
-  // Parse command
-  switch (command_buffer[0]) {
-  case scenario_params_msg: // settings for upcoming scenario
-    dprintf("Received settings for scenario\n");
-
-    // copy scenario parameters
-    memcpy(sp, &command_buffer[1], sizeof(struct scenario_parameters));
-
-    // copy node_parameters
-    memcpy(np, &command_buffer[1 + sizeof(struct scenario_parameters)],
-           sizeof(struct node_parameters));
-    print_node_parameters(np);
-
-    // set interferer parameters
-    currentTxFreq = np->tx_freq;
-    if (np->tx_freq_hop_type == (ALTERNATING)) {
-      currentTxFreq = np->tx_freq_hop_min;
-    }
-    freqIncrement = +2.5e5;
-    freqCoeff = +1;
-
-    // set general interference parameters
-    Int->interference_type = np->interference_type;
-    Int->period = np->period;
-    Int->duty_cycle = np->duty_cycle;
-    Int->tx_rate = np->tx_rate;
-    Int->tx_gain_soft = np->tx_gain_soft;
-
-    // set USRP settings
-    Int->usrp_tx->set_tx_freq(currentTxFreq);
-    Int->usrp_tx->set_tx_rate(np->tx_rate);
-    Int->usrp_tx->set_tx_gain(np->tx_gain);
-
-    // set freq hopping parameters
-    Int->tx_freq_hop_type = np->tx_freq_hop_type;
-    Int->tx_freq_hop_min = np->tx_freq_hop_min;
-    Int->tx_freq_hop_max = np->tx_freq_hop_max;
-    Int->tx_freq_hop_dwell_time = np->tx_freq_hop_dwell_time;
-    Int->tx_freq_hop_increment = np->tx_freq_hop_increment;
-    if (Int->tx_freq_hop_increment > 0.0) {
-      freqIncrement = Int->tx_freq_hop_increment;
-    }
-    freqWidth = floor(np->tx_freq_hop_max - np->tx_freq_hop_min);
-
-    log_phy_tx_flag = np->log_phy_tx;
-    strcpy(phy_tx_log_file, np->phy_tx_log_file);
-
-    // open tx log file to delete any current contents
-    if (log_phy_tx_flag) {
-      std::ofstream log_file;
-      char log_file_name[50];
-      strcpy(log_file_name, "./logs/");
-      strcat(log_file_name, phy_tx_log_file);
-      log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
-      if (log_file.is_open()) {
-        log_file.close();
+  if (select(TCP_controller + 1, &fds, NULL, NULL, &timeout)) {
+    char command_buffer[1 + sizeof(struct scenario_parameters) +
+                        sizeof(struct node_parameters)];
+    int rflag = recv(TCP_controller, command_buffer,
+                     1 + sizeof(struct scenario_parameters) +
+                         sizeof(struct node_parameters),
+                     0);
+    int err = errno;
+    if (rflag <= 0) {
+      if ((err == EAGAIN) || (err == EWOULDBLOCK)) {
+        return;
       } else {
-        std::cout << "Error opening log file: " << log_file_name << std::endl;
+        close(TCP_controller);
+        printf("Socket failure\n");
+        exit(1);
       }
     }
 
-    break;
+    // Parse command
+    switch (command_buffer[0]) {
+    case scenario_params_msg: // settings for upcoming scenario
+      dprintf("Received settings for scenario\n");
 
-  case manual_start_msg: // updated start time (used for manual mode)
-    dprintf("Received an updated start time\n");
-    memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
-    stop_time_s = sp->start_time_s + sp->runTime;
-    break;
-  case terminate_msg: // terminate program
-    dprintf("Received termination command from controller\n");
-    exit(1);
-    break;
+      // copy scenario parameters
+      memcpy(sp, &command_buffer[1], sizeof(struct scenario_parameters));
+
+      // copy node_parameters
+      memcpy(np, &command_buffer[1 + sizeof(struct scenario_parameters)],
+             sizeof(struct node_parameters));
+      print_node_parameters(np);
+
+      // set interferer parameters
+      currentTxFreq = np->tx_freq;
+      if (np->tx_freq_hop_type == (ALTERNATING)) {
+        currentTxFreq = np->tx_freq_hop_min;
+      }
+      freqIncrement = +2.5e5;
+      freqCoeff = +1;
+
+      // set general interference parameters
+      Int->interference_type = np->interference_type;
+      Int->period = np->period;
+      Int->duty_cycle = np->duty_cycle;
+      Int->tx_rate = np->tx_rate;
+      Int->tx_gain_soft = np->tx_gain_soft;
+
+      // set USRP settings
+      Int->usrp_tx->set_tx_freq(currentTxFreq);
+      Int->usrp_tx->set_tx_rate(np->tx_rate);
+      Int->usrp_tx->set_tx_gain(np->tx_gain);
+
+      // set freq hopping parameters
+      Int->tx_freq_hop_type = np->tx_freq_hop_type;
+      Int->tx_freq_hop_min = np->tx_freq_hop_min;
+      Int->tx_freq_hop_max = np->tx_freq_hop_max;
+      Int->tx_freq_hop_dwell_time = np->tx_freq_hop_dwell_time;
+      Int->tx_freq_hop_increment = np->tx_freq_hop_increment;
+      if (Int->tx_freq_hop_increment > 0.0) {
+        freqIncrement = Int->tx_freq_hop_increment;
+      }
+      freqWidth = floor(np->tx_freq_hop_max - np->tx_freq_hop_min);
+
+      log_phy_tx_flag = np->log_phy_tx;
+      strcpy(phy_tx_log_file, np->phy_tx_log_file);
+
+      // open tx log file to delete any current contents
+      if (log_phy_tx_flag) {
+        std::ofstream log_file;
+        char log_file_name[50];
+        strcpy(log_file_name, "./logs/");
+        strcat(log_file_name, phy_tx_log_file);
+        log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
+        if (log_file.is_open()) {
+          log_file.close();
+        } else {
+          std::cout << "Error opening log file: " << log_file_name << std::endl;
+        }
+      }
+
+      break;
+
+    case manual_start_msg: // updated start time (used for manual mode)
+      dprintf("Received an updated start time\n");
+      memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
+      stop_time_s = sp->start_time_s + sp->runTime;
+      break;
+    case terminate_msg: // terminate program
+      dprintf("Received termination command from controller\n");
+      exit(1);
+      break;
+    }
   }
 }
 
@@ -353,13 +362,9 @@ int BuildOFDMTransmission(std::vector<std::complex<float> > &tx_buffer,
   float g = powf(10.0f, Int.tx_gain_soft / 20.0f);
 
   // reduce amplitude of signal to avoid clipping
-  float max_real = 0.0f;
   for (int j = 0; j < samps_to_transmit; j++) {
     tx_buffer[j] *= g;
-    if (tx_buffer[j].real() > max_real)
-      max_real = tx_buffer[j].real();
   }
-  printf("Max real: %f\n", max_real);
   return samps_to_transmit;
 }
 
@@ -410,7 +415,7 @@ void TransmitInterference(Interferer Int,
 
   Int.usrp_tx->get_device()->send(&tx_buffer[0], 0, Int.metadata_tx,
                                   uhd::io_type_t::COMPLEX_FLOAT32,
-                                  uhd::device::SEND_MODE_FULL_BUFF);
+                                  uhd::device::SEND_MODE_ONE_PACKET);
 
   Int.metadata_tx.start_of_burst = true;
 
@@ -422,7 +427,7 @@ void TransmitInterference(Interferer Int,
     }
     Int.usrp_tx->get_device()->send(
         &tx_buffer[tx_samp_count], usrp_samps, Int.metadata_tx,
-        uhd::io_type_t::COMPLEX_FLOAT32, uhd::device::SEND_MODE_FULL_BUFF);
+        uhd::io_type_t::COMPLEX_FLOAT32, uhd::device::SEND_MODE_ONE_PACKET);
 
     Int.metadata_tx.start_of_burst = false;
 
@@ -479,7 +484,6 @@ void PerformDutyCycle_On(Interferer Int, node_parameters np,
     if ((Int.tx_freq_hop_type != (NONE)) && (a >= Int.tx_freq_hop_dwell_time)) {
       timer_tic(dwellTimer);
       ChangeFrequency(Int);
-      usleep(100);
     }
 
     // Generate One Frame of Data to Transmit
@@ -504,9 +508,6 @@ void PerformDutyCycle_On(Interferer Int, node_parameters np,
 
     } // interference type switch
 
-    Receive_command_from_controller(&Int, &np, &sp);
-    if (sig_terminate)
-      break;
     TransmitInterference(Int, tx_buffer, samplesInBuffer, np, sp);
     Receive_command_from_controller(&Int, &np, &sp);
     if (sig_terminate)
@@ -604,7 +605,6 @@ int main(int argc, char **argv) {
   // Read initial scenario info from controller
   printf("Receiving command from controller\n");
   Receive_command_from_controller(&Int, &np, &sp);
-  fcntl(TCP_controller, F_SETFL, O_NONBLOCK);
 
   //===================================================================
   // Set up GMSK objects
@@ -649,6 +649,7 @@ int main(int argc, char **argv) {
   // ================================================================
   // BEGIN: Main Service Loop
   // ================================================================
+  srand(431);
   sig_terminate = 0;
   float time_onCycle = (Int.period * Int.duty_cycle);
   float time_offCycle = (Int.period * (1 - Int.duty_cycle));
