@@ -92,7 +92,7 @@ Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
 
     // Parse command
     switch (command_buffer[0]) {
-    case scenario_params_msg: // settings for upcoming scenario
+    case CRTS_MSG_SCENARIO_PARAMETERS: // settings for upcoming scenario
       dprintf("Received settings for scenario\n");
 
       // copy scenario parameters
@@ -153,12 +153,12 @@ Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
 
       break;
 
-    case manual_start_msg: // updated start time (used for manual mode)
+    case CRTS_MSG_MANUAL_START: // updated start time (used for manual mode)
       dprintf("Received an updated start time\n");
       memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
       stop_time_s = sp->start_time_s + sp->runTime;
       break;
-    case terminate_msg: // terminate program
+    case CRTS_MSG_TERMINATE: // terminate program
       dprintf("Received termination command from controller\n");
       exit(1);
       break;
@@ -692,6 +692,6 @@ int main(int argc, char **argv) {
   // ================================================================
 
   printf("Sending termination message to controller\n");
-  char term_message = terminate_msg;
+  char term_message = CRTS_MSG_TERMINATE;
   write(TCP_controller, &term_message, 1);
 }

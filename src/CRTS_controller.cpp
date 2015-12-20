@@ -52,7 +52,7 @@ int Receive_msg_from_nodes(int *client, int num_nodes) {
     // Parse command if received a message
     else {
       switch (msg) {
-      case terminate_msg: // terminate program
+      case CRTS_MSG_TERMINATE: // terminate program
         printf("Node %i has sent a termination message...\n", i + 1);
         num_nodes_terminated++;
         // check if all nodes have terminated
@@ -171,6 +171,8 @@ int main(int argc, char **argv) {
   int client[48];
   struct sockaddr_in clientAddr[48];
   socklen_t client_addr_size[48];
+  for(int i=0; i<48; i++)
+    client_addr_size[i] = sizeof(clientAddr[i]);
   struct node_parameters np[48];
 
   // read master scenario config file
@@ -178,6 +180,11 @@ int main(int argc, char **argv) {
   unsigned int scenario_reps[60];
   int num_scenarios = read_scenario_master_file(scenario_list, scenario_reps);
   printf("Number of scenarios: %i\n\n", num_scenarios);
+
+  // variables for reading the system clock
+  struct timeval tv;
+  time_t time_s;
+  time_t start_time_s;
 
   // loop through scenarios
   for (int i = 0; i < num_scenarios; i++) {
@@ -199,8 +206,6 @@ int main(int argc, char **argv) {
 
       // determine the start time for the scenario based
       // on the current time and the number of nodes
-      struct timeval tv;
-      time_t time_s;
       gettimeofday(&tv, NULL);
       time_s = tv.tv_sec;
       int pad_s = manual_execution ? 120 : 1;
@@ -306,55 +311,100 @@ int main(int argc, char **argv) {
         // set socket to non-blocking
         fcntl(client[j], F_SETFL, O_NONBLOCK);
 
+        // copy IP of connected node to node parameters if in manual mode
+		if (manual_execution)
+		  strcpy(np[j].CORNET_IP, inet_ntoa(clientAddr[j].sin_addr));
+
         // send scenario and node parameters
-        printf("\nNode %i has connected. Sending its parameters...\n", j + 1);
-        char msg_type = scenario_params_msg;
+        printf("\nNode %i has connected. Sending its parameters...\n", j + 1); 
+		char msg_type = CRTS_MSG_SCENARIO_PARAMETERS;
         send(client[j], (void *)&msg_type, sizeof(char), 0);
         send(client[j], (void *)&sp, sizeof(struct scenario_parameters), 0);
         print_node_parameters(&np[j]);
 		send(client[j], (void *)&np[j], sizeof(struct node_parameters), 0);
-        printf("Sent %i bytes\n", sizeof(struct node_parameters));
+        printf("Sent %lu bytes\n", sizeof(struct node_parameters));
 	  }
 
       // if in manual mode update the start time for all nodes
       if (manual_execution && !sig_terminate) {
 
-        struct timeval tv;
-        time_t time_s;
         gettimeofday(&tv, NULL);
-        time_s = tv.tv_sec;
-        int pad_s = 3;
-        time_t start_time_s = time_s + 1 * sp.num_nodes + pad_s;
+        start_time_s = tv.tv_sec + sp.num_nodes + 3;
 
         // send updated start time to all nodes
-        char msg_type = manual_start_msg;
+        char msg_type = CRTS_MSG_MANUAL_START;
         for (int j = 0; j < sp.num_nodes; j++) {
           send(client[j], (void *)&msg_type, sizeof(char), 0);
           send(client[j], (void *)&start_time_s, sizeof(time_t), 0);
         }
-      }
+      } else {
+        start_time_s = sp.start_time_s;
+	  }
 
       printf("Listening for scenario termination message from nodes\n");
 
-      int msg_terminate = 0;
+      // main loop: wait for termination condition
+      int time_terminate = 0;
+	  int msg_terminate = 0;
       num_nodes_terminated = 0;
-      while ((!sig_terminate) && (!msg_terminate)) {
+      while ((!sig_terminate) && (!msg_terminate) && (!time_terminate)) {
         msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
-      }
+      
+	    // check if the scenario should be terminated based on the elapsed time
+		gettimeofday(&tv, NULL);
+        time_s = tv.tv_sec;
+        if(time_s > start_time_s + sp.runTime + 10)
+		  time_terminate = 1;
+	  }
 
       if (msg_terminate)
-        printf("Terminating controller because all nodes have sent a "
-               "termination message\n");
+        printf("Ending scenario %i because all nodes have sent a "
+               "termination message\n", i+1);
 
-      if (sig_terminate) {
-        char msg = terminate_msg;
+      // terminate the current scenario on all nodes
+	  if (sig_terminate) {
+        // tell all nodes in the scenario to terminate the testing process
+	    char msg = CRTS_MSG_TERMINATE;
         for (int j = 0; j < sp.num_nodes; j++) {
           write(client[j], &msg, 1);
         }
+        
+        // get current time
+        gettimeofday(&tv, NULL);
+        time_t msg_sent_time_s = tv.tv_sec;
+          
+		// listen for confirmation that all nodes have terminated
+		while (!msg_terminate) {
+          msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
+      
+	      // check if the scenario should be terminated based on the elapsed time
+		  gettimeofday(&tv, NULL);
+          time_s = tv.tv_sec;
+          if(time_s > msg_sent_time_s + 10)
+		    time_terminate = 1;
+	    }
       }
+ 
+	  // forcefully terminate all processes if one or more has failed to terminate gracefully
+      if (time_terminate) {
+        for (int j=0; j < sp.num_nodes; j++) {
+          printf("Running sharc cleanup on node %i: %s\n", j+1, np[j].CORNET_IP);
+		  char command[2000] = "ssh ";
+          // Add username to ssh command
+          strcat(command, ssh_uname);
+          strcat(command, "@");
+          strcat(command, np[j].CORNET_IP);
+          strcat(command, " 'sharc_node_cleanup'");
+          int ssh_return = system(command);
 
+		  if(ssh_return < 0)
+		    printf("Error command to terminate CRTS on node %i: %s", 
+			       j, np[j].CORNET_IP);
+		}
+      }
     } // scenario repition loop
 
+    // don't continue to next scenario if there was a user issued termination
     if (sig_terminate)
       break;
 

@@ -190,6 +190,9 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   if (config_setting_lookup_int(node_config, "log_net_rx", &tmpI))
     np.log_net_rx = (int)tmpI;
 
+  if (config_setting_lookup_int(node_config, "log_net_tx", &tmpI))
+    np.log_net_tx = (int)tmpI;
+
   if (config_setting_lookup_string(node_config, "phy_rx_log_file", &tmpS))
     strcpy(np.phy_rx_log_file, tmpS);
 
@@ -198,6 +201,9 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
 
   if (config_setting_lookup_string(node_config, "net_rx_log_file", &tmpS))
     strcpy(np.net_rx_log_file, tmpS);
+
+  if (config_setting_lookup_string(node_config, "net_tx_log_file", &tmpS))
+    strcpy(np.net_tx_log_file, tmpS);
 
   if (config_setting_lookup_int(node_config, "generate_octave_logs", &tmpI))
     np.generate_octave_logs = (int)tmpI;

@@ -641,6 +641,8 @@ public:
 
   void get_tx_control_info(unsigned char *_control_info);
 
+  float get_tx_data_rate();
+  
   void start_tx();
   void stop_tx();
   void reset_tx();
@@ -861,6 +863,9 @@ private:
                                  // numSubcarriers + cp_len x 1]
   unsigned char tx_header[8];    // header container (must have length 8)
   unsigned int frame_counter;
+  unsigned int numDataSubcarriers;	
+  float tx_data_rate;
+  int update_tx_data_rate;
 
   // transmitter threading objects
   pthread_t tx_process;

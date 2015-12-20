@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <linux/if_tun.h>
 #include <arpa/inet.h>
@@ -68,7 +69,7 @@ void Receive_command_from_controller(int *TCP_controller,
 
     // Parse command based on the message type
     switch (command_buffer[0]) {
-    case scenario_params_msg: // settings for upcoming scenario
+    case CRTS_MSG_SCENARIO_PARAMETERS: // settings for upcoming scenario
       printf("Received settings for scenario\n");
       // receive and copy scenario parameters
       rflag = recv(*TCP_controller, &command_buffer[1],
@@ -84,12 +85,12 @@ void Receive_command_from_controller(int *TCP_controller,
              sizeof(struct node_parameters));
       print_node_parameters(np);
       break;
-    case manual_start_msg: // updated start time (used for manual mode)
+    case CRTS_MSG_MANUAL_START: // updated start time (used for manual mode)
       rflag = recv(*TCP_controller, &command_buffer[1], sizeof(time_t), 0);
       memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
       stop_time_s = sp->start_time_s + sp->runTime;
       break;
-    case terminate_msg: // terminate program
+    case CRTS_MSG_TERMINATE: // terminate program
       printf("Received termination command from controller\n");
       sig_terminate = 1;
     }
@@ -195,8 +196,6 @@ void log_tx_data(struct scenario_parameters *sp, struct node_parameters *np,
     printf("Error opening log file: %s\n", np->net_tx_log_file);
 }
 
-void uhd_quiet(uhd::msg::type_t type, const std::string &msg) {}
-
 void help_CRTS_CR() {
   printf("CRTS_CR -- Start a cognitive radio node. Only needs to be run "
          "explicitly when using CRTS_controller with -m option.\n");
@@ -258,9 +257,6 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
   dprintf("Connected to server\n");
-
-  // Quiet UHD output
-  // uhd::msg::register_handler(&uhd_quiet);
 
   // Port to be used by CRTS server and client
   int port = 4444;
@@ -382,11 +378,18 @@ int main(int argc, char **argv) {
   CRTS_client_addr.sin_port = htons(port);
   int CRTS_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
+  // Resize send buffer
+  /*int size;
+  socklen_t len;
+  size = 288*25;
+  buff_err = setsockopt(CRTS_client_sock, SOL_SOCKET, SO_SNDBUF, &size, sizeof(int));
+  */
+
   // Bind CRTS server socket
   bind(CRTS_server_sock, (sockaddr *)&CRTS_server_addr, clientlen);
 
   //
-  fcntl(CRTS_client_sock, F_SETFL, O_NONBLOCK);
+  //fcntl(CRTS_client_sock, F_SETFL, O_NONBLOCK);
   
   // Define a buffer for receiving and a temporary message for sending
   int recv_buffer_len = 8192 * 2;
@@ -416,7 +419,7 @@ int main(int argc, char **argv) {
   float t_step = 8.0*288.0/np.net_mean_throughput;
   float tx_time_delta = 0;
   struct timeval tx_time;
-  fd_set fds;
+  fd_set read_fds;
   struct timeval timeout;
   timeout.tv_sec = 0;
   timeout.tv_usec = 1;
@@ -448,15 +451,15 @@ int main(int argc, char **argv) {
     ECR->start_tx();
     ECR->start_ce();
   }
-
+  
   // main loop
   while (time_s < stop_time_s && !sig_terminate) {
     // Listen for any updates from the controller (non-blocking)
     dprintf("CRTS: Listening to controller for command\n");
     Receive_command_from_controller(&TCP_controller, &sp, &np);
 
-    // Wait (used for test purposes only)
-    switch(np.net_traffic_type){
+    // Send packets according to traffic model
+	switch(np.net_traffic_type){
 	case(NET_TRAFFIC_STREAM):
 	  tx_time_delta += t_step*1e6;
 	  break;
@@ -469,7 +472,7 @@ int main(int argc, char **argv) {
 	  break;
 	}
 	tx_time.tv_sec = sp.start_time_s + (long int)floorf(tx_time_delta / 1e6);
-    tx_time.tv_usec = fmod(tx_time_delta, 1e6);
+    tx_time.tv_usec = (long int)fmod(tx_time_delta, 1e6);
     while (1) {
       gettimeofday(&tv, NULL);
       if ((tv.tv_sec == tx_time.tv_sec && tv.tv_usec > tx_time.tv_usec) ||
@@ -481,38 +484,34 @@ int main(int argc, char **argv) {
     for(int i=0; i<np.net_burst_length; i++){
 	  
 	  // update packet number
-	  packet_counter++;
-	  //printf("Transmit packet number %i\n", packet_counter);
-	  int rx_packet_num = 0;
-	  for (int i=0; i < packet_num_bytes; i++)
-        message[i+15] = ((packet_counter>>(8*(packet_num_bytes-i-1))) & 0xff )^packet_num_prs[i];
-      
-	  // fill the rest with random data
-      //for (int i=15+packet_num_bytes; i < 256; i++)
-      //  message[i] = (rand() & 0xff);
+	    packet_counter++;
+	    int rx_packet_num = 0;
+	    for (int i=0; i < packet_num_bytes; i++)
+          message[i+15] = ((packet_counter>>(8*(packet_num_bytes-i-1))) & 0xff )^packet_num_prs[i];
+        
+		// fill the rest with random data
+        //for (int i=15+packet_num_bytes; i < 256; i++)
+        //  message[i] = (rand() & 0xff);
 
-	  // send UDP packet via CR
-      dprintf("CRTS: Sending UDP packet using CRTS client socket\n");
-      int send_return =
-          sendto(CRTS_client_sock, (char*)message, sizeof(message), 0,
+	    // send UDP packet via CR
+        dprintf("CRTS sending packet %i\n", packet_counter);
+        int send_return =
+            sendto(CRTS_client_sock, (char*)message, sizeof(message), 0,
                  (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
-      if (send_return < 0)
-        printf("Failed to send message\n");
-	  int err = errno;
-	  if (err == EWOULDBLOCK)
-	   printf("\n\nSOCKET BLOCKED\n\n");
-
-	  if (np.log_net_tx) {
+        if (send_return < 0)
+          printf("Failed to send message\n");
+	  
+	    if (np.log_net_tx){
           log_tx_data(&sp, &np, send_return, packet_counter);
-      }
-    }
+		}
+	} 
+
 
     // read all available data from the UDP socket
     int recv_len = 0;
-    dprintf("CRTS: Reading from CRTS server socket\n");
-    FD_ZERO(&fds);
-	FD_SET(CRTS_server_sock, &fds);
-	while (select(CRTS_server_sock+1, &fds, NULL, NULL, &timeout) > 0 ){
+    FD_ZERO(&read_fds);
+	FD_SET(CRTS_server_sock, &read_fds);
+	while (select(CRTS_server_sock+1, &read_fds, NULL, NULL, &timeout) > 0 ){
 	  recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0,
                           (struct sockaddr *)&CRTS_server_addr, &clientlen);
       
@@ -526,14 +525,14 @@ int main(int argc, char **argv) {
       if (recv_len > 0) {
         // TODO: Say what address message was received from.
         // (It's in CRTS_server_addr)
-        printf("CRTS received packet %i containing %i bytes:\n", rx_packet_num, recv_len);
+        dprintf("CRTS received packet %i containing %i bytes:\n", rx_packet_num, recv_len);
         if (np.log_net_rx) {
           log_rx_data(&sp, &np, recv_len, rx_packet_num);
         }
       }
 	
-	  FD_ZERO(&fds);
-	  FD_SET(CRTS_server_sock, &fds);
+	  FD_ZERO(&read_fds);
+	  FD_SET(CRTS_server_sock, &read_fds);
 	}
 
     // Update the current time
@@ -546,16 +545,22 @@ int main(int argc, char **argv) {
   printf("time_s: %li\n", time_s);
   printf("stop_time_s: %li\n", stop_time_s);
 
-  printf(
-      "CRTS: Reached termination. Sending termination message to controller\n");
-  char term_message = terminate_msg;
-  write(TCP_controller, &term_message, 1);
-
   // close the log files
   if (np.log_net_rx)
     log_rx_fstream.close();
   if (np.log_net_tx)
     log_tx_fstream.close();
+ 
+  // close all network connections
+  close(CRTS_client_sock);
+  close(CRTS_server_sock);
+
+  // clean up ECR/python process
+  if (np.cr_type == ecr) {
+    delete ECR;
+  } else if (np.cr_type == python) {
+    kill(pid, SIGTERM);
+  }
 
   // auto-generate octave logs from binary logs
   if (np.generate_octave_logs) {
@@ -576,7 +581,7 @@ int main(int argc, char **argv) {
     if (np.log_net_tx) {
       sprintf(command, "./logs/logs2octave -n -l %s %s", net_tx_log_file_cpy,
               prefixStr);
-      //system(command);
+      system(command);
     }
 
     if (np.log_phy_rx) {
@@ -588,20 +593,14 @@ int main(int argc, char **argv) {
     if (np.log_phy_tx) {
       sprintf(command, "./logs/logs2octave -t -l %s %s", np.phy_tx_log_file,
               prefixStr);
-      // strcat(command, np.phy_tx_log_file);
-      system(command);
+      printf("log phy tx command: %s\n", command);
+	  system(command);
     }
   }
 
-  // close all network connections
-  close(TCP_controller);
-  close(CRTS_client_sock);
-  close(CRTS_server_sock);
-
-  // clean up ECR/python process
-  if (np.cr_type == ecr) {
-    delete ECR;
-  } else if (np.cr_type == python) {
-    kill(pid, SIGTERM);
-  }
+  printf(
+      "CRTS: Reached termination. Sending termination message to controller\n");
+  char term_message = CRTS_MSG_TERMINATE;
+  write(TCP_controller, &term_message, 1);
+  close(TCP_controller);  
 }
