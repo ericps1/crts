@@ -554,10 +554,8 @@ int main(int argc, char **argv) {
   close(CRTS_server_sock);
 
   // auto-generate octave logs from binary logs
+  char command[1000];
   if(np.generate_octave_logs){
-    char command[1000];
-    char multi_file[PATH_MAX];
-
     if(np.log_net_rx){
       sprintf(command, "./logs/logs2octave -c -l %s -N %d -n %d",
               net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
@@ -584,9 +582,6 @@ int main(int argc, char **argv) {
   }
   // auto-generate python logs from binary logs
   if(np.generate_python_logs){
-    char command[1000];
-    char multi_file[PATH_MAX];
-
     if(np.log_net_rx){
       sprintf(command, "./logs/logs2python -c -l %s -N %d -n %d",
               net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);

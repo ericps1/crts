@@ -421,13 +421,16 @@ int main(int argc, char **argv) {
 	  // forcefully terminate all processes if one or more has failed to terminate gracefully
       if (time_terminate) {
         for (int j=0; j < sp.num_nodes; j++) {
-          printf("Running sharc cleanup on node %i: %s\n", j+1, np[j].CORNET_IP);
+          printf("Running CRTS_CR cleanup on node %i: %s\n", j+1, np[j].CORNET_IP);
 		  char command[2000] = "ssh ";
-          // Add username to ssh command
-          strcat(command, ssh_uname);
+          
+		  // define command to execute CRTS_CR termination script
+		  strcat(command, ssh_uname);
           strcat(command, "@");
           strcat(command, np[j].CORNET_IP);
-          strcat(command, " 'sharc_node_cleanup'");
+          strcat(command, " 'python ");
+          strcat(command, crts_dir);
+          strcat(command, "/src/CRTS_cr_terminate.py'");
           int ssh_return = system(command);
 
 		  if(ssh_return < 0)
