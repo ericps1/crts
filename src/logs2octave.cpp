@@ -106,7 +106,11 @@ int main(int argc, char ** argv){
   }
   else
   {
-    file_out = fopen(multi_file, "a");
+    // rewrite the multi-file for the first repetition
+	if (repNumber == 1)
+	  file_out = fopen(multi_file, "w");
+    else
+	  file_out = fopen(multi_file, "a");
   }
 
   struct ExtensibleCognitiveRadio::metric_s metrics = {};

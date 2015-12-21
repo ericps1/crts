@@ -158,7 +158,8 @@ These parameters include but are not limited to:
     + The type of the CR (e.g. if it uses the ECR or some external CR).
     + The node's virtual IP address in the CR network.
     + The virtual IP address of the node it initially communicates with.
-    + If the CR node uses the ECR, it will also specify:
+    + The network traffic pattern (stream, burst, or Poisson)
+	+ If the CR node uses the ECR, it will also specify:
         * Which cognitive engine to use.
         * The initial configuration of CR. 
         * What type of data should be logged.
