@@ -802,6 +802,11 @@ private:
   // cognitive engine threading objects
   pthread_t CE_process;
   pthread_mutex_t CE_mutex;
+  /*
+   * FFTW planner routines are NOT re-entrant.
+   * See http://www.fftw.org/fftw3_doc/Thread-safety.html#Thread-safety
+   */
+  pthread_mutex_t CE_fftw_mutex;
   pthread_cond_t CE_cond;
   pthread_cond_t CE_execute_sig;
   bool ce_thread_running;

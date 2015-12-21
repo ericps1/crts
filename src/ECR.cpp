@@ -158,6 +158,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
   ce_running = false;       // ce is not running initially
   ce_thread_running = true; // ce thread IS running initially
   pthread_mutex_init(&CE_mutex, NULL);
+  pthread_mutex_init(&CE_fftw_mutex, NULL);
   pthread_cond_init(&CE_execute_sig, NULL);
   pthread_cond_init(&CE_cond, NULL); // cognitive engine condition
   pthread_create(&CE_process, NULL, ECR_ce_worker, (void *)this);
@@ -671,10 +672,12 @@ void ExtensibleCognitiveRadio::update_tx_params() {
 
   // recreate the frame generator only if necessary
   if (recreate_fg) {
+    pthread_mutex_lock(&CE_fftw_mutex);
     ofdmflexframegen_destroy(fg);
     fg = ofdmflexframegen_create(tx_params.numSubcarriers, tx_params.cp_len,
                                  tx_params.taper_len, tx_params.subcarrierAlloc,
                                  &tx_params.fgprops);
+    pthread_mutex_unlock(&CE_fftw_mutex);
     recreate_fg = 0;
   }
 
@@ -954,10 +957,12 @@ void ExtensibleCognitiveRadio::update_rx_params() {
 
   // recreate the frame synchronizer only if necessary
   if (recreate_fs) {
+    pthread_mutex_lock(&CE_fftw_mutex);
     ofdmflexframesync_destroy(fs);
     fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
                                   rx_params.taper_len, rx_params.subcarrierAlloc,
                                   rxCallback, (void*)this);
+    pthread_mutex_unlock(&CE_fftw_mutex);
     recreate_fs = 0;	
   }
 
@@ -1078,10 +1083,7 @@ int rxCallback(unsigned char *_header, int _header_valid,
   // Store metrics and signal CE thread if using PHY layer metrics
   if (ECR->ce_phy_events) {
     ECR->CE_metrics.control_valid = _header_valid;
-    int j;
-    for (j = 0; j < 6; j++) {
-      ECR->CE_metrics.control_info[j] = _header[j + 2];
-    }
+    memcpy(ECR->CE_metrics.control_info, _header + 2, 6);
     ECR->CE_metrics.frame_num = ((_header[0] & 0x3F) << 8 | _header[1]);
     ECR->CE_metrics.stats = _stats;
     ECR->CE_metrics.time_spec = ECR->metadata_rx.time_spec;
@@ -1091,12 +1093,10 @@ int rxCallback(unsigned char *_header, int _header_valid,
 	  if(ECR->CE_metrics.payload != NULL)
 	    ECR->CE_metrics.payload = (unsigned char *) realloc(
 	      ECR->CE_metrics.payload, _payload_len*sizeof(unsigned char));
-      else
+      else{
 	    ECR->CE_metrics.payload = (unsigned char *) malloc(_payload_len*sizeof(unsigned char));
-	  unsigned int k;
-      for (k = 0; k < _payload_len; k++) {
-        ECR->CE_metrics.payload[k] = _payload[k];
       }
+      memcpy(ECR->CE_metrics.payload, _payload, _payload_len * sizeof(unsigned char));
     } else {
       ECR->CE_metrics.payload_len = 0;
       ECR->CE_metrics.payload = NULL;
@@ -1136,8 +1136,7 @@ int rxCallback(unsigned char *_header, int _header_valid,
       */
 
   char payload[_payload_len];
-  for (unsigned int i = 0; i < _payload_len; i++)
-    payload[i] = _payload[i];
+  memcpy(payload, _payload, _payload_len * sizeof(unsigned char));
 
   int nwrite = 0;
   if (_payload_valid) {
