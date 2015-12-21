@@ -241,18 +241,26 @@ increment.
 
 ### Logs
 
-CRTS will automatically log data from several points in the system (provided that
-the log file options are appropriately specified in the scenario configuration
-file). These logs include the parameters used by the ECR to create each phyiscal
-layer frame that is transmitted, the metrics and parameters of each of the physical
-layer frames received by the ECR, as well as the data received at the network
-layer (the data read from the virtual network interface by CRTS\_CR). Each log
-entry will include a timestamp to keep events referenced to a common timeline
-The logs are written as raw binary files in the /logs/bin directory, but will 
-automatically be converted to either Octave/Matlab or Python scripts after the 
-scenario has finished and placed in the logs/Octave or logs/Python directories 
-respectively. This again assumes that the appropriate options were set in the 
-scenario configuration file. These scripts provide the user with an easy way to 
-analyze the results of the experiment. There are some basic Octave/Matlab scripts 
-provided to plot the contents of the logs as a function of time.
+CRTS will log packet transmission and reception details at the network layer if the
+appropriate flags are set in the scenario configuration file. Each entry will include
+the number of bytes sent or received, the packet number, and a timestamp. These may
+be used to look at network layer metrics such as dropped packets or latency. Note that
+latency calculations can only be as accurate as the synchronization between the server
+nodes.
 
+The ECR will also log frame transmission and reception parameters and metrics at the
+physical layer if the appropriate flags are set in the scenario configuration file.
+
+All of the aforementioned logs are written as binary files in the /logs/bin directory
+during the scenario's execution. These logs will be automatically converted to either
+Python or Octave/Matlab scripts and placed in the /logs/octave or /logs/python 
+directories after the scenario has finished. These scripts provide the user with an 
+easy way to import data from experiments. Other scripts can then be written to analyze
+these results. We've provided some basic Octave/Matlab scripts which plot the contents 
+of the logs as a function of time and display some basic statistics.
+
+In the case where a scenario is run more than once (using the scenario\_reps field in
+the master\_scenario\_file.cfg), the data from all repetitions will be held in a single
+Octave script. Rather than a single array for each parameter there will be a cell array
+for each parameter, each element of the cell array is an array which comprises the results
+from a particular repetition. This is done to facilitate analysis across the repetitions.

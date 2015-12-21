@@ -632,7 +632,17 @@ void print_node_parameters(struct node_parameters *np) {
     printf("\nVirtual Network Interface Settings:\n");
     printf("    CRTS IP:                           %-s\n", np->CRTS_IP);
     printf("    Target IP:                         %-s\n", np->TARGET_IP);
-    //
+	char traffic[15];
+    switch (np->net_traffic_type) { 
+	  case NET_TRAFFIC_STREAM: strcpy(traffic, "stream"); break;
+      case NET_TRAFFIC_BURST: strcpy(traffic, "burst"); break;
+      case NET_TRAFFIC_POISSON: strcpy(traffic, "poisson"); break;
+	}
+    printf("    Traffic pattern:                   %-s\n", traffic);
+	printf("    Average throughput:                %-.2f\n", np->net_mean_throughput);
+	if (np->net_traffic_type == NET_TRAFFIC_BURST)
+	  printf("    Burst length:                      %i\n", np->net_burst_length);
+	//
     printf("\nCognitive Engine Settings:\n");
     printf("    Cognitive Engine:                  %-s\n", np->CE);
     printf("    CE timeout:                        %-.2f\n", np->ce_timeout_ms);
@@ -644,6 +654,8 @@ void print_node_parameters(struct node_parameters *np) {
   printf("    PHY Tx log file:                   %-s\n", np->phy_tx_log_file);
   if (np->type != interferer)
     printf("    NET Rx log file:                   %-s\n", np->net_rx_log_file);
+  if (np->type != interferer)
+    printf("    NET Tx log file:                   %-s\n", np->net_tx_log_file);
   printf("    Generate octave logs:              %i\n",
          np->generate_octave_logs);
   printf("    Generate python logs:              %i\n",
@@ -673,7 +685,7 @@ void print_node_parameters(struct node_parameters *np) {
       strcpy(duplex, "HD");
       break;
     }
-    printf("    Duplex scheme:                     %-s\n", duplex);
+    // printf("    Duplex scheme:                     %-s\n", duplex);
     printf("    Receive subcarriers:               %i\n", np->tx_subcarriers);
     printf("    Receive cyclic prefix length:      %i\n", np->tx_cp_len);
     printf("    Receive taper length:              %i\n", np->tx_taper_len);

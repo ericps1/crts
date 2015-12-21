@@ -144,7 +144,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
 
   // create and start tx thread
   frame_num = 0;
-  tx_running = false;       // transmitter is not running initially
+  tx_state = TX_STOPPED;       // transmitter is not running initially
   tx_thread_running = true; // transmitter thread IS running initially
   pthread_mutex_init(&tx_mutex, NULL); // transmitter mutex
   pthread_cond_init(&tx_cond, NULL);   // transmitter condition
@@ -246,9 +246,7 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio() {
   pthread_join(CE_process, &ce_exit_status);
 
   dprintf("Stopping transceiver\n");
-  // if (rx_running)
   stop_rx();
-  // if (tx_running)
   stop_tx();
 
   // sleep so tx/rx threads are ready for signal
@@ -394,7 +392,16 @@ void ExtensibleCognitiveRadio::set_tx_queue_len(int queue_len) {
 // start transmitter
 void ExtensibleCognitiveRadio::start_tx() {
   // set tx running flag
-  tx_running = true;
+  tx_state = TX_CONTINUOUS;
+  // signal condition (tell tx worker to start)
+  pthread_cond_signal(&tx_cond);
+}
+
+// start transmitter
+void ExtensibleCognitiveRadio::start_tx_for_frames(int _num_tx_frames) {
+  // set tx running flag and number of tx frames
+  tx_state = TX_FOR_FRAMES;
+  num_tx_frames = num_tx_frames;
   // signal condition (tell tx worker to start)
   pthread_cond_signal(&tx_cond);
 }
@@ -402,9 +409,7 @@ void ExtensibleCognitiveRadio::start_tx() {
 // stop transmitter
 void ExtensibleCognitiveRadio::stop_tx() {
   // reset tx running flag
-  // pthread_mutex_lock(&tx_mutex);
-  tx_running = false;
-  // pthread_mutex_unlock(&tx_mutex);
+  tx_state = TX_STOPPED; 
 }
 
 // reset transmitter objects and buffers
@@ -1169,6 +1174,7 @@ void *ECR_tx_worker(void *_arg) {
   unsigned char *payload;
   unsigned int payload_len;
   int nread;
+  int tx_frame_counter;
 
   while (ECR->tx_thread_running) {
     pthread_mutex_lock(&(ECR->tx_mutex));
@@ -1178,7 +1184,7 @@ void *ECR_tx_worker(void *_arg) {
     pthread_mutex_unlock(&(ECR->tx_mutex));
 
     // condition given; check state: run or exit
-    if (!ECR->tx_running) {
+    if (ECR->tx_state == TX_STOPPED) {
       dprintf("tx_worker finished\n");
       break;
     }
@@ -1190,8 +1196,12 @@ void *ECR_tx_worker(void *_arg) {
     timeout.tv_sec = 0;
     timeout.tv_usec = 1000;
 
+    // variables to keep track of number of frames if needeed
+    tx_frame_counter = 0;
+    bool tx_frame_flag = 1;
+
     // run transmitter
-    while (ECR->tx_running) {
+    while ((ECR->tx_state!=TX_STOPPED) && tx_frame_flag) {
       
 	  if (ECR->update_tx_flag) {
         ECR->update_tx_params();
@@ -1203,7 +1213,7 @@ void *ECR_tx_worker(void *_arg) {
       int payload_byte_length =
           (int)ceilf((float)(payload_sym_length * bps) / 8.0);
 
-      while (nread <= payload_byte_length && ECR->tx_running) {
+      while (nread <= payload_byte_length && (ECR->tx_state!=TX_STOPPED)) {
         FD_ZERO(&fds);
         FD_SET(ECR->tunfd, &fds);
 
@@ -1224,7 +1234,12 @@ void *ECR_tx_worker(void *_arg) {
       payload_len = nread;
 
       // transmit frame
+	  tx_frame_counter++;
       ECR->transmit_frame(ECR->tx_header, payload, payload_len);
+
+	  // update frame flag
+	  if((ECR->tx_state==TX_FOR_FRAMES) && (tx_frame_counter>=ECR->num_tx_frames))
+	    tx_frame_flag = 0;
     } // while tx_running
     dprintf("tx_worker finished running\n");
   } // while true
