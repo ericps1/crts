@@ -516,6 +516,11 @@ public:
   /// \brief Used to set the IP of the ECR's virtual network interface
   void set_ip(char *ip);
 
+  /// \brief Allows you to set the tx buffer length for the virtual network interface
+  /// This could be useful in trading off between dropped packets and latency with a
+  /// UDP connection
+  void set_tx_queue_len(int queue_len);
+
   //=================================================================================
   // Transmitter Methods
   //=================================================================================

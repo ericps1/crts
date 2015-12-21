@@ -125,10 +125,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
   dprintf("Connecting to tun interface\n");
   sprintf(systemCMD, "sudo ip link set dev %s up", tun_name);
   system(systemCMD);
-  // Resize TUN queue length
-  //sprintf(systemCMD, "sudo ifconfig %s txqueuelen 14400", tun_name);
-  //system(systemCMD);
-  
+    
   // Get reference to TUN interface
   tunfd = tun_alloc(tun_name, IFF_TUN);
 
@@ -381,6 +378,12 @@ void uhd_msg_handler(uhd::msg::type_t type, const std::string &msg) {
 // set the ip address for the virtual network interface
 void ExtensibleCognitiveRadio::set_ip(char *ip) {
   sprintf(systemCMD, "sudo ifconfig %s %s netmask 255.255.255.0", tun_name, ip);
+  system(systemCMD);
+}
+
+// set the length of the tun interface queue tx length
+void ExtensibleCognitiveRadio::set_tx_queue_len(int queue_len) {
+  sprintf(systemCMD, "sudo ifconfig %s txqueuelen %i", tun_name, queue_len);
   system(systemCMD);
 }
 
