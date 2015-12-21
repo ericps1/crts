@@ -485,7 +485,6 @@ int main(int argc, char **argv) {
 	  
 	  // update packet number
 	    packet_counter++;
-	    int rx_packet_num = 0;
 	    for (int i=0; i < packet_num_bytes; i++)
           message[i+15] = ((packet_counter>>(8*(packet_num_bytes-i-1))) & 0xff )^packet_num_prs[i];
         
@@ -516,10 +515,9 @@ int main(int argc, char **argv) {
                           (struct sockaddr *)&CRTS_server_addr, &clientlen);
       
 	  // determine packet number
-      int rx_packet_num = 0;
+	  int rx_packet_num = 0;
 	  for (int i=0; i < packet_num_bytes; i++)
-        rx_packet_num += (((unsigned char)recv_buffer[15+i])^packet_num_prs[i]) << (8*(packet_num_bytes-i-1));
-
+	    rx_packet_num += (((unsigned char)recv_buffer[15+i])^packet_num_prs[i]) << 8*(packet_num_bytes-i-1);
 
 	  // print out/log details of received messages
       if (recv_len > 0) {
@@ -555,6 +553,169 @@ int main(int argc, char **argv) {
   close(CRTS_client_sock);
   close(CRTS_server_sock);
 
+  // auto-generate octave logs from binary logs
+  if(np.generate_octave_logs){
+    char command[1000];
+    char multi_file[PATH_MAX];
+
+    if(np.log_net_rx){
+      // If using multifile,
+      // Delete old one (otherwise will append to old file).
+      if( sp.totalNumReps>1 && sp.repNumber==1 )
+      {
+        // Get the name of the multi file 
+        strcpy(multi_file, "logs/octave/");
+        strcat(multi_file, net_rx_log_file_cpy);
+        char *ptr_ = strrchr(multi_file, (int) '_');
+        if (ptr_)
+          multi_file[ ptr_ - multi_file] = '\0';
+        strcat(multi_file, ".m");
+
+        // Delete it
+        sprintf(command, "rm -f %s", multi_file);
+        system(command);
+      }
+
+      sprintf(command, "./logs/logs2octave -c -l %s -N %d -n %d",
+              net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
+      system(command);
+    }
+
+    if (np.log_net_tx) {
+      sprintf(command, "./logs/logs2octave -C -l %s -N %d -n %d", 
+	        net_tx_log_file_cpy, sp.totalNumReps, sp.repNumber );
+      system(command);
+    }
+    
+    if(np.log_phy_rx){
+      // If using multifile,
+      // Delete old one (otherwise will append to old file).
+      if( sp.totalNumReps>1 && sp.repNumber==1 )
+      {
+        // Get the name of the multi file 
+        strcpy(multi_file, "logs/octave/");
+        strcat(multi_file, np.phy_rx_log_file);
+        char *ptr_ = strrchr(multi_file, (int) '_');
+        if (ptr_)
+          multi_file[ ptr_ - multi_file] = '\0';
+        strcat(multi_file, ".m");
+
+        // Delete it
+        sprintf(command, "rm -f %s", multi_file);
+        system(command);
+      }
+
+      sprintf(command, "./logs/logs2octave -r -l %s -N %d -n %d",
+              np.phy_rx_log_file, sp.totalNumReps, sp.repNumber);
+      system(command);
+    }
+
+    if(np.log_phy_tx){
+      // If using multifile,
+      // Delete old one (otherwise will append to old file).
+      if( sp.totalNumReps>1 && sp.repNumber==1 )
+      {
+        // Get the name of the multi file 
+        strcpy(multi_file, "logs/octave/");
+        strcat(multi_file, np.phy_tx_log_file);
+        char *ptr_ = strrchr(multi_file, (int) '_');
+        if (ptr_)
+          multi_file[ ptr_ - multi_file] = '\0';
+        strcat(multi_file, ".m");
+
+        // Delete it
+        sprintf(command, "rm -f %s", multi_file);
+        system(command);
+      }
+
+      sprintf(command, "./logs/logs2octave -t -l %s -N %d -n %d",
+              np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
+      system(command);
+    }
+  }
+  // auto-generate python logs from binary logs
+  if(np.generate_python_logs){
+    char command[1000];
+    char multi_file[PATH_MAX];
+
+
+    if(np.log_net_rx){
+      // If using multifile,
+      // Delete old one (otherwise will append to old file).
+      if( sp.totalNumReps>1 && sp.repNumber==1 )
+      {
+        // Get the name of the multi file 
+        strcpy(multi_file, "logs/python/");
+        strcat(multi_file, net_rx_log_file_cpy);
+        char *ptr_ = strrchr(multi_file, (int) '_');
+        if (ptr_)
+          multi_file[ ptr_ - multi_file] = '\0';
+        strcat(multi_file, ".py");
+
+        // Delete it
+        sprintf(command, "rm -f %s", multi_file);
+        system(command);
+      }
+
+      sprintf(command, "./logs/logs2python -c -l %s -N %d -n %d",
+              net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
+      system(command);
+    }
+
+    if (np.log_net_tx) {
+      sprintf(command, "./logs/logs2octave -C -l %s -N %d -n %d", 
+	       net_tx_log_file_cpy, sp.totalNumReps, sp.repNumber );
+      system(command);
+    }
+    
+    if(np.log_phy_rx){
+    // If using multifile,
+    // Delete old one (otherwise will append to old file).
+      if( sp.totalNumReps>1 && sp.repNumber==1 )
+      {
+        // Get the name of the multi file 
+        strcpy(multi_file, "logs/python/");
+        strcat(multi_file, np.phy_rx_log_file);
+        char *ptr_ = strrchr(multi_file, (int) '_');
+        if (ptr_)
+          multi_file[ ptr_ - multi_file] = '\0';
+        strcat(multi_file, ".py");
+
+        // Delete it
+        sprintf(command, "rm -f %s", multi_file);
+        system(command);
+      }
+
+      sprintf(command, "./logs/logs2python -r -l %s -N %d -n %d",
+              np.phy_rx_log_file, sp.totalNumReps, sp.repNumber);
+      system(command);
+    }
+
+    if(np.log_phy_tx){
+      // If using multifile,
+      // Delete old one (otherwise will append to old file).
+      if( sp.totalNumReps>1 && sp.repNumber==1 )
+      {
+        // Get the name of the multi file 
+        strcpy(multi_file, "logs/python/");
+        strcat(multi_file, np.phy_tx_log_file);
+        char *ptr_ = strrchr(multi_file, (int) '_');
+        if (ptr_)
+          multi_file[ ptr_ - multi_file] = '\0';
+        strcat(multi_file, ".py");
+
+        // Delete it
+        sprintf(command, "rm -f %s", multi_file);
+        system(command);
+      }
+
+      sprintf(command, "./logs/logs2python -t -l %s -N %d -n %d",
+              np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
+      system(command);
+    }
+  }
+
+
   // clean up ECR/python process
   if (np.cr_type == ecr) {
     delete ECR;
@@ -562,45 +723,9 @@ int main(int argc, char **argv) {
     kill(pid, SIGTERM);
   }
 
-  // auto-generate octave logs from binary logs
-  if (np.generate_octave_logs) {
-    char command[100];
-    char prefixStr[20];
-    if (sp.totalNumReps > 1) {
-      sprintf(prefixStr, "-p rep%d", sp.repNumber);
-    } else {
-      prefixStr[0] = '\0';
-    }
-
-    if (np.log_net_rx) {
-      sprintf(command, "./logs/logs2octave -c -l %s %s", net_rx_log_file_cpy,
-              prefixStr);
-      system(command);
-    }
-
-    if (np.log_net_tx) {
-      sprintf(command, "./logs/logs2octave -n -l %s %s", net_tx_log_file_cpy,
-              prefixStr);
-      system(command);
-    }
-
-    if (np.log_phy_rx) {
-      sprintf(command, "./logs/logs2octave -r -l %s %s", np.phy_rx_log_file,
-              prefixStr);
-      system(command);
-    }
-
-    if (np.log_phy_tx) {
-      sprintf(command, "./logs/logs2octave -t -l %s %s", np.phy_tx_log_file,
-              prefixStr);
-      printf("log phy tx command: %s\n", command);
-	  system(command);
-    }
-  }
-
   printf(
       "CRTS: Reached termination. Sending termination message to controller\n");
   char term_message = CRTS_MSG_TERMINATE;
   write(TCP_controller, &term_message, 1);
-  close(TCP_controller);  
+  close(TCP_controller);
 }

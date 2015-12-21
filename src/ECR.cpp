@@ -1188,8 +1188,6 @@ void *ECR_tx_worker(void *_arg) {
     timeout.tv_sec = 0;
     timeout.tv_usec = 1000;
 
-    int last_packet_num = 0;
-
     // run transmitter
     while (ECR->tx_running) {
       
@@ -1216,18 +1214,7 @@ void *ECR_tx_worker(void *_arg) {
             printf("Error reading from interface");
             close(ECR->tunfd);
             exit(1);
-          }
-
-          /*int current_packet_num = 0;
-          for (int i=0; i<4; i++)
-		    current_packet_num += (((unsigned char)buffer[nread-288+32+15+i]) << (8*(4-i-1)));
-		  if(current_packet_num != last_packet_num + 1){
-		    printf("Dropped packet\n");
-		    printf("nread: %i\n", nread);
-			printf("Current: %i Last: %i\n", current_packet_num, last_packet_num);
-		  }
-          last_packet_num = current_packet_num;
-          */
+          } 
 		}
       }
 

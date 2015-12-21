@@ -1,4 +1,4 @@
-phy_rx_t = t - t(1);
+phy_rx_t = phy_rx_t - phy_rx_t(1);
 
 figure;
 stem(phy_rx_t,phy_rx_Control_valid);
