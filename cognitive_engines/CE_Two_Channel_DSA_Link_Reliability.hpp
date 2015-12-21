@@ -10,10 +10,10 @@ public:
   virtual void execute(void *_args);
 
 private:
-  static const float freq_a = 770e6;
-  static const float freq_b = 769e6;
-  static const float freq_x = 870e6;
-  static const float freq_y = 869e6;
+  static constexpr float freq_a = 770e6;
+  static constexpr float freq_b = 769e6;
+  static constexpr float freq_x = 870e6;
+  static constexpr float freq_y = 869e6;
 
   // Number of consecutive invalid control or payloads
   int cons_invalid_payloads;

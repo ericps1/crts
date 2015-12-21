@@ -24,7 +24,16 @@ int rxCallback(unsigned char *_header, int _header_valid,
                unsigned char *_payload, unsigned int _payload_len,
                int _payload_valid, framesyncstats_s _stats, void *_userdata);
 
-class ExtensibleCognitiveRadio {
+/// \brief Defines the possible states of the transmitter, which
+/// can be either off, continuously transmittering, or transmitting
+/// for a finite number of frames.
+enum tx_states {
+  TX_STOPPED = 0,
+  TX_CONTINUOUS,
+  TX_FOR_FRAMES
+};
+  
+  class ExtensibleCognitiveRadio {
 public:
   ExtensibleCognitiveRadio();
   ~ExtensibleCognitiveRadio();
@@ -516,6 +525,11 @@ public:
   /// \brief Used to set the IP of the ECR's virtual network interface
   void set_ip(char *ip);
 
+  /// \brief Allows you to set the tx buffer length for the virtual network interface
+  /// This could be useful in trading off between dropped packets and latency with a
+  /// UDP connection
+  void set_tx_queue_len(int queue_len);
+
   //=================================================================================
   // Transmitter Methods
   //=================================================================================
@@ -641,7 +655,10 @@ public:
 
   void get_tx_control_info(unsigned char *_control_info);
 
+  float get_tx_data_rate();
+  
   void start_tx();
+  void start_tx_for_frames(int _num_tx_frames);
   void stop_tx();
   void reset_tx();
 
@@ -866,13 +883,17 @@ private:
                                  // numSubcarriers + cp_len x 1]
   unsigned char tx_header[8];    // header container (must have length 8)
   unsigned int frame_counter;
+  unsigned int numDataSubcarriers;	
+  float tx_data_rate;
+  int update_tx_data_rate;
+  int num_tx_frames;
 
   // transmitter threading objects
   pthread_t tx_process;
   pthread_mutex_t tx_mutex;
   pthread_cond_t tx_cond;
   bool tx_thread_running;
-  bool tx_running;
+  int tx_state;
   friend void *ECR_tx_worker(void *);
 };
 

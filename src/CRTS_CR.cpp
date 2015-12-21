@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <linux/if_tun.h>
 #include <arpa/inet.h>
@@ -16,6 +17,7 @@
 #include <fstream>
 #include <errno.h>
 #include <signal.h>
+#include <random>
 #include "ECR.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
@@ -30,7 +32,8 @@
 
 int sig_terminate;
 time_t stop_time_s;
-std::ofstream log_fstream;
+std::ofstream log_rx_fstream;
+std::ofstream log_tx_fstream;
 
 void Receive_command_from_controller(int *TCP_controller,
                                      struct scenario_parameters *sp,
@@ -64,11 +67,9 @@ void Receive_command_from_controller(int *TCP_controller,
       }
     }
 
-    // int flags;
-
     // Parse command based on the message type
     switch (command_buffer[0]) {
-    case scenario_params_msg: // settings for upcoming scenario
+    case CRTS_MSG_SCENARIO_PARAMETERS: // settings for upcoming scenario
       printf("Received settings for scenario\n");
       // receive and copy scenario parameters
       rflag = recv(*TCP_controller, &command_buffer[1],
@@ -79,16 +80,17 @@ void Receive_command_from_controller(int *TCP_controller,
       rflag = recv(*TCP_controller,
                    &command_buffer[1 + sizeof(struct scenario_parameters)],
                    sizeof(struct node_parameters), 0);
-      memcpy(np, &command_buffer[1 + sizeof(struct scenario_parameters)],
+      printf("Received %i bytes\n", rflag);
+	  memcpy(np, &command_buffer[1 + sizeof(struct scenario_parameters)],
              sizeof(struct node_parameters));
       print_node_parameters(np);
       break;
-    case manual_start_msg: // updated start time (used for manual mode)
+    case CRTS_MSG_MANUAL_START: // updated start time (used for manual mode)
       rflag = recv(*TCP_controller, &command_buffer[1], sizeof(time_t), 0);
       memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
       stop_time_s = sp->start_time_s + sp->runTime;
       break;
-    case terminate_msg: // terminate program
+    case CRTS_MSG_TERMINATE: // terminate program
       printf("Received termination command from controller\n");
       sig_terminate = 1;
     }
@@ -165,20 +167,34 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p) {
 }
 
 void log_rx_data(struct scenario_parameters *sp, struct node_parameters *np,
-                 int bytes) {
+                 int bytes, int packet_num) {
   // update current time
   struct timeval tv;
   gettimeofday(&tv, NULL);
 
   // open file, append parameters, and close
-  if (log_fstream.is_open()) {
-    log_fstream.write((char *)&tv, sizeof(tv));
-    log_fstream.write((char *)&bytes, sizeof(bytes));
+  if (log_rx_fstream.is_open()) {
+    log_rx_fstream.write((char *)&tv, sizeof(tv));
+    log_rx_fstream.write((char *)&bytes, sizeof(bytes));
+	log_rx_fstream.write((char *)&packet_num, sizeof(packet_num));
   } else
     printf("Error opening log file: %s\n", np->net_rx_log_file);
 }
 
-void uhd_quiet(uhd::msg::type_t type, const std::string &msg) {}
+void log_tx_data(struct scenario_parameters *sp, struct node_parameters *np,
+                 int bytes, int packet_num) {
+  // update current time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+
+  // open file, append parameters, and close
+  if (log_tx_fstream.is_open()) {
+    log_tx_fstream.write((char *)&tv, sizeof(tv));
+    log_tx_fstream.write((char *)&bytes, sizeof(bytes));
+	log_tx_fstream.write((char *)&packet_num, sizeof(packet_num));
+  } else
+    printf("Error opening log file: %s\n", np->net_tx_log_file);
+}
 
 void help_CRTS_CR() {
   printf("CRTS_CR -- Start a cognitive radio node. Only needs to be run "
@@ -242,9 +258,6 @@ int main(int argc, char **argv) {
   }
   dprintf("Connected to server\n");
 
-  // Quiet UHD output
-  // uhd::msg::register_handler(&uhd_quiet);
-
   // Port to be used by CRTS server and client
   int port = 4444;
 
@@ -262,7 +275,9 @@ int main(int argc, char **argv) {
   // copy log file name for post processing later
   char net_rx_log_file_cpy[100];
   strcpy(net_rx_log_file_cpy, np.net_rx_log_file);
-
+  char net_tx_log_file_cpy[100];
+  strcpy(net_tx_log_file_cpy, np.net_tx_log_file);
+  
   // modify log file name in node parameters for logging function
   char net_rx_log_file[100];
   strcpy(net_rx_log_file, "./logs/bin/");
@@ -270,12 +285,24 @@ int main(int argc, char **argv) {
   strcat(net_rx_log_file, ".log");
   strcpy(np.net_rx_log_file, net_rx_log_file);
 
-  // open CRTS rx log file to delete any current contents
+  char net_tx_log_file[100];
+  strcpy(net_tx_log_file, "./logs/bin/");
+  strcat(net_tx_log_file, np.net_tx_log_file);
+  strcat(net_tx_log_file, ".log");
+  strcpy(np.net_tx_log_file, net_tx_log_file);
+
+  // open CRTS log files to delete any current contents
   if (np.log_net_rx) {
-    // std::ofstream log_fstream;
-    log_fstream.open(net_rx_log_file,
+    log_rx_fstream.open(net_rx_log_file,
                      std::ofstream::out | std::ofstream::trunc);
-    if (!log_fstream.is_open()) {
+    if (!log_rx_fstream.is_open()) {
+      std::cout << "Error opening log file:" << net_rx_log_file << std::endl;
+    }
+  }
+  if (np.log_net_tx) {
+    log_tx_fstream.open(net_tx_log_file,
+                     std::ofstream::out | std::ofstream::trunc);
+    if (!log_tx_fstream.is_open()) {
       std::cout << "Error opening log file:" << net_rx_log_file << std::endl;
     }
   }
@@ -351,22 +378,33 @@ int main(int argc, char **argv) {
   CRTS_client_addr.sin_port = htons(port);
   int CRTS_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
+  // Resize send buffer
+  /*int size;
+  socklen_t len;
+  size = 288*25;
+  buff_err = setsockopt(CRTS_client_sock, SOL_SOCKET, SO_SNDBUF, &size, sizeof(int));
+  */
+
   // Bind CRTS server socket
   bind(CRTS_server_sock, (sockaddr *)&CRTS_server_addr, clientlen);
 
-  // set CRTS sockets to non-blocking
-  fcntl(CRTS_client_sock, F_SETFL, O_NONBLOCK);
-  fcntl(CRTS_server_sock, F_SETFL, O_NONBLOCK);
-
+  //
+  //fcntl(CRTS_client_sock, F_SETFL, O_NONBLOCK);
+  
   // Define a buffer for receiving and a temporary message for sending
   int recv_buffer_len = 8192 * 2;
   char recv_buffer[recv_buffer_len];
-  char message[256];
-  strcpy(message, "Test Message from ");
-  strcat(message, np.CRTS_IP);
-  for (int i = 0; i < 256; i++)
-    message[i] = rand() & 0xff;
-
+  
+  // Define parameters and message for sending
+  int packet_counter = 0;
+  const int packet_num_bytes = 4; // number of bytes used for the packet number
+  unsigned char packet_num_prs[packet_num_bytes]; // pseudo-random sequence used to modify packet number
+  unsigned char message[256];
+  strcpy((char*)message, np.CRTS_IP);
+  srand(12);
+  for (int i=0; i < packet_num_bytes; i++)
+    packet_num_prs[i] = rand() & 0xff;
+  
   // initialize sig_terminate flag and check return from socket call
   sig_terminate = 0;
   if (CRTS_client_sock < 0) {
@@ -378,6 +416,19 @@ int main(int argc, char **argv) {
     sig_terminate = 1;
   }
 
+  float t_step = 8.0*288.0/np.net_mean_throughput;
+  float tx_time_delta = 0;
+  struct timeval tx_time;
+  fd_set read_fds;
+  struct timeval timeout;
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 1;
+
+  // Poisson RV generator
+  std::default_random_engine rand_generator;
+  std::poisson_distribution<int> poisson_generator(1e6);
+  int poisson_rv;
+  
   // Wait for the start-time before beginning the scenario
   struct timeval tv;
   time_t time_s;
@@ -400,51 +451,87 @@ int main(int argc, char **argv) {
     ECR->start_tx();
     ECR->start_ce();
   }
-
+  
   // main loop
-  float tx_time_delta = 0;
-  struct timeval tx_time;
   while (time_s < stop_time_s && !sig_terminate) {
     // Listen for any updates from the controller (non-blocking)
     dprintf("CRTS: Listening to controller for command\n");
     Receive_command_from_controller(&TCP_controller, &sp, &np);
 
-    // Wait (used for test purposes only)
-    tx_time_delta += np.tx_delay_us;
-    tx_time.tv_sec = sp.start_time_s + (long int)floorf(tx_time_delta / 1e6);
-    tx_time.tv_usec = fmod(tx_time_delta, 1e6);
+    // Send packets according to traffic model
+	switch(np.net_traffic_type){
+	case(NET_TRAFFIC_STREAM):
+	  tx_time_delta += t_step*1e6;
+	  break;
+    case(NET_TRAFFIC_BURST):
+	  tx_time_delta += t_step*np.net_burst_length*1e6;
+	  break;
+	case(NET_TRAFFIC_POISSON):
+	  poisson_rv = poisson_generator(rand_generator);
+	  tx_time_delta += t_step * (float)poisson_rv;
+	  break;
+	}
+	tx_time.tv_sec = sp.start_time_s + (long int)floorf(tx_time_delta / 1e6);
+    tx_time.tv_usec = (long int)fmod(tx_time_delta, 1e6);
     while (1) {
       gettimeofday(&tv, NULL);
       if ((tv.tv_sec == tx_time.tv_sec && tv.tv_usec > tx_time.tv_usec) ||
           tv.tv_sec > tx_time.tv_sec)
-        break;
-      // usleep(1e3);
+        break;      
     }
 
-    // send UDP packet via CR
-    dprintf("CRTS: Sending UDP packet using CRTS client socket\n");
-    int send_return =
-        sendto(CRTS_client_sock, message, sizeof(message), 0,
-               (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
-    if (send_return < 0)
-      printf("Failed to send message\n");
+    // send burst of packets
+    for(int i=0; i<np.net_burst_length; i++){
+	  
+	  // update packet number
+	    packet_counter++;
+	    for (int i=0; i < packet_num_bytes; i++)
+          message[i+15] = ((packet_counter>>(8*(packet_num_bytes-i-1))) & 0xff )^packet_num_prs[i];
+        
+		// fill the rest with random data
+        //for (int i=15+packet_num_bytes; i < 256; i++)
+        //  message[i] = (rand() & 0xff);
+
+	    // send UDP packet via CR
+        dprintf("CRTS sending packet %i\n", packet_counter);
+        int send_return =
+            sendto(CRTS_client_sock, (char*)message, sizeof(message), 0,
+                 (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
+        if (send_return < 0)
+          printf("Failed to send message\n");
+	  
+	    if (np.log_net_tx){
+          log_tx_data(&sp, &np, send_return, packet_counter);
+		}
+	} 
+
 
     // read all available data from the UDP socket
     int recv_len = 0;
-    dprintf("CRTS: Reading from CRTS server socket\n");
-    recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0,
-                        (struct sockaddr *)&CRTS_server_addr, &clientlen);
-    // print out received messages
-    if (recv_len > 0) {
-      // TODO: Say what address message was received from.
-      // (It's in CRTS_server_addr)
-      dprintf("CRTS received %i bytes:\n", recv_len);
-      // for(int j=0; j<recv_len; j++)
-      //    dprintf("%c", recv_buffer[j]);
-      if (np.log_net_rx) {
-        log_rx_data(&sp, &np, recv_len);
+    FD_ZERO(&read_fds);
+	FD_SET(CRTS_server_sock, &read_fds);
+	while (select(CRTS_server_sock+1, &read_fds, NULL, NULL, &timeout) > 0 ){
+	  recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0,
+                          (struct sockaddr *)&CRTS_server_addr, &clientlen);
+      
+	  // determine packet number
+	  int rx_packet_num = 0;
+	  for (int i=0; i < packet_num_bytes; i++)
+	    rx_packet_num += (((unsigned char)recv_buffer[15+i])^packet_num_prs[i]) << 8*(packet_num_bytes-i-1);
+
+	  // print out/log details of received messages
+      if (recv_len > 0) {
+        // TODO: Say what address message was received from.
+        // (It's in CRTS_server_addr)
+        dprintf("CRTS received packet %i containing %i bytes:\n", rx_packet_num, recv_len);
+        if (np.log_net_rx) {
+          log_rx_data(&sp, &np, recv_len, rx_packet_num);
+        }
       }
-    }
+	
+	  FD_ZERO(&read_fds);
+	  FD_SET(CRTS_server_sock, &read_fds);
+	}
 
     // Update the current time
     gettimeofday(&tv, NULL);
@@ -456,158 +543,69 @@ int main(int argc, char **argv) {
   printf("time_s: %li\n", time_s);
   printf("stop_time_s: %li\n", stop_time_s);
 
-  printf(
-      "CRTS: Reached termination. Sending termination message to controller\n");
-  char term_message = terminate_msg;
-  write(TCP_controller, &term_message, 1);
-
-  // close the log file
-  log_fstream.close();
+  // close the log files
+  if (np.log_net_rx)
+    log_rx_fstream.close();
+  if (np.log_net_tx)
+    log_tx_fstream.close();
+ 
+  // close all network connections
+  close(CRTS_client_sock);
+  close(CRTS_server_sock);
 
   // auto-generate octave logs from binary logs
   if(np.generate_octave_logs){
     char command[1000];
     char multi_file[PATH_MAX];
 
-      if(np.log_net_rx){
-        // If using multifile,
-        // Delete old one (otherwise will append to old file).
-        if( sp.totalNumReps>1 && sp.repNumber==1 )
-        {
-          // Get the name of the multi file 
-          strcpy(multi_file, "logs/octave/");
-          strcat(multi_file, net_rx_log_file_cpy);
-          char *ptr_ = strrchr(multi_file, (int) '_');
-          if (ptr_)
-            multi_file[ ptr_ - multi_file] = '\0';
-          strcat(multi_file, ".m");
-
-          // Delete it
-          sprintf(command, "rm -f %s", multi_file);
-          system(command);
-        }
-
-        sprintf(command, "./logs/logs2octave -c -l %s -N %d -n %d",
-                net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
-        system(command);
-      }
-
-      if(np.log_phy_rx){
-        // If using multifile,
-        // Delete old one (otherwise will append to old file).
-        if( sp.totalNumReps>1 && sp.repNumber==1 )
-        {
-          // Get the name of the multi file 
-          strcpy(multi_file, "logs/octave/");
-          strcat(multi_file, np.phy_rx_log_file);
-          char *ptr_ = strrchr(multi_file, (int) '_');
-          if (ptr_)
-            multi_file[ ptr_ - multi_file] = '\0';
-          strcat(multi_file, ".m");
-
-          // Delete it
-          sprintf(command, "rm -f %s", multi_file);
-          system(command);
-        }
-
-        sprintf(command, "./logs/logs2octave -r -l %s -N %d -n %d",
-                np.phy_rx_log_file, sp.totalNumReps, sp.repNumber);
-        system(command);
-      }
-
-      if(np.log_phy_tx){
-        // If using multifile,
-        // Delete old one (otherwise will append to old file).
-        if( sp.totalNumReps>1 && sp.repNumber==1 )
-        {
-          // Get the name of the multi file 
-          strcpy(multi_file, "logs/octave/");
-          strcat(multi_file, np.phy_tx_log_file);
-          char *ptr_ = strrchr(multi_file, (int) '_');
-          if (ptr_)
-            multi_file[ ptr_ - multi_file] = '\0';
-          strcat(multi_file, ".m");
-
-          // Delete it
-          sprintf(command, "rm -f %s", multi_file);
-          system(command);
-        }
-
-        sprintf(command, "./logs/logs2octave -t -l %s -N %d -n %d",
-                np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
-        system(command);
-      }
+    if(np.log_net_rx){
+      sprintf(command, "./logs/logs2octave -c -l %s -N %d -n %d",
+              net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
+      system(command);
     }
+
+    if (np.log_net_tx) {
+      sprintf(command, "./logs/logs2octave -C -l %s -N %d -n %d", 
+	        net_tx_log_file_cpy, sp.totalNumReps, sp.repNumber );
+      system(command);
+    }
+    
+    if(np.log_phy_rx){
+      sprintf(command, "./logs/logs2octave -r -l %s -N %d -n %d",
+              np.phy_rx_log_file, sp.totalNumReps, sp.repNumber);
+      system(command);
+    }
+
+    if(np.log_phy_tx){
+      sprintf(command, "./logs/logs2octave -t -l %s -N %d -n %d",
+              np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
+      system(command);
+    }
+  }
   // auto-generate python logs from binary logs
   if(np.generate_python_logs){
     char command[1000];
     char multi_file[PATH_MAX];
 
-
     if(np.log_net_rx){
-      // If using multifile,
-      // Delete old one (otherwise will append to old file).
-      if( sp.totalNumReps>1 && sp.repNumber==1 )
-      {
-        // Get the name of the multi file 
-        strcpy(multi_file, "logs/python/");
-        strcat(multi_file, net_rx_log_file_cpy);
-        char *ptr_ = strrchr(multi_file, (int) '_');
-        if (ptr_)
-          multi_file[ ptr_ - multi_file] = '\0';
-        strcat(multi_file, ".py");
-
-        // Delete it
-        sprintf(command, "rm -f %s", multi_file);
-        system(command);
-      }
-
       sprintf(command, "./logs/logs2python -c -l %s -N %d -n %d",
               net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
       system(command);
     }
 
+    if (np.log_net_tx) {
+      sprintf(command, "./logs/logs2octave -C -l %s -N %d -n %d", 
+	       net_tx_log_file_cpy, sp.totalNumReps, sp.repNumber );
+      system(command);
+    }
+    
     if(np.log_phy_rx){
-      // If using multifile,
-      // Delete old one (otherwise will append to old file).
-      if( sp.totalNumReps>1 && sp.repNumber==1 )
-      {
-        // Get the name of the multi file 
-        strcpy(multi_file, "logs/python/");
-        strcat(multi_file, np.phy_rx_log_file);
-        char *ptr_ = strrchr(multi_file, (int) '_');
-        if (ptr_)
-          multi_file[ ptr_ - multi_file] = '\0';
-        strcat(multi_file, ".py");
-
-        // Delete it
-        sprintf(command, "rm -f %s", multi_file);
-        system(command);
-      }
-
       sprintf(command, "./logs/logs2python -r -l %s -N %d -n %d",
               np.phy_rx_log_file, sp.totalNumReps, sp.repNumber);
       system(command);
     }
 
     if(np.log_phy_tx){
-      // If using multifile,
-      // Delete old one (otherwise will append to old file).
-      if( sp.totalNumReps>1 && sp.repNumber==1 )
-      {
-        // Get the name of the multi file 
-        strcpy(multi_file, "logs/python/");
-        strcat(multi_file, np.phy_tx_log_file);
-        char *ptr_ = strrchr(multi_file, (int) '_');
-        if (ptr_)
-          multi_file[ ptr_ - multi_file] = '\0';
-        strcat(multi_file, ".py");
-
-        // Delete it
-        sprintf(command, "rm -f %s", multi_file);
-        system(command);
-      }
-
       sprintf(command, "./logs/logs2python -t -l %s -N %d -n %d",
               np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
       system(command);
@@ -615,15 +613,16 @@ int main(int argc, char **argv) {
   }
 
 
-  // close all network connections
-  close(TCP_controller);
-  close(CRTS_client_sock);
-  close(CRTS_server_sock);
-
   // clean up ECR/python process
   if (np.cr_type == ecr) {
     delete ECR;
   } else if (np.cr_type == python) {
     kill(pid, SIGTERM);
   }
+
+  printf(
+      "CRTS: Reached termination. Sending termination message to controller\n");
+  char term_message = CRTS_MSG_TERMINATE;
+  write(TCP_controller, &term_message, 1);
+  close(TCP_controller);
 }

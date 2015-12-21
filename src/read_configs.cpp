@@ -190,6 +190,9 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   if (config_setting_lookup_int(node_config, "log_net_rx", &tmpI))
     np.log_net_rx = (int)tmpI;
 
+  if (config_setting_lookup_int(node_config, "log_net_tx", &tmpI))
+    np.log_net_tx = (int)tmpI;
+
   if (config_setting_lookup_string(node_config, "phy_rx_log_file", &tmpS))
     strcpy(np.phy_rx_log_file, tmpS);
 
@@ -199,6 +202,9 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   if (config_setting_lookup_string(node_config, "net_rx_log_file", &tmpS))
     strcpy(np.net_rx_log_file, tmpS);
 
+  if (config_setting_lookup_string(node_config, "net_tx_log_file", &tmpS))
+    strcpy(np.net_tx_log_file, tmpS);
+
   if (config_setting_lookup_int(node_config, "generate_octave_logs", &tmpI))
     np.generate_octave_logs = (int)tmpI;
 
@@ -207,6 +213,32 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
 
   if (config_setting_lookup_float(node_config, "ce_timeout_ms", &tmpD))
     np.ce_timeout_ms = tmpD;
+
+  if (config_setting_lookup_float(node_config, "net_mean_throughput", &tmpD)){
+    np.net_mean_throughput = tmpD;
+	printf("net mean throughput: %f\n", np.net_mean_throughput);
+  }
+  else
+    np.net_mean_throughput = 1e3;
+
+  // look up network traffic type
+  np.net_burst_length = 1;
+  if (config_setting_lookup_string(node_config, "net_traffic_type", &tmpS)) {
+    if (!strcmp(tmpS, "stream")){
+      printf("net traffic is stream\n");
+	  np.net_traffic_type = NET_TRAFFIC_STREAM;
+	}
+    else if (!strcmp(tmpS, "burst")){
+      np.net_traffic_type = NET_TRAFFIC_BURST;
+	  // look up the burst length if traffic type is burst
+	  if (config_setting_lookup_int(node_config, "net_burst_length", &tmpI))
+        np.net_burst_length = tmpI;
+	}
+    else if (!strcmp(tmpS, "poisson"))
+      np.net_traffic_type = NET_TRAFFIC_POISSON;
+    else
+      np.duplex = NET_TRAFFIC_STREAM;
+  } 
 
   if (config_setting_lookup_string(node_config, "duplex", &tmpS)) {
     if (!strcmp(tmpS, "FDD"))
@@ -526,11 +558,6 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
     }
   }
 
-  if (config_setting_lookup_float(node_config, "tx_delay_us", &tmpD))
-    np.tx_delay_us = tmpD;
-  else
-    np.tx_delay_us = 1e3;
-
   if (config_setting_lookup_string(node_config, "interference_type", &tmpS)) {
     if (!strcmp(tmpS, "CW"))
       np.interference_type = CW;
@@ -605,7 +632,17 @@ void print_node_parameters(struct node_parameters *np) {
     printf("\nVirtual Network Interface Settings:\n");
     printf("    CRTS IP:                           %-s\n", np->CRTS_IP);
     printf("    Target IP:                         %-s\n", np->TARGET_IP);
-    //
+	char traffic[15];
+    switch (np->net_traffic_type) { 
+	  case NET_TRAFFIC_STREAM: strcpy(traffic, "stream"); break;
+      case NET_TRAFFIC_BURST: strcpy(traffic, "burst"); break;
+      case NET_TRAFFIC_POISSON: strcpy(traffic, "poisson"); break;
+	}
+    printf("    Traffic pattern:                   %-s\n", traffic);
+	printf("    Average throughput:                %-.2f\n", np->net_mean_throughput);
+	if (np->net_traffic_type == NET_TRAFFIC_BURST)
+	  printf("    Burst length:                      %i\n", np->net_burst_length);
+	//
     printf("\nCognitive Engine Settings:\n");
     printf("    Cognitive Engine:                  %-s\n", np->CE);
     printf("    CE timeout:                        %-.2f\n", np->ce_timeout_ms);
@@ -617,6 +654,8 @@ void print_node_parameters(struct node_parameters *np) {
   printf("    PHY Tx log file:                   %-s\n", np->phy_tx_log_file);
   if (np->type != interferer)
     printf("    NET Rx log file:                   %-s\n", np->net_rx_log_file);
+  if (np->type != interferer)
+    printf("    NET Tx log file:                   %-s\n", np->net_tx_log_file);
   printf("    Generate octave logs:              %i\n",
          np->generate_octave_logs);
   printf("    Generate python logs:              %i\n",
@@ -646,7 +685,7 @@ void print_node_parameters(struct node_parameters *np) {
       strcpy(duplex, "HD");
       break;
     }
-    printf("    Duplex scheme:                     %-s\n", duplex);
+    // printf("    Duplex scheme:                     %-s\n", duplex);
     printf("    Receive subcarriers:               %i\n", np->tx_subcarriers);
     printf("    Receive cyclic prefix length:      %i\n", np->tx_cp_len);
     printf("    Receive taper length:              %i\n", np->tx_taper_len);

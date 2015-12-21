@@ -24,7 +24,11 @@ struct scenario_parameters {
   unsigned int repNumber;
 };
 
-enum msg_type { scenario_params_msg = 0, manual_start_msg, terminate_msg };
+enum msg_type { 
+  CRTS_MSG_SCENARIO_PARAMETERS = 0, 
+  CRTS_MSG_MANUAL_START, 
+  CRTS_MSG_TERMINATE
+};
 
 int read_scenario_master_file(char scenario_list[30][60],
                               unsigned int scenario_reps[60]);

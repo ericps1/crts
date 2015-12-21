@@ -1,4 +1,4 @@
-FLAGS = -I include -Wall -fPIC -g
+FLAGS = -I include -Wall -fPIC -std=c++11 -g
 LIBS = lib/TUN.o lib/ECR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
 #EDIT START FLAG

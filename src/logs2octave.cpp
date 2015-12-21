@@ -9,22 +9,22 @@ void help_logs2octave() {
   printf(" -r : Log file contains PHY receive metrics.\n");
   printf(" -t : Log file contains PHY transmit parameters.\n");
   printf(" -i : Log file contains interferer transmit parameters.\n");
-  printf(" -c : Log file contains NET receive data.\n");
+  printf(" -c : Log file contains CRTS rx data.\n");
+  printf(" -C : Log file contains CRTS tx data.\n");
   printf(" -N : Total number of repetitions for this scenario (default: 1)\n");
   printf(" -n : The repetition number for this scenario (required if -N is given)\n");
-
 }
 
 int main(int argc, char ** argv){
 
-    char log_file[PATH_MAX]; 
-    char output_file[PATH_MAX];
-    char multi_file[PATH_MAX];
+  char log_file[PATH_MAX]; 
+  char output_file[PATH_MAX];
+  char multi_file[PATH_MAX];
 
-  enum log_t { PHY_RX = 0, PHY_TX, INT_TX, NET_RX };
+  enum log_t { PHY_RX_LOG = 0, PHY_TX_LOG, NET_RX_LOG, NET_TX_LOG, INT_TX_LOG };
 
   // default log type is PHY RX metrics
-  log_t log_type = PHY_RX;
+  log_t log_type = PHY_RX_LOG;
 
   strcpy(log_file, "logs/bin/");
   strcpy(output_file, "logs/octave/");
@@ -38,7 +38,7 @@ int main(int argc, char ** argv){
   int n_opt = 0;
 
   int d;
-  while((d = getopt(argc, argv, "hl:rticN:n:")) != EOF){  
+  while((d = getopt(argc, argv, "hl:rticCN:n:")) != EOF){  
     switch (d) {
     case 'h':
       help_logs2octave();
@@ -54,18 +54,21 @@ int main(int argc, char ** argv){
           multi_file[ ptr_ - multi_file] = '\0';
       strcat(multi_file, ".m");
       l_opt = 1;      
-      break;
+     break;
       }
     case 'r':
       break;
     case 't':
-      log_type = PHY_TX;
+      log_type = PHY_TX_LOG;
       break;
     case 'i':
-      log_type = INT_TX;
+      log_type = INT_TX_LOG;
       break;
     case 'c':
-      log_type = NET_RX;
+      log_type = NET_RX_LOG;
+      break;
+    case 'C':
+      log_type = NET_TX_LOG;
       break;
     case 'N': 
       totalNumReps = atoi(optarg);
@@ -103,7 +106,11 @@ int main(int argc, char ** argv){
   }
   else
   {
-    file_out = fopen(multi_file, "a");
+    // rewrite the multi-file for the first repetition
+	if (repNumber == 1)
+	  file_out = fopen(multi_file, "w");
+    else
+	  file_out = fopen(multi_file, "a");
   }
 
   struct ExtensibleCognitiveRadio::metric_s metrics = {};
@@ -111,11 +118,11 @@ int main(int argc, char ** argv){
   struct ExtensibleCognitiveRadio::tx_parameter_s tx_params = {};
   int i = 1;
 
-  // handle PHY RX log
-
+  // handle log type
   switch(log_type)
   {
-    case PHY_RX:
+    // handle PHY RX log
+    case PHY_RX_LOG:
     {
       fprintf(file_out, "phy_rx_t = [];\n");
       // metrics
@@ -265,7 +272,7 @@ int main(int argc, char ** argv){
     }
 
     // handle PHY TX log
-    case PHY_TX:
+    case PHY_TX_LOG:
     {
       struct timeval log_time;;
 
@@ -379,7 +386,7 @@ int main(int argc, char ** argv){
     }
 
     // handle interferer tx logs
-    case INT_TX:
+    case INT_TX_LOG:
     {
       struct timeval log_time;
 
@@ -415,14 +422,12 @@ int main(int argc, char ** argv){
     }
 
     // handle NET RX data logs
-    case NET_RX:
+    case NET_RX_LOG:
     {
       struct timeval log_time;
-
+      int bytes;
       fprintf(file_out, "net_rx_t = [];\n");
       fprintf(file_out, "net_rx_bytes = [];\n");
-
-      int bytes;
       while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1,
                   file_in)){
         fread((int*)&bytes, sizeof(int), 1, file_in);
@@ -448,8 +453,45 @@ int main(int argc, char ** argv){
         fprintf(file_out, "clear net_rx_bytes;\n\n");
       }
       break;
-    }
+	}
+    case NET_TX_LOG:
+    {
+      struct timeval log_time;
+	  int bytes;
+	  int packet_num;
+      fprintf(file_out, "net_tx_t = [];\n");
+      fprintf(file_out, "net_tx_bytes = [];\n");
+      fprintf(file_out, "net_tx_packet_num = [];\n");
+      while (fread((struct timeval *)&log_time, sizeof(struct timeval), 1,
+                   file_in)) {
+        fread((int *)&bytes, sizeof(int), 1, file_in);
+        fread((int *)&packet_num, sizeof(int), 1, file_in);
+        fprintf(file_out, "net_tx_t(%i) = %li + 1e-6*%li;\n", i,
+                log_time.tv_sec, log_time.tv_usec);
+        fprintf(file_out, "net_tx_bytes(%i) = %i;\n\n", i, bytes);
+        fprintf(file_out, "net_tx_packet_num(%i) = %i;\n\n", i, packet_num);
+        i++;
+      }
+  
+      // If appending to the multiFile,
+      // then put the data into the next elements of the cell arrays
+      if (totalNumReps>1)
+      {
+        fprintf(file_out,
+                "net_tx_t_all_repetitions{%u} = net_tx_t;\n",
+                repNumber);
+        fprintf(file_out,
+                "net_tx_bytes_all_repetitions{%u} = net_tx_bytes;\n\n",
+                repNumber);
+
+        // Delete redundant data
+        fprintf(file_out, "clear net_tx_t;\n");
+        fprintf(file_out, "clear net_tx_bytes;\n");
+        fprintf(file_out, "clear net_tx_packet_num;\n\n");
+      }
+	}
   }
+
   fclose(file_in);
   fclose(file_out);
 }
