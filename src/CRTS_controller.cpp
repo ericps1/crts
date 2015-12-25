@@ -176,10 +176,11 @@ int main(int argc, char **argv) {
   struct node_parameters np[48];
 
   // read master scenario config file
-  char scenario_list[30][60];
-  char scenario_file[60];
-  unsigned int scenario_reps[30];
-  int num_scenarios = read_scenario_master_file(scenario_list, scenario_reps);
+  //char scenario_list[30][60];
+  char scenario_name[60];
+  char scenario_file[64];
+  unsigned int scenario_reps;
+  int num_scenarios = read_master_num_scenarios();
   printf("Number of scenarios: %i\n\n", num_scenarios);
 
   // variables for reading the system clock
@@ -189,18 +190,21 @@ int main(int argc, char **argv) {
 
   // loop through scenarios
   for (int i = 0; i < num_scenarios; i++) {
-    for (unsigned int scenRepNum = 1; scenRepNum <= scenario_reps[i];
+    
+	// read scenario name and repetitions
+	scenario_reps = read_master_scenario(i+1, scenario_name);
+    
+	for (unsigned int scenRepNum = 1; scenRepNum <= scenario_reps;
          scenRepNum++) {
       printf("Scenario %i:\n", i + 1);
       printf("Rep %i:\n", scenRepNum);
-      printf("Config file: %s\n", &scenario_list[i][0]);
+      printf("Config file: %s\n", scenario_name);
       // read the scenario parameters from file
-	  strcpy(scenario_file, &scenario_list[i][0]);
+	  strcpy(scenario_file, scenario_name);
 	  strcat(scenario_file, ".cfg");
-	  printf("%s\n", scenario_file);
 	  struct scenario_parameters sp = read_scenario_parameters(scenario_file);
       // Set the number of scenario  repititions in struct.
-      sp.totalNumReps = scenario_reps[i];
+      sp.totalNumReps = scenario_reps;
       sp.repNumber = scenRepNum;
 
       printf("Number of nodes: %i\n", sp.num_nodes);
@@ -223,17 +227,16 @@ int main(int argc, char **argv) {
         memset(&np[j], 0, sizeof(struct node_parameters));
         printf("Reading node %i's parameters...\n", j + 1);
         np[j] = read_node_parameters(j + 1, scenario_file);
-        print_node_parameters(&np[j]);
-
+        
 		// define log file names if they weren't defined by the scenario
 		if(!strcmp(np[j].phy_rx_log_file, "")) {
-          strcpy(np[j].phy_rx_log_file, &scenario_list[i][0]);
+          strcpy(np[j].phy_rx_log_file, scenario_name);
 		  sprintf(np[j].phy_rx_log_file, "%s_Node%i%s", np[j].phy_rx_log_file, 
 		          j+1, "_CR_PHY_RX");
    		}
 		
 		if(!strcmp(np[j].phy_tx_log_file, "")) {
-          strcpy(np[j].phy_tx_log_file, &scenario_list[i][0]);
+          strcpy(np[j].phy_tx_log_file, scenario_name);
 		  sprintf(np[j].phy_tx_log_file, "%s_Node%i", np[j].phy_tx_log_file, j+1);
           switch(np[j].type) {
 		  case(CR):
@@ -246,26 +249,28 @@ int main(int argc, char **argv) {
 		}
 
         if(!strcmp(np[j].net_rx_log_file, "")) {
-          strcpy(np[j].net_rx_log_file, &scenario_list[i][0]);
+          strcpy(np[j].net_rx_log_file, scenario_name);
 		  sprintf(np[j].net_rx_log_file, "%s_Node%i%s", np[j].net_rx_log_file, 
 		          j+1, "_CR_NET_RX");
         }  
 
         if(!strcmp(np[j].net_tx_log_file, "")) {
-          strcpy(np[j].net_tx_log_file, &scenario_list[i][0]);
+          strcpy(np[j].net_tx_log_file, scenario_name);
 		  sprintf(np[j].net_tx_log_file, "%s_Node%i%s", np[j].net_tx_log_file, 
 		          j+1, "_CR_NET_TX");
         }
 
         // append the rep number if necessary
-		if (scenario_reps[i]-1) {
+		if (scenario_reps-1) {
 		  sprintf(np[j].phy_rx_log_file, "%s_Rep%i", np[j].phy_rx_log_file, scenRepNum);
 		  sprintf(np[j].phy_tx_log_file, "%s_Rep%i", np[j].phy_tx_log_file, scenRepNum);
 		  sprintf(np[j].net_tx_log_file, "%s_Rep%i", np[j].net_tx_log_file, scenRepNum);
           sprintf(np[j].net_rx_log_file, "%s_Rep%i", np[j].net_rx_log_file, scenRepNum);
         }
 
-        // send command to launch executable if not doing so manually
+        print_node_parameters(&np[j]);
+
+		// send command to launch executable if not doing so manually
         int ssh_return = 0;
         if (!manual_execution) {
           char command[2000] = "ssh ";

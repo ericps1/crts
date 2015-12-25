@@ -141,8 +141,9 @@ Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
       if (log_phy_tx_flag) {
         std::ofstream log_file;
         char log_file_name[50];
-        strcpy(log_file_name, "./logs/");
+        strcpy(log_file_name, "./logs/bin/");
         strcat(log_file_name, phy_tx_log_file);
+        strcat(log_file_name, ".log");
         log_file.open(log_file_name, std::ofstream::out | std::ofstream::trunc);
         if (log_file.is_open()) {
           log_file.close();
@@ -378,10 +379,11 @@ void log_tx_parameters() {
   gettimeofday(&tv, NULL);
 
   // create string of actual file location
-  char file_name[50];
-  strcpy(file_name, "./logs/");
+  char file_name[100];
+  strcpy(file_name, "./logs/bin/");
   strcat(file_name, phy_tx_log_file);
-
+  strcat(file_name, ".log");
+  
   // open file, append parameters, and close
   std::ofstream log_file;
   log_file.open(file_name, std::ofstream::out | std::ofstream::binary |
@@ -691,6 +693,12 @@ int main(int argc, char **argv) {
   // END: Main Service Loop
   // ================================================================
 
+  if(np.generate_python_logs) {
+    char command[100];
+    sprintf(command, "./logs/logs2octave -i -l %s -N %d -n %d",
+            np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
+  }
+  
   printf("Sending termination message to controller\n");
   char term_message = CRTS_MSG_TERMINATE;
   write(TCP_controller, &term_message, 1);

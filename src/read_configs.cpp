@@ -9,10 +9,9 @@
 #include "read_configs.hpp"
 #include "node_parameters.hpp"
 
-int read_scenario_master_file(char scenario_list[30][60],
-                              unsigned int scenario_reps[60]) {
+int read_master_num_scenarios() {
   config_t cfg; // Returns all parameters in this structure
-  char current_scenario[30];
+  char config_str[30];
   const char *tmpS;
   int num_scenarios = 1;
   int tmpI; // Stores the value of Integer Parameters from Config file
@@ -26,23 +25,58 @@ int read_scenario_master_file(char scenario_list[30][60],
     exit(1);
   }
 
-  // Read the parameter group
+  // Read the number of scenarios for this execution
   if (config_lookup_int(&cfg, "NumberofScenarios", &tmpI))
     num_scenarios = (int)tmpI;
 
+  // Check that all scenarios are specified
   for (int i = 0; i < num_scenarios; i++) {
-    sprintf(current_scenario, "scenario_%d", i + 1);
-    if (config_lookup_string(&cfg, current_scenario, &tmpS))
-      strcpy(&scenario_list[i][0], tmpS);
+    sprintf(config_str, "scenario_%d", i + 1);
+    if (!config_lookup_string(&cfg, config_str, &tmpS)) {
+      printf("Scenario %i is not specified!\n", i);
+	  exit(1);
+	}
   }
-  for (int i = 0; i < num_scenarios; i++) {
-    sprintf(current_scenario, "reps_scenario_%d", i + 1);
-    if (config_lookup_int(&cfg, current_scenario, &tmpI))
-      scenario_reps[i] = tmpI;
-  }
-  config_destroy(&cfg);
+
   return num_scenarios;
-} // End readScMasterFile()
+}
+
+int read_master_scenario(int scenario_num, char *scenario_name) {
+  config_t cfg; // Returns all parameters in this structure
+  char config_str[30];
+  const char *tmpS;
+  int tmpI; // Stores the value of Integer Parameters from Config file
+
+  config_init(&cfg);
+
+  // Read the file. If there is an error, report it and exit.
+  if (!config_read_file(&cfg, "master_scenario_file.cfg")) {
+    printf("Error reading master scenario file on line %i\n",
+           config_error_line(&cfg));
+    exit(1);
+  }
+
+  // Read the scenario name
+  sprintf(config_str, "scenario_%d", scenario_num);
+  if (config_lookup_string(&cfg, config_str, &tmpS))
+    strcpy(scenario_name, tmpS);
+  
+  // Read the reps for all scenarios
+  sprintf(config_str, "reps_all_scenarios");
+  int reps;
+  if (config_lookup_int(&cfg, config_str, &tmpI))
+    reps = tmpI;
+  else
+    reps = 1;
+  
+  // Read the reps for this specific scenario
+  sprintf(config_str, "reps_scenario_%d", scenario_num);
+  if (config_lookup_int(&cfg, config_str, &tmpI))
+    reps = tmpI;
+
+  config_destroy(&cfg);
+  return reps;
+}
 
 struct scenario_parameters read_scenario_parameters(char *scenario_file) {
   // configuration variable
