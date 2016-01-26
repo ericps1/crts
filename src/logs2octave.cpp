@@ -44,6 +44,21 @@ int main(int argc, char ** argv){
       help_logs2octave();
       return 0;
     case 'l': {
+
+      // If log files use subdirectories, create them if they don't exist
+      char * subdirptr = strrchr(optarg, '/');
+      if (subdirptr) {
+        char subdirs[1000];
+        // Get the names of the subdirectories
+        strncpy(subdirs, optarg, subdirptr - optarg);
+        subdirs[subdirptr - optarg] = '\0';
+        char mkdir_cmd[1000];
+        strcpy(mkdir_cmd, "mkdir -p ./logs/octave/");
+        strcat(mkdir_cmd, subdirs);
+        // Create them
+        system(mkdir_cmd);
+      }
+
       strcat(log_file, optarg); 
       strcat(log_file, ".log");
       strcat(output_file, optarg);
@@ -55,7 +70,7 @@ int main(int argc, char ** argv){
       strcat(multi_file, ".m");
       l_opt = 1;      
      break;
-      }
+    }
     case 'r':
       break;
     case 't':

@@ -277,6 +277,34 @@ int main(int argc, char **argv) {
   strcpy(net_rx_log_file_cpy, np.net_rx_log_file);
   char net_tx_log_file_cpy[100];
   strcpy(net_tx_log_file_cpy, np.net_tx_log_file);
+
+  // If log file names use subdirectories, create them if they don't exist
+  char * subdirptr_rx = strrchr(net_rx_log_file_cpy, '/');
+  char * subdirptr_tx = strrchr(net_tx_log_file_cpy, '/');
+  if (subdirptr_rx)
+  {
+    char subdirs_rx[60];
+    // Get the names of the subdirectories
+    strncpy(subdirs_rx, net_rx_log_file_cpy, subdirptr_rx - net_rx_log_file_cpy);
+    subdirs_rx[subdirptr_rx - net_rx_log_file_cpy] = '\0';
+    char mkdir_cmd[100];
+    strcpy(mkdir_cmd, "mkdir -p ./logs/bin/");
+    strcat(mkdir_cmd, subdirs_rx);
+    // Create them
+    system(mkdir_cmd);
+  }
+  if (subdirptr_tx)
+  {
+    char subdirs_tx[60];
+    // Get the names of the subdirectories
+    strncpy(subdirs_tx, net_tx_log_file_cpy, subdirptr_tx - net_tx_log_file_cpy);
+    subdirs_tx[subdirptr_tx - net_tx_log_file_cpy] = '\0';
+    char mkdir_cmd[100];
+    strcpy(mkdir_cmd, "mkdir -p ./logs/bin/");
+    strcat(mkdir_cmd, subdirs_tx);
+    // Create them
+    system(mkdir_cmd);
+  }
   
   // modify log file name in node parameters for logging function
   char net_rx_log_file[100];

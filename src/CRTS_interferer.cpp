@@ -93,6 +93,7 @@ Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
     // Parse command
     switch (command_buffer[0]) {
     case CRTS_MSG_SCENARIO_PARAMETERS: // settings for upcoming scenario
+    {
       dprintf("Received settings for scenario\n");
 
       // copy scenario parameters
@@ -137,6 +138,21 @@ Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
       log_phy_tx_flag = np->log_phy_tx;
       strcpy(phy_tx_log_file, np->phy_tx_log_file);
 
+
+      // If log file names use subdirectories, create them if they don't exist
+      char * subdirptr_tx = strrchr(phy_tx_log_file, '/');
+      if (subdirptr_tx) {
+        char subdirs_tx[60];
+        // Get the names of the subdirectories
+        strncpy(subdirs_tx, phy_tx_log_file, subdirptr_tx - phy_tx_log_file);
+        subdirs_tx[subdirptr_tx - phy_tx_log_file] = '\0';
+        char mkdir_cmd[100];
+        strcpy(mkdir_cmd, "mkdir -p ./logs/bin/");
+        strcat(mkdir_cmd, subdirs_tx);
+        // Create them
+        system(mkdir_cmd);
+      }
+      
       // open tx log file to delete any current contents
       if (log_phy_tx_flag) {
         std::ofstream log_file;
@@ -153,6 +169,7 @@ Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
       }
 
       break;
+    }
 
     case CRTS_MSG_MANUAL_START: // updated start time (used for manual mode)
       dprintf("Received an updated start time\n");
