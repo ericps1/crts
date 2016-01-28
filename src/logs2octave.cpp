@@ -426,14 +426,18 @@ int main(int argc, char ** argv){
     {
       struct timeval log_time;
       int bytes;
+      int packet_num;
       fprintf(file_out, "net_rx_t = [];\n");
       fprintf(file_out, "net_rx_bytes = [];\n");
+      fprintf(file_out, "net_rx_packet_num = [];\n");
       while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1,
                   file_in)){
         fread((int*)&bytes, sizeof(int), 1, file_in);
+        fread((int*)&packet_num, sizeof(int), 1, file_in);
         fprintf(file_out, "net_rx_t(%i) = %li + 1e-6*%li;\n",  i,
                 log_time.tv_sec, log_time.tv_usec);
-        fprintf(file_out, "net_rx_bytes(%i) = %i;\n\n",  i, bytes);
+        fprintf(file_out, "net_rx_bytes(%i) = %i;\n",  i, bytes);
+        fprintf(file_out, "net_rx_packet_num(%i) = %i;\n", i, packet_num);
         i++;
       }    
 
@@ -447,10 +451,14 @@ int main(int argc, char ** argv){
         fprintf(file_out,
                 "net_rx_bytes_all_repetitions{%u} = net_rx_bytes;\n\n",
                 repNumber);
+        fprintf(file_out,
+                "net_rx_packet_num_all_repetitions{%u} = net_rx_packet_num;\n\n",
+                repNumber);
 
         // Delete redundant data
         fprintf(file_out, "clear net_rx_t;\n");
-        fprintf(file_out, "clear net_rx_bytes;\n\n");
+        fprintf(file_out, "clear net_rx_bytes;\n");
+        fprintf(file_out, "clear net_rx_packet_num;\n\n");
       }
       break;
 	}
@@ -482,6 +490,9 @@ int main(int argc, char ** argv){
                 repNumber);
         fprintf(file_out,
                 "net_tx_bytes_all_repetitions{%u} = net_tx_bytes;\n\n",
+                repNumber);
+        fprintf(file_out,
+                "net_tx_packet_num_all_repetitions{%u} = net_tx_packet_num;\n\n",
                 repNumber);
 
         // Delete redundant data
