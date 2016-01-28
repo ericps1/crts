@@ -9,7 +9,7 @@
 #include "read_configs.hpp"
 #include "node_parameters.hpp"
 
-int read_master_num_scenarios() {
+int read_master_num_scenarios(char * nameMasterScenFile) {
   config_t cfg; // Returns all parameters in this structure
   char config_str[30];
   const char *tmpS;
@@ -19,9 +19,9 @@ int read_master_num_scenarios() {
   config_init(&cfg);
 
   // Read the file. If there is an error, report it and exit.
-  if (!config_read_file(&cfg, "master_scenario_file.cfg")) {
-    printf("Error reading master scenario file on line %i\n",
-           config_error_line(&cfg));
+  if (!config_read_file(&cfg, nameMasterScenFile)) {
+    printf("Error reading master scenario file (%s) on line %i\n",
+           nameMasterScenFile, config_error_line(&cfg));
     exit(1);
   }
 
@@ -41,7 +41,8 @@ int read_master_num_scenarios() {
   return num_scenarios;
 }
 
-int read_master_scenario(int scenario_num, char *scenario_name) {
+int read_master_scenario(char * nameMasterScenFile, int scenario_num,
+                         char *scenario_name) {
   config_t cfg; // Returns all parameters in this structure
   char config_str[30];
   const char *tmpS;
@@ -50,9 +51,9 @@ int read_master_scenario(int scenario_num, char *scenario_name) {
   config_init(&cfg);
 
   // Read the file. If there is an error, report it and exit.
-  if (!config_read_file(&cfg, "master_scenario_file.cfg")) {
-    printf("Error reading master scenario file on line %i\n",
-           config_error_line(&cfg));
+  if (!config_read_file(&cfg, nameMasterScenFile)) {
+    printf("Error reading master scenario file (%s) on line %i\n",
+           nameMasterScenFile, config_error_line(&cfg));
     exit(1);
   }
 
