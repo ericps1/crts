@@ -30,9 +30,9 @@ enum msg_type {
   CRTS_MSG_TERMINATE
 };
 
-int read_master_num_scenarios();
+int read_master_num_scenarios(char * nameMasterScenFile);
 
-int read_master_scenario(int scenario_num,
+int read_master_scenario(char * nameMasterScenFile, int scenario_num,
                               char * scenario_name);
 
 struct scenario_parameters read_scenario_parameters(char *scenario_file);
