@@ -74,6 +74,7 @@ void help_CRTS_controller() {
   printf(" -h : Help.\n");
   printf(" -m : Manual Mode - Start each node manually rather than have "
          "CRTS_controller do it automatically.\n");
+  printf(" -f : Master scenario file (default: master_scenario_file.cfg).\n");
   printf(" -a : IP Address - IP address of this computer as seen by remote "
          "nodes.\n");
   printf("      Autodetected by default.\n");
@@ -103,6 +104,9 @@ int main(int argc, char **argv) {
   char crts_dir[1000];
   getcwd(crts_dir, 1000);
 
+  // Default name of master scenario file
+  char * nameMasterScenFile = (char *) "master_scenario_file.cfg";
+
   // Default IP address of server as seen by other nodes
   char *serv_ip_addr;
   // Autodetect IP address as seen by other nodes
@@ -128,6 +132,9 @@ int main(int argc, char **argv) {
     case 'h':
       help_CRTS_controller();
       return 0;
+    case 'f':
+      nameMasterScenFile = optarg;
+      break;
     case 'm':
       manual_execution = 1;
       break;
@@ -177,11 +184,10 @@ int main(int argc, char **argv) {
   struct node_parameters np[48];
 
   // read master scenario config file
-  //char scenario_list[30][60];
   char scenario_name[60];
   char scenario_file[64];
   unsigned int scenario_reps;
-  int num_scenarios = read_master_num_scenarios();
+  int num_scenarios = read_master_num_scenarios(nameMasterScenFile);
   printf("Number of scenarios: %i\n\n", num_scenarios);
 
   // variables for reading the system clock
@@ -193,7 +199,7 @@ int main(int argc, char **argv) {
   for (int i = 0; i < num_scenarios; i++) {
     
 	// read scenario name and repetitions
-	scenario_reps = read_master_scenario(i+1, scenario_name);
+	scenario_reps = read_master_scenario(nameMasterScenFile, i+1, scenario_name);
     
 	for (unsigned int scenRepNum = 1; scenRepNum <= scenario_reps;
          scenRepNum++) {
