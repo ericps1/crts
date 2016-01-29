@@ -236,7 +236,6 @@ int main(int argc, char **argv) {
   }
 
   // Create TCP client to controller
-  unsigned int controller_port = 4444;
   int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
   if (TCP_controller < 0) {
     printf("ERROR: Receiver Failed to Create Client Socket\n");
@@ -247,7 +246,7 @@ int main(int argc, char **argv) {
   memset(&controller_addr, 0, sizeof(controller_addr));
   controller_addr.sin_family = AF_INET;
   controller_addr.sin_addr.s_addr = inet_addr(controller_ipaddr);
-  controller_addr.sin_port = htons(controller_port);
+  controller_addr.sin_port = htons(CRTS_TCP_CONTROL_PORT);
 
   // Attempt to connect client socket to server
   int connect_status =
@@ -260,7 +259,7 @@ int main(int argc, char **argv) {
   dprintf("Connected to server\n");
 
   // Port to be used by CRTS server and client
-  int port = 4444;
+  int port = CRTS_CR_PORT;
 
   // Create node parameters struct and the scenario parameters struct
   // and read info from controller

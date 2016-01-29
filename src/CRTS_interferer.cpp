@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
   memset(&controller_addr, 0, sizeof(controller_addr));
   controller_addr.sin_family = AF_INET;
   controller_addr.sin_addr.s_addr = inet_addr(controller_ipaddr);
-  controller_addr.sin_port = htons(4444);
+  controller_addr.sin_port = htons(CRTS_TCP_CONTROL_PORT);
 
   // Attempt to connect client socket to server
   int connect_status =

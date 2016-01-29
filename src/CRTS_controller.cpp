@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
   memset(&serv_addr, 0, sizeof(serv_addr));      // Zero out structure
   serv_addr.sin_family = AF_INET;                // Internet address family
   serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); // Any incoming interface
-  serv_addr.sin_port = htons(4444);              // Local port
+  serv_addr.sin_port = htons(CRTS_TCP_CONTROL_PORT);              // Local port
   // Bind to the local address to a port
   if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
     printf("ERROR: bind() error\n");
