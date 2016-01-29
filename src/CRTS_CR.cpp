@@ -147,11 +147,15 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p) {
     if (np->tx_subcarrier_alloc_method == CUSTOM_SUBCARRIER_ALLOC ||
         np->tx_subcarrier_alloc_method == STANDARD_SUBCARRIER_ALLOC) {
       ECR->set_tx_subcarrier_alloc(np->tx_subcarrier_alloc);
-    }
+    } else {
+      ECR->set_tx_subcarrier_alloc(NULL);
+	}
     if (np->rx_subcarrier_alloc_method == CUSTOM_SUBCARRIER_ALLOC ||
         np->rx_subcarrier_alloc_method == STANDARD_SUBCARRIER_ALLOC) {
       ECR->set_rx_subcarrier_alloc(np->rx_subcarrier_alloc);
-    }
+    } else {
+	  ECR->set_rx_subcarrier_alloc(NULL);
+	}
   }
   // intialize python radio if applicable
   else if (np->cr_type == python) {
