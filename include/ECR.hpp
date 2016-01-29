@@ -6,7 +6,6 @@
 #include <math.h>
 #include <complex>
 #include <liquid/liquid.h>
-//#include <liquid/ofdmtxrx.h>
 #include <pthread.h>
 #include <uhd/utils/msg.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
@@ -33,7 +32,7 @@ enum tx_states {
   TX_FOR_FRAMES
 };
   
-  class ExtensibleCognitiveRadio {
+class ExtensibleCognitiveRadio {
 public:
   ExtensibleCognitiveRadio();
   ~ExtensibleCognitiveRadio();
@@ -321,7 +320,7 @@ public:
     ///     $ uhd_usrp_probe
     ///
     /// for details about the particular gain limits of your USRP device.
-    float tx_gain_uhd;
+    double tx_gain_uhd;
 
     /// \brief The software gain of the transmitter. In dB.
     ///
@@ -342,7 +341,7 @@ public:
     /// to-average power ratio of OFDM signals. Allowing some slight
     /// clipping can improve overall signal power at the expense of
     /// added distortion.
-    float tx_gain_soft;
+    double tx_gain_soft;
 
     /// \brief The transmitter local oscillator frequency in Hertz.
     ///
@@ -351,7 +350,7 @@ public:
     ///
     /// This value is passed directly to
     /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
-    float tx_freq;
+    double tx_freq;
 
     /// \brief The transmitter NCO frequency in Hertz.
     ///
@@ -360,7 +359,7 @@ public:
     /// USRP daughterboard. This can be useful for offsetting the
     /// tone resulting from LO leakage of the ZIF transmitter
     /// used by the USRP.
-    float tx_dsp_freq;
+    double tx_dsp_freq;
 
     /// \brief The sample rate of the transmitter in samples/second.
     ///
@@ -369,7 +368,7 @@ public:
     ///
     /// This value is passed directly to
     /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
-    float tx_rate;
+    double tx_rate;
 
     unsigned int payload_sym_length;
   };
@@ -457,7 +456,7 @@ public:
     ///     $ uhd_usrp_probe
     ///
     /// for details about the particular gain limits of your USRP device.
-    float rx_gain_uhd;
+    double rx_gain_uhd;
 
     /// \brief The receiver local oscillator frequency in Hertz.
     ///
@@ -466,7 +465,7 @@ public:
     ///
     /// This value is passed directly to
     /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
-    float rx_freq;
+    double rx_freq;
 
     /// \brief The transmitter NCO frequency in Hertz.
     ///
@@ -475,7 +474,7 @@ public:
     /// USRP daughterboard. This can be useful for offsetting the
     /// tone resulting from LO leakage of the ZIF receiver
     /// used by the USRP.
-    float rx_dsp_freq;
+    double rx_dsp_freq;
 
     /// \brief The sample rate of the receiver in samples/second.
     ///
@@ -484,7 +483,7 @@ public:
     ///
     /// This value is passed directly to
     /// <a href="http://files.ettus.com/manual/index.html">UHD</a>.
-    float rx_rate;
+    double rx_rate;
   };
 
   //=================================================================================
@@ -496,10 +495,10 @@ public:
   void stop_ce();
 
   /// \brief Assign a value to ExtensibleCognitiveRadio::ce_timeout_ms.
-  void set_ce_timeout_ms(float new_timeout_ms);
+  void set_ce_timeout_ms(double new_timeout_ms);
 
   /// \brief Get the current value of ExtensibleCognitiveRadio::ce_timeout_ms
-  float get_ce_timeout_ms();
+  double get_ce_timeout_ms();
 
   /// \brief The instance of
   /// ExtensibleCognitiveRadio::metric_s
@@ -535,20 +534,20 @@ public:
   //=================================================================================
 
   /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
-  void set_tx_freq(float _tx_freq);
+  void set_tx_freq(double _tx_freq);
 
-  void set_tx_freq(float _tx_freq, float _dsp_freq);
+  void set_tx_freq(double _tx_freq, double _dsp_freq);
 
   /// \brief Set the value of ExtensibleCognitiveRadio::tx_parameter_s::tx_rate.
-  void set_tx_rate(float _tx_rate);
+  void set_tx_rate(double _tx_rate);
 
   /// \brief Set the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_gain_soft.
-  void set_tx_gain_soft(float _tx_gain_soft);
+  void set_tx_gain_soft(double _tx_gain_soft);
 
   /// \brief Set the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_gain_uhd.
-  void set_tx_gain_uhd(float _tx_gain_uhd);
+  void set_tx_gain_uhd(double _tx_gain_uhd);
 
   void set_tx_antenna(char *_tx_antenna);
 
@@ -601,19 +600,19 @@ public:
 
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
-  float get_tx_freq();
+  double get_tx_freq();
 
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_rate.
-  float get_tx_rate();
+  double get_tx_rate();
 
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_gain_soft.
-  float get_tx_gain_soft();
+  double get_tx_gain_soft();
 
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_gain_uhd.
-  float get_tx_gain_uhd();
+  double get_tx_gain_uhd();
 
   char *get_tx_antenna();
 
@@ -655,7 +654,7 @@ public:
 
   void get_tx_control_info(unsigned char *_control_info);
 
-  float get_tx_data_rate();
+  double get_tx_data_rate();
   
   void start_tx();
   void start_tx_for_frames(int _num_tx_frames);
@@ -693,16 +692,16 @@ public:
   //=================================================================================
 
   /// \brief Set the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
-  void set_rx_freq(float _rx_freq);
+  void set_rx_freq(double _rx_freq);
 
-  void set_rx_freq(float _rx_freq, float _dsp_freq);
+  void set_rx_freq(double _rx_freq, double _dsp_freq);
 
   /// \brief Set the value of ExtensibleCognitiveRadio::rx_parameter_s::rx_rate.
-  void set_rx_rate(float _rx_rate);
+  void set_rx_rate(double _rx_rate);
 
   /// \brief Set the value of
   /// ExtensibleCognitiveRadio::rx_parameter_s::rx_gain_uhd.
-  void set_rx_gain_uhd(float _rx_gain_uhd);
+  void set_rx_gain_uhd(double _rx_gain_uhd);
 
   void set_rx_antenna(char *_rx_antenna);
 
@@ -722,15 +721,15 @@ public:
 
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
-  float get_rx_freq();
+  double get_rx_freq();
 
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::rx_parameter_s::rx_rate.
-  float get_rx_rate();
+  double get_rx_rate();
 
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::rx_parameter_s::rx_gain_uhd.
-  float get_rx_gain_uhd();
+  double get_rx_gain_uhd();
 
   char *get_rx_antenna();
 
@@ -808,7 +807,7 @@ private:
   ///
   /// It can be accessed using ExtensibleCognitiveRadio::set_ce_timeout_ms()
   /// and ExtensibleCognitiveRadio::get_ce_timeout_ms().
-  float ce_timeout_ms;
+  double ce_timeout_ms;
 
   // variables to enable/disable ce events
   bool ce_phy_events;
@@ -884,7 +883,7 @@ private:
   unsigned char tx_header[8];    // header container (must have length 8)
   unsigned int frame_counter;
   unsigned int numDataSubcarriers;	
-  float tx_data_rate;
+  double tx_data_rate;
   int update_tx_data_rate;
   int num_tx_frames;
 

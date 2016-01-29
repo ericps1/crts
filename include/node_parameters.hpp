@@ -4,8 +4,8 @@
 #include <string>
 #include <liquid/liquid.h>
 
-enum type {
-  CR = 0,    // user equipment node type
+enum node_type {
+  CR = 0,    // cognitive radio node type
   interferer // interferer node type
 };
 
@@ -34,7 +34,7 @@ enum interference_type {
   OFDM    // orthogonal frequency division multiplexing interference
 };
 
-enum tx_freq_hop_type { NONE = 0, ALTERNATING, SWEEP, RANDOM };
+enum tx_freq_behavior { FIXED = 0, SWEEP, RANDOM };
 
 enum subcarrier_alloc {
   LIQUID_DEFAULT_SUBCARRIER_ALLOC = 0,
@@ -56,12 +56,12 @@ struct node_parameters {
   char TARGET_IP[20];
   int net_traffic_type;
   int net_burst_length;
-  float net_mean_throughput;
+  double net_mean_throughput;
   
   
   // CE settings
   char CE[100];
-  float ce_timeout_ms;
+  double ce_timeout_ms;
   
   // log/print settings
   int print_metrics;
@@ -77,12 +77,12 @@ struct node_parameters {
   int generate_python_logs;
 
   // USRP settings
-  float rx_freq;
-  float rx_rate;
-  float rx_gain;
-  float tx_freq;
-  float tx_rate;
-  float tx_gain;
+  double rx_freq;
+  double rx_rate;
+  double rx_gain;
+  double tx_freq;
+  double tx_rate;
+  double tx_gain;
 
   // liquid OFDM settings
   int duplex;
@@ -95,7 +95,7 @@ struct node_parameters {
   int rx_pilot_freq;
   char rx_subcarrier_alloc[2048];
 
-  float tx_gain_soft;
+  double tx_gain_soft;
   int tx_subcarriers;
   int tx_cp_len;
   int tx_taper_len;
@@ -111,17 +111,17 @@ struct node_parameters {
 
   // interferer only
   int interference_type; // see ENUM list above
-  float period;          // seconds for a single period
-  float duty_cycle;      // percent of period that interference
+  double period;          // seconds for a single period
+  double duty_cycle;      // percent of period that interference
                          // is ON.  expressed as a float
                          // between 0.0 and 1.0
 
   // interferer freq hop parameters
-  int tx_freq_hop_type;         // NONE | ALTERNATING | SWEEP | RANDOM
-  float tx_freq_hop_min;        // center frequency minimum
-  float tx_freq_hop_max;        // center frequency maximum
-  float tx_freq_hop_dwell_time; // seconds at a given freq
-  float tx_freq_hop_increment;  // for SWEEP, increment hop amount
+  int tx_freq_behavior;     // NONE | ALTERNATING | SWEEP | RANDOM
+  double tx_freq_min;        // center frequency minimum
+  double tx_freq_max;        // center frequency maximum
+  double tx_freq_dwell_time; // seconds at a given freq
+  double tx_freq_resolution; // granularity for SWEEP and RANDOM frequency behaviors
 };
 
 #endif

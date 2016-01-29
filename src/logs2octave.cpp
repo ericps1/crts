@@ -426,11 +426,13 @@ int main(int argc, char ** argv){
     {
       struct timeval log_time;
       int bytes;
+	  int packet_num;
       fprintf(file_out, "net_rx_t = [];\n");
       fprintf(file_out, "net_rx_bytes = [];\n");
       while(fread((struct timeval*)&log_time, sizeof(struct timeval), 1,
                   file_in)){
         fread((int*)&bytes, sizeof(int), 1, file_in);
+        fread((int*)&packet_num, sizeof(int), 1, file_in);
         fprintf(file_out, "net_rx_t(%i) = %li + 1e-6*%li;\n",  i,
                 log_time.tv_sec, log_time.tv_usec);
         fprintf(file_out, "net_rx_bytes(%i) = %i;\n\n",  i, bytes);

@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <random>
+#include "CRTS.hpp"
 #include "ECR.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
@@ -388,9 +389,6 @@ int main(int argc, char **argv) {
   // Bind CRTS server socket
   bind(CRTS_server_sock, (sockaddr *)&CRTS_server_addr, clientlen);
 
-  //
-  //fcntl(CRTS_client_sock, F_SETFL, O_NONBLOCK);
-  
   // Define a buffer for receiving and a temporary message for sending
   int recv_buffer_len = 8192 * 2;
   char recv_buffer[recv_buffer_len];
@@ -399,7 +397,7 @@ int main(int argc, char **argv) {
   int packet_counter = 0;
   const int packet_num_bytes = 4; // number of bytes used for the packet number
   unsigned char packet_num_prs[packet_num_bytes]; // pseudo-random sequence used to modify packet number
-  unsigned char message[256];
+  unsigned char message[CRTS_CR_NET_PACKET_LEN];
   strcpy((char*)message, np.CRTS_IP);
   srand(12);
   for (int i=0; i < packet_num_bytes; i++)
@@ -416,7 +414,7 @@ int main(int argc, char **argv) {
     sig_terminate = 1;
   }
 
-  float t_step = 8.0*288.0/np.net_mean_throughput;
+  float t_step = 8.0*(float)CRTS_CR_NET_PACKET_LEN/np.net_mean_throughput;
   float tx_time_delta = 0;
   struct timeval tx_time;
   fd_set read_fds;
@@ -489,8 +487,8 @@ int main(int argc, char **argv) {
           message[i+15] = ((packet_counter>>(8*(packet_num_bytes-i-1))) & 0xff )^packet_num_prs[i];
         
 		// fill the rest with random data
-        //for (int i=15+packet_num_bytes; i < 256; i++)
-        //  message[i] = (rand() & 0xff);
+        for (int i=15+packet_num_bytes; i < CRTS_CR_NET_PACKET_LEN; i++)
+          message[i] = (rand() & 0xff);
 
 	    // send UDP packet via CR
         dprintf("CRTS sending packet %i\n", packet_counter);
@@ -537,11 +535,6 @@ int main(int argc, char **argv) {
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;
   }
-
-  printf("sigterminate: %i\n", sig_terminate);
-  printf("start_time_s: %li\n", sp.start_time_s);
-  printf("time_s: %li\n", time_s);
-  printf("stop_time_s: %li\n", stop_time_s);
 
   // close the log files
   if (np.log_net_rx)

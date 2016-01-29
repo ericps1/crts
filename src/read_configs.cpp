@@ -4,6 +4,7 @@
 #include <libconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
 #include <sstream>
 #include <liquid/liquid.h>
 #include "read_configs.hpp"
@@ -614,28 +615,26 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   // ======================================================
   // process frequency hopping parameters
   // ======================================================
-  if (config_setting_lookup_string(node_config, "tx_freq_hop_type", &tmpS)) {
-    if (!strcmp(tmpS, "NONE"))
-      np.tx_freq_hop_type = NONE;
-    if (!strcmp(tmpS, "ALTERNATING"))
-      np.tx_freq_hop_type = ALTERNATING;
+  if (config_setting_lookup_string(node_config, "tx_freq_behavior", &tmpS)) {
+    if (!strcmp(tmpS, "FIXED"))
+      np.tx_freq_behavior = FIXED;
     if (!strcmp(tmpS, "SWEEP"))
-      np.tx_freq_hop_type = SWEEP;
+      np.tx_freq_behavior = SWEEP;
     if (!strcmp(tmpS, "RANDOM"))
-      np.tx_freq_hop_type = RANDOM;
+      np.tx_freq_behavior = RANDOM;
   }
 
-  if (config_setting_lookup_float(node_config, "tx_freq_hop_min", &tmpD))
-    np.tx_freq_hop_min = tmpD;
+  if (config_setting_lookup_float(node_config, "tx_freq_min", &tmpD))
+    np.tx_freq_min = tmpD;
 
-  if (config_setting_lookup_float(node_config, "tx_freq_hop_max", &tmpD))
-    np.tx_freq_hop_max = tmpD;
+  if (config_setting_lookup_float(node_config, "tx_freq_max", &tmpD))
+    np.tx_freq_max = tmpD;
 
-  if (config_setting_lookup_float(node_config, "tx_freq_hop_dwell_time", &tmpD))
-    np.tx_freq_hop_dwell_time = tmpD;
+  if (config_setting_lookup_float(node_config, "tx_freq_dwell_time", &tmpD))
+    np.tx_freq_dwell_time = tmpD;
 
-  if (config_setting_lookup_float(node_config, "tx_freq_hop_increment", &tmpD))
-    np.tx_freq_hop_increment = tmpD;
+  if (config_setting_lookup_float(node_config, "tx_freq_resolution", &tmpD))
+    np.tx_freq_resolution = tmpD;
 
   return np;
 }
@@ -740,7 +739,7 @@ void print_node_parameters(struct node_parameters *np) {
   if (np->type == interferer) {
     printf("\nInitial Interference Settings:\n");
     char interference_type[5] = "NONE";
-    char tx_freq_hop_type[6] = "NONE";
+    char tx_freq_behavior[6] = "NONE";
     switch (np->interference_type) {
     case (CW):
       strcpy(interference_type, "CW");
@@ -758,33 +757,30 @@ void print_node_parameters(struct node_parameters *np) {
       strcpy(interference_type, "OFDM");
       break;
     }
-    switch (np->tx_freq_hop_type) {
-    case (NONE):
-      strcpy(tx_freq_hop_type, "NONE");
-      break;
-    case (ALTERNATING):
-      strcpy(tx_freq_hop_type, "ALTERNATING");
+    switch (np->tx_freq_behavior) {
+    case (FIXED):
+      strcpy(tx_freq_behavior, "FIXED");
       break;
     case (SWEEP):
-      strcpy(tx_freq_hop_type, "SWEEP");
+      strcpy(tx_freq_behavior, "SWEEP");
       break;
     case (RANDOM):
-      strcpy(tx_freq_hop_type, "RANDOM");
+      strcpy(tx_freq_behavior, "RANDOM");
       break;
     }
     printf("    Interference type:                 %-s\n", interference_type);
     printf("    Interference period:               %-.2f\n", np->period);
     printf("    Interference duty cycle:           %-.2f\n", np->duty_cycle);
     printf("\n");
-    printf("    tx freq hop type:                  %-s\n", tx_freq_hop_type);
-    printf("    tx freq hop min:                   %-.2e\n",
-           np->tx_freq_hop_min);
-    printf("    tx freq hop max:                   %-.2e\n",
-           np->tx_freq_hop_max);
-    printf("    tx freq hop dwell time:            %-.2f\n",
-           np->tx_freq_hop_dwell_time);
-    printf("    tx freq hop increment:             %-.2e\n",
-           np->tx_freq_hop_increment);
+    printf("    tx freq behavior:                  %-s\n", tx_freq_behavior);
+    printf("    tx freq min:                       %-.2e\n",
+           np->tx_freq_min);
+    printf("    tx freq max:                       %-.2e\n",
+           np->tx_freq_max);
+    printf("    tx freq dwell time:                %-.2f\n",
+           np->tx_freq_dwell_time);
+    printf("    tx freq resolution:                %-.2e\n",
+           np->tx_freq_resolution);
 
     printf("\n");
   }
