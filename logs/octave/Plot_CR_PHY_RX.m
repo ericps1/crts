@@ -41,11 +41,15 @@ ylim([min(phy_rx_CFO)-(max(phy_rx_CFO)-min(phy_rx_CFO))/2, max(phy_rx_CFO)+(max(
 xlim([min(phy_rx_t), max(phy_rx_t)]);
 
 figure;
-plot(phy_rx_t,phy_rx_num_syms);
-title('Number of Frame Symbols');
-xlabel('Time (s)\");');
-ylabel('Number of Frame Symbols');
-ylim([min(phy_rx_CFO)-(max(phy_rx_num_syms)-min(phy_rx_num_syms))/2, max(phy_rx_num_syms)+(max(phy_rx_num_syms)-min(phy_rx_num_syms))/2]);
+plot(phy_rx_t,phy_rx_payload_bytes);
+title('Payload Bytes');
+xlabel('Time (s)");');
+ylabel('Bytes per payload');
+if (sum(phy_rx_payload_bytes - phy_rx_payload_bytes(1)) > 0)
+  ylim([min(phy_rx_payload_bytes)-(max(phy_rx_payload_bytes)-min(phy_rx_payload_bytes))/2, max(phy_rx_payload_bytes)+(max(phy_rx_payload_bytes)-min(phy_rx_payload_bytes))/2]);
+else
+  ylim([0.9*phy_rx_payload_bytes(1), 1.1*phy_rx_payload_bytes(1)]);
+end
 xlim([min(phy_rx_t), max(phy_rx_t)]);
 
 figure;
@@ -53,7 +57,7 @@ plot(phy_rx_t,phy_rx_mod_scheme);
 title('Modulation Scheme');	
 xlabel('Time (s)');
 ylabel('Modulation Scheme');
-mod_sets = [0,0; 1,8; 9,16; 17,24;, 25,31;, 32,38; 39,40;, 41,41;, 42,43;, 44,44; 45,59; 50,50; 51,51];
+mod_sets = [0,0; 1,8; 9,16; 17,24; 25,31;, 32,38; 39,40;, 41,41; 42,43;, 44,44; 45,49; 50,50; 51,51];
 for i = 1:numel(mod_sets)/2
   if ((mod_sets(i,1)-max(phy_rx_mod_scheme) <= 0) && (mod_sets(i,2)-max(phy_rx_mod_scheme) >= 0))
     ymod_max = mod_sets(i,2)+0.5;
@@ -75,7 +79,7 @@ mod_labels = {'Unknown', ...
   'V29', ...
   'Optimal QAM16','Optimal QAM32','Optimal QAM64','Optimal QAM128','Optimal QAM256', ...
   'VT Logo', ...
-  'Arbitrary Modem'};
+  'Arbitrary Modulation'};
 set(gca, 'YTick', 0:52, 'YTickLabel', mod_labels);
 xlim([min(phy_rx_t), max(phy_rx_t)]);
 

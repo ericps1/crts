@@ -164,8 +164,8 @@ int main(int argc, char ** argv){
                 metrics.stats.rssi);
         fprintf(file_out, "phy_rx_CFO(%i) = %f;\n", i,
                 metrics.stats.cfo);
-        fprintf(file_out, "phy_rx_num_syms(%i) = %i;\n", i,
-                metrics.stats.num_framesyms);    
+        fprintf(file_out, "phy_rx_payload_bytes(%i) = %i;\n", i,
+                metrics.payload_len);    
         fprintf(file_out, "phy_rx_mod_scheme(%i) = %i;\n", i,
                 metrics.stats.mod_scheme);
         fprintf(file_out, "phy_rx_BPS(%i) = %i;\n", i,

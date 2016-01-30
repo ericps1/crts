@@ -1109,6 +1109,7 @@ int rxCallback(unsigned char *_header, int _header_valid,
 	    ECR->CE_metrics.payload = (unsigned char *) malloc(_payload_len*sizeof(unsigned char));
       }
       memcpy(ECR->CE_metrics.payload, _payload, _payload_len * sizeof(unsigned char));
+      ECR->CE_metrics.payload_len = _payload_len;
     } else {
       ECR->CE_metrics.payload_len = 0;
       ECR->CE_metrics.payload = NULL;
