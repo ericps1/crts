@@ -16,10 +16,8 @@ CE_Mod_Adaptation::CE_Mod_Adaptation() : EVM_avg(0.0), ind(0) {
 CE_Mod_Adaptation::~CE_Mod_Adaptation() {}
 
 // execute function
-void CE_Mod_Adaptation::execute(void *_args) {
-  // type cast pointer to cognitive radio object
-  ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *)_args;
-
+void CE_Mod_Adaptation::execute(ExtensibleCognitiveRadio *ECR) {
+  
   // keep track of current and desired modulation for rx and tx
   int current_tx_mod = ECR->get_tx_modulation();
   int desired_tx_mod;

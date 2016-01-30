@@ -15,7 +15,6 @@
 #include "TUN.hpp"
 
 // EDIT INCLUDE START FLAG
-#include "../cognitive_engines/CE_frame_tx_test.hpp"
 #include "../cognitive_engines/CE_Template.hpp"
 #include "../cognitive_engines/CE_Subcarrier_Alloc.hpp"
 #include "../cognitive_engines/CE_Mod_Adaptation.hpp"
@@ -24,8 +23,8 @@
 #include "../cognitive_engines/CE_FEC_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
 #include "../cognitive_engines/CE_Simultaneous_RX_And_Sensing.hpp"
+#include "../cognitive_engines/CE_Network_Traffic_Gen_Test.hpp"
 #include "../cognitive_engines/CE_Throughput_Test.hpp"
-#include "../cognitive_engines/CE_uhd_msg.hpp"
 // EDIT INCLUDE END FLAG
 
 #define DEBUG 0
@@ -317,8 +316,6 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio() {
 void ExtensibleCognitiveRadio::set_ce(char *ce) {
   ///@cond INTERNAL
   // EDIT SET_CE START FLAG
-    if(!strcmp(ce, "CE_frame_tx_test"))
-        CE = new CE_frame_tx_test();
     if(!strcmp(ce, "CE_Template"))
         CE = new CE_Template();
     if(!strcmp(ce, "CE_Subcarrier_Alloc"))
@@ -335,10 +332,10 @@ void ExtensibleCognitiveRadio::set_ce(char *ce) {
         CE = new CE_Two_Channel_DSA_Link_Reliability();
     if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
         CE = new CE_Simultaneous_RX_And_Sensing();
+    if(!strcmp(ce, "CE_Network_Traffic_Gen_Test"))
+        CE = new CE_Network_Traffic_Gen_Test();
     if(!strcmp(ce, "CE_Throughput_Test"))
         CE = new CE_Throughput_Test();
-    if(!strcmp(ce, "CE_uhd_msg"))
-        CE = new CE_uhd_msg();
   // EDIT SET_CE END FLAG
   ///@endcond
 }
@@ -1285,7 +1282,7 @@ void *ECR_ce_worker(void *_arg) {
         ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TIMEOUT;
 
       // execute CE
-      ECR->CE->execute((void *)ECR);
+      ECR->CE->execute(ECR);
       pthread_mutex_unlock(&ECR->CE_mutex);
     }
   }

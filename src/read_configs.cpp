@@ -616,6 +616,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   // ======================================================
   // process frequency hopping parameters
   // ======================================================
+  np.tx_freq_behavior = FIXED;
   if (config_setting_lookup_string(node_config, "tx_freq_behavior", &tmpS)) {
     if (!strcmp(tmpS, "FIXED"))
       np.tx_freq_behavior = FIXED;

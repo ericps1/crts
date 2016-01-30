@@ -7,7 +7,7 @@ class CE_Two_Channel_DSA_Link_Reliability : public Cognitive_Engine {
 public:
   CE_Two_Channel_DSA_Link_Reliability();
   ~CE_Two_Channel_DSA_Link_Reliability();
-  virtual void execute(void *_args);
+  virtual void execute(ExtensibleCognitiveRadio *ECR);
 
 private:
   static constexpr float freq_a = 770e6;

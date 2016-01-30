@@ -9,6 +9,6 @@ Cognitive_Engine::~Cognitive_Engine() {
   // printf("Entered CE base class destructor\n");
 }
 
-void Cognitive_Engine::execute(void *_args) {
+void Cognitive_Engine::execute(ExtensibleCognitiveRadio *ECR) {
   // printf("Entered CE base class execute function\n");
 }

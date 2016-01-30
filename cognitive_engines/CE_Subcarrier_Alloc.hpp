@@ -18,7 +18,7 @@ private:
 public:
   CE_Subcarrier_Alloc();
   ~CE_Subcarrier_Alloc();
-  virtual void execute(void *_args);
+  virtual void execute(ExtensibleCognitiveRadio *ECR);
 };
 
 #endif

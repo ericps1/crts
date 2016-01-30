@@ -9,7 +9,7 @@ class CE_Two_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
 public:
   CE_Two_Channel_DSA_Spectrum_Sensing();
   ~CE_Two_Channel_DSA_Spectrum_Sensing();
-  virtual void execute(void *_args);
+  virtual void execute(ExtensibleCognitiveRadio *ECR);
 
 private:
   // member functions

@@ -15,9 +15,8 @@ CE_Two_Channel_DSA_Link_Reliability::CE_Two_Channel_DSA_Link_Reliability() {
 CE_Two_Channel_DSA_Link_Reliability::~CE_Two_Channel_DSA_Link_Reliability() {}
 
 // execute function
-void CE_Two_Channel_DSA_Link_Reliability::execute(void *_args) {
-  ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *)_args;
-
+void CE_Two_Channel_DSA_Link_Reliability::execute(ExtensibleCognitiveRadio *ECR) {
+  
   // If we recieved a frame and the payload is valid
   if ((ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY) &&
       ECR->CE_metrics.payload_valid)

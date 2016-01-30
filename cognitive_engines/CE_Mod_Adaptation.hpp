@@ -13,7 +13,7 @@ private:
 public:
   CE_Mod_Adaptation();
   ~CE_Mod_Adaptation();
-  virtual void execute(void *_args);
+  virtual void execute(ExtensibleCognitiveRadio *ECR);
 };
 
 #endif

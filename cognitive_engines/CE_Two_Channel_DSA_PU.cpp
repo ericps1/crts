@@ -14,9 +14,8 @@ CE_Two_Channel_DSA_PU::CE_Two_Channel_DSA_PU() {
 CE_Two_Channel_DSA_PU::~CE_Two_Channel_DSA_PU() {}
 
 // execute function
-void CE_Two_Channel_DSA_PU::execute(void *_args) {
-  ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *)_args;
-
+void CE_Two_Channel_DSA_PU::execute(ExtensibleCognitiveRadio *ECR) {
+  
   gettimeofday(&tv, NULL);
 
   if (first_execution) {
