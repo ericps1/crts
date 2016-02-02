@@ -13,7 +13,7 @@ class CE_CORNET3Dtx : public Cognitive_Engine {
     public:
         CE_CORNET3Dtx();
         ~CE_CORNET3Dtx();
-        virtual void execute(void * _args);
+        virtual void execute(ExtensibleCognitiveRadio *ECR);
 };
 
 #endif

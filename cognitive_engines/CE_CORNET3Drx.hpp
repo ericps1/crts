@@ -15,7 +15,7 @@ class CE_CORNET3Drx : public Cognitive_Engine {
     public:
         CE_CORNET3Drx();
         ~CE_CORNET3Drx();
-        virtual void execute(void * _args);
+        virtual void execute(ExtensibleCognitiveRadio *ECR);
 };
 
 #endif

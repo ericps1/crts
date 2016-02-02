@@ -55,9 +55,7 @@ CE_CORNET3Drx::~CE_CORNET3Drx() {
 }
 
 // execute function
-void CE_CORNET3Drx::execute(void * _args){
-    // type cast pointer to cognitive radio object
-    ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
+void CE_CORNET3Drx::execute(ExtensibleCognitiveRadio *ECR){
 
     if(ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT)
     {
