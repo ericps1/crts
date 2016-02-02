@@ -24,6 +24,7 @@
 #include "../cognitive_engines/CE_FEC_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
 #include "../cognitive_engines/CE_CORNET3Dtx.hpp"
+#include "../cognitive_engines/CE_Simultaneous_RX_And_Sensing.hpp"
 #include "../cognitive_engines/CE_uhd_msg.hpp"
 // EDIT INCLUDE END FLAG
 
@@ -44,16 +45,18 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
   ce_timeout_ms = 1000;
 
   // set internal properties
-  tx_params.numSubcarriers = 64;
+  tx_params.numSubcarriers = 32;
   tx_params.cp_len = 16;
   tx_params.taper_len = 4;
   tx_params.subcarrierAlloc = NULL; // subcarrier allocation (default)
   tx_params.payload_sym_length = 256 * 8;
-  rx_params.numSubcarriers = 64;
+  rx_params.numSubcarriers = 32;
   rx_params.cp_len = 16;
   rx_params.taper_len = 4;
   rx_params.subcarrierAlloc = NULL; // subcarrier allocation (default)
 
+  CE_metrics.payload = NULL;
+  
   // Initialize header to all zeros
   memset(tx_header, 0, sizeof(tx_header));
 
@@ -88,6 +91,11 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
                                 rx_params.taper_len, rx_params.subcarrierAlloc,
                                 rxCallback, (void *)this);
 
+  // initialize update flags to 0
+  update_rx_flag = 0;
+  update_usrp_rx = 0;
+  recreate_fs = 0;
+
   // register UHD message handler
   uhd::msg::register_handler(&uhd_msg_handler);
 
@@ -113,6 +121,9 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
 
   usleep(1e6);
 
+  // start the ce without sensing by default
+  ce_sensing_flag = 0;
+
   // create and start rx thread
   dprintf("Starting rx thread...\n");
   rx_running = false;                  // receiver is not running initially
@@ -134,6 +145,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
   ce_running = false;       // ce is not running initially
   ce_thread_running = true; // ce thread IS running initially
   pthread_mutex_init(&CE_mutex, NULL);
+  pthread_mutex_init(&CE_fftw_mutex, NULL);
   pthread_cond_init(&CE_execute_sig, NULL);
   pthread_cond_init(&CE_cond, NULL); // cognitive engine condition
   pthread_create(&CE_process, NULL, ECR_ce_worker, (void *)this);
@@ -294,9 +306,9 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio() {
 // Cognitive engine methods
 ///////////////////////////////////////////////////////////////////////
 
-void ExtensibleCognitiveRadio::set_ce(char *ce){
-///@cond INTERNAL
-//EDIT SET_CE START FLAG
+void ExtensibleCognitiveRadio::set_ce(char *ce) {
+  ///@cond INTERNAL
+  // EDIT SET_CE START FLAG
     if(!strcmp(ce, "CE_Template"))
         CE = new CE_Template();
     if(!strcmp(ce, "CE_Subcarrier_Alloc"))
@@ -317,8 +329,10 @@ void ExtensibleCognitiveRadio::set_ce(char *ce){
         CE = new CE_CORNET3Dtx();
     if(!strcmp(ce, "CE_uhd_msg"))
         CE = new CE_uhd_msg();
-//EDIT SET_CE END FLAG
-///@endcond
+    if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
+        CE = new CE_Simultaneous_RX_And_Sensing();
+  // EDIT SET_CE END FLAG
+  ///@endcond
 }
 
 void ExtensibleCognitiveRadio::start_ce() {
@@ -339,11 +353,14 @@ void ExtensibleCognitiveRadio::set_ce_timeout_ms(float new_timeout_ms) {
 
 float ExtensibleCognitiveRadio::get_ce_timeout_ms() { return ce_timeout_ms; }
 
+void ExtensibleCognitiveRadio::set_ce_sensing(int ce_sensing) {
+  ce_sensing_flag = ce_sensing;
+}
+
 void uhd_msg_handler(uhd::msg::type_t type, const std::string &msg) {
 
   if ((!strcmp(msg.c_str(), "O")) || (!strcmp(msg.c_str(), "D")))
     ExtensibleCognitiveRadio::uhd_msg = 1;
-
   if (!strcmp(msg.c_str(), "U"))
     ExtensibleCognitiveRadio::uhd_msg = 2;
 }
@@ -610,14 +627,18 @@ void ExtensibleCognitiveRadio::update_tx_params() {
     tune.dsp_freq = tx_params.tx_dsp_freq;
 
     usrp_tx->set_tx_freq(tune);
+    update_usrp_tx = 0;
   }
 
   // recreate the frame generator only if necessary
   if (recreate_fg) {
+    pthread_mutex_lock(&CE_fftw_mutex);
     ofdmflexframegen_destroy(fg);
     fg = ofdmflexframegen_create(tx_params.numSubcarriers, tx_params.cp_len,
                                  tx_params.taper_len, tx_params.subcarrierAlloc,
                                  &tx_params.fgprops);
+    pthread_mutex_unlock(&CE_fftw_mutex);
+    recreate_fg = 0;
   }
 
   ofdmflexframegen_setprops(fg, &tx_params.fgprops);
@@ -629,8 +650,6 @@ void ExtensibleCognitiveRadio::update_tx_params() {
 
   // reset flags
   update_tx_flag = 0;
-  update_usrp_tx = 0;
-  recreate_fg = 0;
 }
 
 void ExtensibleCognitiveRadio::transmit_frame(unsigned char *_header,
@@ -710,21 +729,16 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char *_header,
 void ExtensibleCognitiveRadio::set_rx_freq(float _rx_freq) {
   rx_params.rx_freq = _rx_freq;
   rx_params.rx_dsp_freq = 0.0;
-  usrp_rx->set_rx_freq(_rx_freq);
+  update_rx_flag = 1;
+  update_usrp_rx = 1;
 }
 
 // set receiver frequency
 void ExtensibleCognitiveRadio::set_rx_freq(float _rx_freq, float _dsp_freq) {
   rx_params.rx_freq = _rx_freq;
   rx_params.rx_dsp_freq = _dsp_freq;
-
-  uhd::tune_request_t tune;
-  tune.rf_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
-  tune.dsp_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
-  tune.rf_freq = _rx_freq;
-  tune.dsp_freq = _dsp_freq;
-
-  usrp_rx->set_rx_freq(tune);
+  update_rx_flag = 1;
+  update_usrp_rx = 1;
 }
 
 // set receiver frequency
@@ -735,7 +749,8 @@ float ExtensibleCognitiveRadio::get_rx_freq() {
 // set receiver sample rate
 void ExtensibleCognitiveRadio::set_rx_rate(float _rx_rate) {
   rx_params.rx_rate = _rx_rate;
-  usrp_rx->set_rx_rate(_rx_rate);
+  update_rx_flag = 1;
+  update_usrp_rx = 1;
 }
 
 // get receiver sample rate
@@ -744,7 +759,8 @@ float ExtensibleCognitiveRadio::get_rx_rate() { return rx_params.rx_rate; }
 // set receiver hardware (UHD) gain
 void ExtensibleCognitiveRadio::set_rx_gain_uhd(float _rx_gain_uhd) {
   rx_params.rx_gain_uhd = _rx_gain_uhd;
-  usrp_rx->set_rx_gain(_rx_gain_uhd);
+  update_rx_flag = 1;
+  update_usrp_rx = 1;
 }
 
 // get receiver hardware (UHD) gain
@@ -764,13 +780,9 @@ void ExtensibleCognitiveRadio::reset_rx() { ofdmflexframesync_reset(fs); }
 void ExtensibleCognitiveRadio::set_rx_subcarriers(
     unsigned int _numSubcarriers) {
   // stop rx, destroy frame sync, set subcarriers, recreate frame sync
-  pthread_mutex_lock(&rx_mutex);
-  ofdmflexframesync_destroy(fs);
   rx_params.numSubcarriers = _numSubcarriers;
-  fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
-                                rx_params.taper_len, rx_params.subcarrierAlloc,
-                                rxCallback, (void *)this);
-  pthread_mutex_unlock(&rx_mutex);
+  update_rx_flag = 1;
+  recreate_fs = 1;
 }
 
 // get number of subcarriers
@@ -780,30 +792,24 @@ unsigned int ExtensibleCognitiveRadio::get_rx_subcarriers() {
 
 // set subcarrier allocation
 void ExtensibleCognitiveRadio::set_rx_subcarrier_alloc(char *_subcarrierAlloc) {
-  // destroy frame gen, set cp length, recreate frame gen
-  // int rx_state = rx_running;
-  // if(rx_state)
-  //	stop_rx();
-  // usleep(1.0);
-  pthread_mutex_lock(&rx_mutex);
-
-  ofdmflexframesync_destroy(fs);
+  
   if (_subcarrierAlloc) {
-    rx_params.subcarrierAlloc = (unsigned char *)realloc(
-        (void *)rx_params.subcarrierAlloc, rx_params.numSubcarriers);
+    if(rx_params.subcarrierAlloc == NULL){
+	  rx_params.subcarrierAlloc = (unsigned char *)malloc(rx_params.numSubcarriers);
+    }
+	else{
+	  rx_params.subcarrierAlloc = (unsigned char *)realloc(
+          (void *)rx_params.subcarrierAlloc, rx_params.numSubcarriers);
+    }
     memcpy(rx_params.subcarrierAlloc, _subcarrierAlloc,
            rx_params.numSubcarriers);
   } else {
     free(rx_params.subcarrierAlloc);
     rx_params.subcarrierAlloc = NULL;
   }
-  fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
-                                rx_params.taper_len, rx_params.subcarrierAlloc,
-                                rxCallback, (void *)this);
 
-  pthread_mutex_unlock(&rx_mutex);
-  // if(rx_state)
-  //	start_rx();
+  update_rx_flag = 1;
+  recreate_fs = 1;
 }
 
 // get subcarrier allocation
@@ -814,13 +820,13 @@ void ExtensibleCognitiveRadio::get_rx_subcarrier_alloc(char *subcarrierAlloc) {
 // set cp_len
 void ExtensibleCognitiveRadio::set_rx_cp_len(unsigned int _cp_len) {
   // destroy frame gen, set cp length, recreate frame gen
-  pthread_mutex_lock(&rx_mutex);
-  ofdmflexframesync_destroy(fs);
+  //pthread_mutex_lock(&rx_mutex);
+  //ofdmflexframesync_destroy(fs);
   rx_params.cp_len = _cp_len;
-  fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
-                                rx_params.taper_len, rx_params.subcarrierAlloc,
-                                rxCallback, (void *)this);
-  pthread_mutex_unlock(&rx_mutex);
+  //fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
+  //                              rx_params.taper_len, rx_params.subcarrierAlloc,
+  //                              rxCallback, (void *)this);
+  //pthread_mutex_unlock(&rx_mutex);
 }
 
 // get cp_len
@@ -831,13 +837,13 @@ unsigned int ExtensibleCognitiveRadio::get_rx_cp_len() {
 // set taper_len
 void ExtensibleCognitiveRadio::set_rx_taper_len(unsigned int _taper_len) {
   // destroy frame gen, set cp length, recreate frame gen
-  pthread_mutex_lock(&rx_mutex);
-  ofdmflexframesync_destroy(fs);
+  //pthread_mutex_lock(&rx_mutex);
+  //ofdmflexframesync_destroy(fs);
   rx_params.taper_len = _taper_len;
-  fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
-                                rx_params.taper_len, rx_params.subcarrierAlloc,
-                                rxCallback, (void *)this);
-  pthread_mutex_unlock(&rx_mutex);
+  //fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
+  //                              rx_params.taper_len, rx_params.subcarrierAlloc,
+  //                              rxCallback, (void *)this);
+  //pthread_mutex_unlock(&rx_mutex);
 }
 
 // get taper_len
@@ -886,6 +892,41 @@ void ExtensibleCognitiveRadio::stop_liquid_rx() {
   // pthread_mutex_unlock(&rx_mutex);
 }
 
+// update the actual parameters being used by the transmitter
+void ExtensibleCognitiveRadio::update_rx_params() {
+
+  // update the USRP
+  if (update_usrp_rx) {
+    printf("Updating USRP parameters\n");
+    usrp_rx->set_rx_gain(rx_params.rx_gain_uhd);
+    usrp_rx->set_rx_rate(rx_params.rx_rate);
+
+    uhd::tune_request_t tune;
+    tune.rf_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
+    tune.dsp_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
+    tune.rf_freq = rx_params.rx_freq;
+    tune.dsp_freq = rx_params.rx_dsp_freq;
+
+    usrp_rx->set_rx_freq(tune);
+    
+	update_usrp_rx = 0;
+  }
+
+  // recreate the frame synchronizer only if necessary
+  if (recreate_fs) {
+    pthread_mutex_lock(&CE_fftw_mutex);
+    ofdmflexframesync_destroy(fs);
+    fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
+                                  rx_params.taper_len, rx_params.subcarrierAlloc,
+                                  rxCallback, (void*)this);
+    pthread_mutex_unlock(&CE_fftw_mutex);
+    recreate_fs = 0;	
+  }
+
+  // reset flag
+  update_rx_flag = 0;
+}
+
 // receiver worker thread
 void *ECR_rx_worker(void *_arg) {
   // type cast input argument as ofdmtxrx object
@@ -894,11 +935,13 @@ void *ECR_rx_worker(void *_arg) {
   // set up receive buffer
   const size_t max_samps_per_packet =
       ECR->usrp_rx->get_device()->get_max_recv_samps_per_packet();
-  // std::vector<std::complex<float> > buffer(max_samps_per_packet);
+  ECR->ce_usrp_rx_buffer_length = max_samps_per_packet;
 
   std::complex<float> *buffer;
   buffer = (std::complex<float> *)malloc(max_samps_per_packet *
                                          sizeof(std::complex<float>));
+  ECR->ce_usrp_rx_buffer = (std::complex<float> *)malloc(
+      max_samps_per_packet * sizeof(std::complex<float>));
 
   while (ECR->rx_thread_running) {
     // wait for signal to start; lock mutex
@@ -919,16 +962,37 @@ void *ECR_rx_worker(void *_arg) {
     // run receiver
     while (ECR->rx_running) {
 
-      // grab data from device
+      dprintf("rx_running\n");
+	  // grab data from device
       size_t num_rx_samps = 0;
       num_rx_samps = ECR->usrp_rx->get_device()->recv(
           buffer, max_samps_per_packet, ECR->metadata_rx,
           uhd::io_type_t::COMPLEX_FLOAT32, uhd::device::RECV_MODE_ONE_PACKET);
 
-      // push resulting samples through synchronizer
+      if(ECR->update_rx_flag)
+	    ECR->update_rx_params();
+	  
+	  // push resulting samples through synchronizer
       pthread_mutex_lock(&(ECR->rx_mutex));
       ofdmflexframesync_execute(ECR->fs, buffer, num_rx_samps);
       pthread_mutex_unlock(&(ECR->rx_mutex));
+
+      if (ECR->ce_sensing_flag) {
+        dprintf("Sensing\n");
+		pthread_mutex_lock(&ECR->CE_mutex);
+        // recheck flag incase it was unset by the CE while waiting to lock
+        // mutex
+        if (ECR->ce_sensing_flag) {
+          // copy usrp sample buffer
+          memcpy(ECR->ce_usrp_rx_buffer, buffer,
+                 max_samps_per_packet * sizeof(std::complex<float>));
+
+          // signal CE
+          ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::USRP_RX_SAMPS;
+          pthread_cond_signal(&ECR->CE_execute_sig);
+        }
+        pthread_mutex_unlock(&ECR->CE_mutex);
+      }
 
       // check for uhd msg
       switch (ECR->uhd_msg) {
@@ -958,6 +1022,9 @@ void *ECR_rx_worker(void *_arg) {
   } // while true
 
   free(buffer);
+  free(ECR->ce_usrp_rx_buffer);
+  if(ECR->CE_metrics.payload != NULL)
+    free(ECR->CE_metrics.payload);
 
   dprintf("rx_worker exiting thread\n");
   pthread_exit(NULL);
@@ -973,21 +1040,20 @@ int rxCallback(unsigned char *_header, int _header_valid,
   // Store metrics and signal CE thread if using PHY layer metrics
   if (ECR->ce_phy_events) {
     ECR->CE_metrics.control_valid = _header_valid;
-    int j;
-    for (j = 0; j < 6; j++) {
-      ECR->CE_metrics.control_info[j] = _header[j + 2];
-    }
+    memcpy(ECR->CE_metrics.control_info, _header + 2, 6);
     ECR->CE_metrics.frame_num = ((_header[0] & 0x3F) << 8 | _header[1]);
     ECR->CE_metrics.stats = _stats;
     ECR->CE_metrics.time_spec = ECR->metadata_rx.time_spec;
     ECR->CE_metrics.payload_valid = _payload_valid;
     if (_payload_valid) {
       ECR->CE_metrics.payload_len = _payload_len;
-      ECR->CE_metrics.payload = new unsigned char[_payload_len];
-      unsigned int k;
-      for (k = 0; k < _payload_len; k++) {
-        ECR->CE_metrics.payload[k] = _payload[k];
+	  if(ECR->CE_metrics.payload != NULL)
+	    ECR->CE_metrics.payload = (unsigned char *) realloc(
+	      ECR->CE_metrics.payload, _payload_len*sizeof(unsigned char));
+      else{
+	    ECR->CE_metrics.payload = (unsigned char *) malloc(_payload_len*sizeof(unsigned char));
       }
+      memcpy(ECR->CE_metrics.payload, _payload, _payload_len * sizeof(unsigned char));
     } else {
       ECR->CE_metrics.payload_len = 0;
       ECR->CE_metrics.payload = NULL;
@@ -1027,8 +1093,7 @@ int rxCallback(unsigned char *_header, int _header_valid,
       */
 
   char payload[_payload_len];
-  for (unsigned int i = 0; i < _payload_len; i++)
-    payload[i] = _payload[i];
+  memcpy(payload, _payload, _payload_len * sizeof(unsigned char));
 
   int nwrite = 0;
   if (_payload_valid) {
@@ -1108,7 +1173,6 @@ void *ECR_tx_worker(void *_arg) {
       payload_len = nread;
 
       if (ECR->update_tx_flag) {
-        printf("updating tx parameters\n");
         ECR->update_tx_params();
       }
 

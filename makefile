@@ -2,7 +2,7 @@ FLAGS = -I include -Wall -fPIC -g
 LIBS = lib/TUN.o lib/ECR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
 #EDIT START FLAG
-CEs = src/CE.cpp cognitive_engines/CE_Template.cpp cognitive_engines/CE_Subcarrier_Alloc.cpp cognitive_engines/CE_CORNET3Drx.cpp cognitive_engines/CE_Mod_Adaptation.cpp cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.cpp cognitive_engines/CE_Two_Channel_DSA_PU.cpp cognitive_engines/CE_FEC_Adaptation.cpp cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.cpp cognitive_engines/CE_CORNET3Dtx.cpp cognitive_engines/CE_uhd_msg.cpp
+CEs = src/CE.cpp cognitive_engines/CE_Template.cpp cognitive_engines/CE_Subcarrier_Alloc.cpp cognitive_engines/CE_Mod_Adaptation.cpp cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.cpp cognitive_engines/CE_Two_Channel_DSA_PU.cpp cognitive_engines/CE_FEC_Adaptation.cpp cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.cpp cognitive_engines/CE_Simultaneous_RX_And_Sensing.cpp cognitive_engines/CE_uhd_msg.cpp cognitive_engines/CE_CORNET3Drx.cpp cognitive_engines/CE_CORNET3Dtx.cpp
 #EDIT END FLAG
 
 all: lib/TUN.o lib/read_configs.o config_CEs lib/ECR.o logs/logs2python logs/logs2octave CRTS_CR lib/interferer.o CRTS_interferer CRTS_controller

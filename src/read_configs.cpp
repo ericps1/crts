@@ -534,7 +534,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   if (config_setting_lookup_string(node_config, "interference_type", &tmpS)) {
     if (!strcmp(tmpS, "CW"))
       np.interference_type = CW;
-    if (!strcmp(tmpS, "AWGN"))
+    if (!strcmp(tmpS, "NOISE"))
       np.interference_type = NOISE;
     if (!strcmp(tmpS, "GMSK"))
       np.interference_type = GMSK;
