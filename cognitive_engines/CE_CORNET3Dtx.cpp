@@ -49,9 +49,7 @@ CE_CORNET3Dtx::~CE_CORNET3Dtx() {
 }
 
 // execute function
-void CE_CORNET3Dtx::execute(void * _args){
-    // type cast pointer to cognitive radio object
-    ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
+void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
 
     int i = 0;
 
