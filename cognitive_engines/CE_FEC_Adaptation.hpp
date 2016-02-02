@@ -14,7 +14,7 @@ private:
 public:
   CE_FEC_Adaptation();
   ~CE_FEC_Adaptation();
-  virtual void execute(void *_args);
+  virtual void execute(ExtensibleCognitiveRadio *ECR);
 };
 
 #endif

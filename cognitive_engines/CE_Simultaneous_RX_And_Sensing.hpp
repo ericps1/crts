@@ -9,9 +9,9 @@ class CE_Simultaneous_RX_And_Sensing : public Cognitive_Engine {
     
     private:
 		// sensing parameters
-		static const float sensing_delay_ms = 1e3;
-		static const int fft_length = 512;
-		static const int fft_averaging = 10;
+		static constexpr float sensing_delay_ms = 1e3;
+		static constexpr int fft_length = 512;
+		static constexpr int fft_averaging = 10;
 
 		// timer to start and stop sensing
 		timer t;
@@ -29,9 +29,9 @@ class CE_Simultaneous_RX_And_Sensing : public Cognitive_Engine {
 		// fft plan for spectrum sensing
     	fftplan fft;
 	public:
-        CE_Simultaneous_RX_And_Sensing();
-        ~CE_Simultaneous_RX_And_Sensing();
-        virtual void execute(void * _args);
+    CE_Simultaneous_RX_And_Sensing();
+    ~CE_Simultaneous_RX_And_Sensing();
+    virtual void execute(ExtensibleCognitiveRadio *ECR);
 };
 
 #endif

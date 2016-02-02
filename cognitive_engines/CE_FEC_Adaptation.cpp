@@ -16,10 +16,8 @@ CE_FEC_Adaptation::CE_FEC_Adaptation() : EVM_avg(0.0), ind(0) {
 CE_FEC_Adaptation::~CE_FEC_Adaptation() {}
 
 // execute function
-void CE_FEC_Adaptation::execute(void *_args) {
-  // type cast pointer to cognitive radio object
-  ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *)_args;
-
+void CE_FEC_Adaptation::execute(ExtensibleCognitiveRadio *ECR) {
+  
   // keep track of current and desired fec for rx and tx
   int current_tx_fec = ECR->get_tx_fec0();
   int desired_tx_fec;

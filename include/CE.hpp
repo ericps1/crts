@@ -1,6 +1,11 @@
 #ifndef _CE_HPP_
 #define _CE_HPP_
 
+//#include "ECR.hpp"
+
+// forward declare ECR class
+class ExtensibleCognitiveRadio;
+
 ///////////////////////////////////////////
 // Cognitive Engine base class
 /// \brief The base class for the custom
@@ -37,7 +42,7 @@ public:
   /// Or, for direct examples, refer to the source code of
   /// the reimplementations listed below
   /// (in the cognitive_engines/ directory of the source tree).
-  virtual void execute(void *_args);
+  virtual void execute(ExtensibleCognitiveRadio *ECR);
 };
 
 #endif
