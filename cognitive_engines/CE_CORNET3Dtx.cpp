@@ -50,7 +50,6 @@ CE_CORNET3Dtx::~CE_CORNET3Dtx() {
 
 // execute function
 void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
-
     int i = 0;
 
     // setup file descriptor to listen for data on TCP controller link.
@@ -64,7 +63,7 @@ void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
     // if data is available, read it in
     if(select(newsockfd+1, &fds, NULL, NULL, &timeout)){
         // read the first byte which designates the message type
-        i = recv(newsockfd, buffer, 7, 0);
+        i = recv(newsockfd, buffer, 9, 0);
     }
 
     if (i < 0) 
@@ -182,6 +181,22 @@ void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
             ECR->set_tx_fec1(LIQUID_FEC_CONV_V39); 
         if (buffer[5]=='1' && buffer[6] == '1')
             ECR->set_tx_fec1(LIQUID_FEC_CONV_V615); 
+
+	if (buffer[8] == '1')
+	    ECR->set_tx_rate(200e3);
+	if (buffer[8] == '2')
+	    ECR->set_tx_rate(400e3);
+	if (buffer[8] == '3')
+	    ECR->set_tx_rate(500e3);
+	if (buffer[8] == '4')
+	    ECR->set_tx_rate(700e3);
+	if (buffer[8] == '5')
+	    ECR->set_tx_rate(800e3);
+	if (buffer[8] == '6')
+	    ECR->set_tx_rate(900e3);
+	if (buffer[8] == '7')
+	    ECR->set_tx_rate(5000e3);
+
     }
 }
 
