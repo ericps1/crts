@@ -65,12 +65,12 @@ int i = 0;
     timeout.tv_sec = 0;
     timeout.tv_usec = 100;
     FD_ZERO(&fds);
-    FD_SET(newsockfd, &fds);
+    FD_SET(newsockfdr, &fds);
 
     // if data is available, read it in
-    if(select(newsockfd+1, &fds, NULL, NULL, &timeout)){
+    if(select(newsockfdr+1, &fds, NULL, NULL, &timeout)){
         // read the first byte which designates the message type
-        i = recv(newsockfd, buffer, 8, 0);
+        i = recv(newsockfdr, buffer, 9, 0);
     }
 
     if (i < 0)
@@ -82,21 +82,22 @@ int i = 0;
 	    //If user closes CORNET3D, it sends a message starting with 9 to tell 
 	    //the CE to shut down. Killing CRTS_controller (which runs on the same
 	    //node as the transmitter) causes a graceful shutdown on both all nodes
+	    float rx_freq;
 	    if (buffer[7]=='1')
-		    float rx_freq=140e6;
+		    rx_freq=140e6;
 	    if (buffer[7]=='2')
-		    float rx_freq=160e6;
+		    rx_freq=160e6;
 	    if (buffer[7]=='3')
-		    float rx_freq=500e6;
+		    rx_freq=500e6;
 	    if (buffer[7]=='4')
-		    float rx_freq=770e6;
+		    rx_freq=770e6;
 	    if (buffer[7]=='5')
-		    float rx_freq=1800e6;
+		    rx_freq=1800e6;
 	    if (buffer[7]=='6')
-		    float rx_freq=1900e6;
+		    rx_freq=1900e6;
 	    if (buffer[7]=='7')
-		    float rx_freq=3500e6;
-	    ECR->set_rx_freq(tx_frq);
+		    rx_freq=3500e6;
+	    ECR->set_rx_freq(rx_freq);
     }
 
     if(ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT)

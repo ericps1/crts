@@ -197,7 +197,7 @@ void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
 		tx_freq=1900e6;
 	if (buffer[7]=='7')
 		tx_freq=3500e6;
-	ECR->set_tx_freq(tx_frq);
+	ECR->set_tx_freq(tx_freq);
 	
 	if (buffer[8] == '1')
 		ECR->set_tx_rate(200e3);
