@@ -12,6 +12,7 @@ class CE_CORNET3Drx : public Cognitive_Engine {
         float per;
         timer feedback_timer;
         timer window_timer;
+	char buffer[10];
     public:
         CE_CORNET3Drx();
         ~CE_CORNET3Drx();
