@@ -185,15 +185,15 @@ void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
 	if (buffer[8] == '1')
 	    ECR->set_tx_rate(200e3);
 	if (buffer[8] == '2')
-	    ECR->set_tx_rate(400e3);
-	if (buffer[8] == '3')
 	    ECR->set_tx_rate(500e3);
+	if (buffer[8] == '3')
+	    ECR->set_tx_rate(1000e3);
 	if (buffer[8] == '4')
-	    ECR->set_tx_rate(700e3);
+	    ECR->set_tx_rate(1500e3);
 	if (buffer[8] == '5')
-	    ECR->set_tx_rate(800e3);
+	    ECR->set_tx_rate(2000e3);
 	if (buffer[8] == '6')
-	    ECR->set_tx_rate(900e3);
+	    ECR->set_tx_rate(2500e3);
 	if (buffer[8] == '7')
 	    ECR->set_tx_rate(5000e3);
 
