@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 
   // interpret command line options
   int d;
-  while ((d = getopt(argc, argv, "hma:")) != EOF) {
+  while ((d = getopt(argc, argv, "hf:ma:")) != EOF) {
     switch (d) {
     case 'h':
       help_CRTS_controller();
