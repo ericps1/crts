@@ -79,26 +79,25 @@ int i = 0;
     }
     else if(i > 0)
     {
-        //If user closes CORNET3D, it sends a message starting with 9 to tell 
-        //the CE to shut down. Killing CRTS_controller (which runs on the same
-        //node as the transmitter) causes a graceful shutdown on both all nodes
-       if (buffer[7]=='1')
-       float rx_freq=140e6;
-       if (buffer[7]=='2')
-       float rx_freq=160e6;
-       if (buffer[7]=='3')
-       float rx_freq=500e6;
-       if (buffer[7]=='4')
-       float rx_freq=770e6;
-       if (buffer[7]=='5')
-       float rx_freq=1800e6;
-       if (buffer[7]=='6')
-       float rx_freq=1900e6;
-       if (buffer[7]=='7')
-       float rx_freq=3500e6;
-       ECR->set_rx_freq(tx_frq);
+	    //If user closes CORNET3D, it sends a message starting with 9 to tell 
+	    //the CE to shut down. Killing CRTS_controller (which runs on the same
+	    //node as the transmitter) causes a graceful shutdown on both all nodes
+	    if (buffer[7]=='1')
+		    float rx_freq=140e6;
+	    if (buffer[7]=='2')
+		    float rx_freq=160e6;
+	    if (buffer[7]=='3')
+		    float rx_freq=500e6;
+	    if (buffer[7]=='4')
+		    float rx_freq=770e6;
+	    if (buffer[7]=='5')
+		    float rx_freq=1800e6;
+	    if (buffer[7]=='6')
+		    float rx_freq=1900e6;
+	    if (buffer[7]=='7')
+		    float rx_freq=3500e6;
+	    ECR->set_rx_freq(tx_frq);
     }
-
 
     if(ECR->CE_metrics.CE_event != ExtensibleCognitiveRadio::TIMEOUT)
     {

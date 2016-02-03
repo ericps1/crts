@@ -50,7 +50,6 @@ CE_CORNET3Dtx::~CE_CORNET3Dtx() {
 
 // execute function
 void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
-
     int i = 0;
 
     // setup file descriptor to listen for data on TCP controller link.
@@ -64,7 +63,7 @@ void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
     // if data is available, read it in
     if(select(newsockfd+1, &fds, NULL, NULL, &timeout)){
         // read the first byte which designates the message type
-        i = recv(newsockfd, buffer, 8, 0);
+        i = recv(newsockfd, buffer, 9, 0);
     }
 
     if (i < 0) 
@@ -178,27 +177,42 @@ void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
             ECR->set_tx_fec1(LIQUID_FEC_CONV_V27); 
         if (buffer[5]=='0' && buffer[6] == '9')
             ECR->set_tx_fec1(LIQUID_FEC_CONV_V29); 
-        if (buffer[5]=='1' && buffer[6] == '0')
-            ECR->set_tx_fec1(LIQUID_FEC_CONV_V39); 
-        if (buffer[5]=='1' && buffer[6] == '1')
-            ECR->set_tx_fec1(LIQUID_FEC_CONV_V615); 
-       
+	if (buffer[5]=='1' && buffer[6] == '0')
+		ECR->set_tx_fec1(LIQUID_FEC_CONV_V39); 
+	if (buffer[5]=='1' && buffer[6] == '1')
+		ECR->set_tx_fec1(LIQUID_FEC_CONV_V615); 
+
 	float tx_freq; 
-       if (buffer[7]=='1')
-       tx_freq=140e6;
-       if (buffer[7]=='2')
-       tx_freq=160e6;
-       if (buffer[7]=='3')
-       tx_freq=500e6;
-       if (buffer[7]=='4')
-       tx_freq=770e6;
-       if (buffer[7]=='5')
-       tx_freq=1800e6;
-       if (buffer[7]=='6')
-       tx_freq=1900e6;
-       if (buffer[7]=='7')
-       tx_freq=3500e6;
-       ECR->set_tx_freq(tx_frq);
+	if (buffer[7]=='1')
+		tx_freq=140e6;
+	if (buffer[7]=='2')
+		tx_freq=160e6;
+	if (buffer[7]=='3')
+		tx_freq=500e6;
+	if (buffer[7]=='4')
+		tx_freq=770e6;
+	if (buffer[7]=='5')
+		tx_freq=1800e6;
+	if (buffer[7]=='6')
+		tx_freq=1900e6;
+	if (buffer[7]=='7')
+		tx_freq=3500e6;
+	ECR->set_tx_freq(tx_frq);
+	
+	if (buffer[8] == '1')
+		ECR->set_tx_rate(200e3);
+	if (buffer[8] == '2')
+		ECR->set_tx_rate(500e3);
+	if (buffer[8] == '3')
+		ECR->set_tx_rate(1000e3);
+	if (buffer[8] == '4')
+		ECR->set_tx_rate(1500e3);
+	if (buffer[8] == '5')
+		ECR->set_tx_rate(2000e3);
+	if (buffer[8] == '6')
+		ECR->set_tx_rate(2500e3);
+	if (buffer[8] == '7')
+		ECR->set_tx_rate(5000e3);
 
     }
 }
