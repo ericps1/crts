@@ -6,12 +6,12 @@
 class CE_Template : public Cognitive_Engine {
 
 private:
-  float example_ce_metric;
+  // internal members used by this CE
 
 public:
   CE_Template();
   ~CE_Template();
-  virtual void execute(void *_args);
+  virtual void execute(ExtensibleCognitiveRadio *ECR);
 };
 
 #endif

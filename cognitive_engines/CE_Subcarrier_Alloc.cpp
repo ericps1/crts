@@ -32,9 +32,8 @@ CE_Subcarrier_Alloc::CE_Subcarrier_Alloc() {
 CE_Subcarrier_Alloc::~CE_Subcarrier_Alloc() {}
 
 // execute function
-void CE_Subcarrier_Alloc::execute(void *_args) {
-  ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *)_args;
-
+void CE_Subcarrier_Alloc::execute(ExtensibleCognitiveRadio *ECR) {
+  
   gettimeofday(&tv, NULL);
 
   if (first_execution) {

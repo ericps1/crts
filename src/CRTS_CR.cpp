@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <random>
+#include "CRTS.hpp"
 #include "ECR.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
@@ -146,11 +147,15 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p) {
     if (np->tx_subcarrier_alloc_method == CUSTOM_SUBCARRIER_ALLOC ||
         np->tx_subcarrier_alloc_method == STANDARD_SUBCARRIER_ALLOC) {
       ECR->set_tx_subcarrier_alloc(np->tx_subcarrier_alloc);
-    }
+    } else {
+      ECR->set_tx_subcarrier_alloc(NULL);
+	}
     if (np->rx_subcarrier_alloc_method == CUSTOM_SUBCARRIER_ALLOC ||
         np->rx_subcarrier_alloc_method == STANDARD_SUBCARRIER_ALLOC) {
       ECR->set_rx_subcarrier_alloc(np->rx_subcarrier_alloc);
-    }
+    } else {
+	  ECR->set_rx_subcarrier_alloc(NULL);
+	}
   }
   // intialize python radio if applicable
   else if (np->cr_type == python) {
@@ -235,7 +240,6 @@ int main(int argc, char **argv) {
   }
 
   // Create TCP client to controller
-  unsigned int controller_port = 4444;
   int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
   if (TCP_controller < 0) {
     printf("ERROR: Receiver Failed to Create Client Socket\n");
@@ -246,7 +250,7 @@ int main(int argc, char **argv) {
   memset(&controller_addr, 0, sizeof(controller_addr));
   controller_addr.sin_family = AF_INET;
   controller_addr.sin_addr.s_addr = inet_addr(controller_ipaddr);
-  controller_addr.sin_port = htons(controller_port);
+  controller_addr.sin_port = htons(CRTS_TCP_CONTROL_PORT);
 
   // Attempt to connect client socket to server
   int connect_status =
@@ -259,7 +263,7 @@ int main(int argc, char **argv) {
   dprintf("Connected to server\n");
 
   // Port to be used by CRTS server and client
-  int port = 4444;
+  int port = CRTS_CR_PORT;
 
   // Create node parameters struct and the scenario parameters struct
   // and read info from controller
@@ -416,9 +420,6 @@ int main(int argc, char **argv) {
   // Bind CRTS server socket
   bind(CRTS_server_sock, (sockaddr *)&CRTS_server_addr, clientlen);
 
-  //
-  //fcntl(CRTS_client_sock, F_SETFL, O_NONBLOCK);
-  
   // Define a buffer for receiving and a temporary message for sending
   int recv_buffer_len = 8192 * 2;
   char recv_buffer[recv_buffer_len];
@@ -427,7 +428,7 @@ int main(int argc, char **argv) {
   int packet_counter = 0;
   const int packet_num_bytes = 4; // number of bytes used for the packet number
   unsigned char packet_num_prs[packet_num_bytes]; // pseudo-random sequence used to modify packet number
-  unsigned char message[256];
+  unsigned char message[CRTS_CR_NET_PACKET_LEN];
   strcpy((char*)message, np.CRTS_IP);
   srand(12);
   for (int i=0; i < packet_num_bytes; i++)
@@ -444,7 +445,7 @@ int main(int argc, char **argv) {
     sig_terminate = 1;
   }
 
-  float t_step = 8.0*288.0/np.net_mean_throughput;
+  float t_step = 8.0*(float)CRTS_CR_NET_PACKET_LEN/np.net_mean_throughput;
   float tx_time_delta = 0;
   struct timeval tx_time;
   fd_set read_fds;
@@ -517,8 +518,8 @@ int main(int argc, char **argv) {
           message[i+15] = ((packet_counter>>(8*(packet_num_bytes-i-1))) & 0xff )^packet_num_prs[i];
         
 		// fill the rest with random data
-        //for (int i=15+packet_num_bytes; i < 256; i++)
-        //  message[i] = (rand() & 0xff);
+        for (int i=15+packet_num_bytes; i < CRTS_CR_NET_PACKET_LEN; i++)
+          message[i] = (rand() & 0xff);
 
 	    // send UDP packet via CR
         dprintf("CRTS sending packet %i\n", packet_counter);
@@ -565,11 +566,6 @@ int main(int argc, char **argv) {
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;
   }
-
-  printf("sigterminate: %i\n", sig_terminate);
-  printf("start_time_s: %li\n", sp.start_time_s);
-  printf("time_s: %li\n", time_s);
-  printf("stop_time_s: %li\n", stop_time_s);
 
   // close the log files
   if (np.log_net_rx)

@@ -9,7 +9,7 @@ class CE_Two_Channel_DSA_PU : public Cognitive_Engine {
 public:
   CE_Two_Channel_DSA_PU();
   ~CE_Two_Channel_DSA_PU();
-  virtual void execute(void *_args);
+  virtual void execute(ExtensibleCognitiveRadio *ECR);
 
 private:
   static constexpr float freq_a = 770e6;

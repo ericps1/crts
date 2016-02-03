@@ -37,10 +37,8 @@ CE_Simultaneous_RX_And_Sensing::CE_Simultaneous_RX_And_Sensing()
 CE_Simultaneous_RX_And_Sensing::~CE_Simultaneous_RX_And_Sensing() {}
 
 // execute function
-void CE_Simultaneous_RX_And_Sensing::execute(void * _args){
-    // type cast pointer to cognitive radio object
-    ExtensibleCognitiveRadio * ECR = (ExtensibleCognitiveRadio *) _args;
-    
+void CE_Simultaneous_RX_And_Sensing::execute(ExtensibleCognitiveRadio *ECR){
+   
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 

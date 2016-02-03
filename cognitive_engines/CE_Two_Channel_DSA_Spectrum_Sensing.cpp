@@ -35,10 +35,8 @@ CE_Two_Channel_DSA_Spectrum_Sensing::CE_Two_Channel_DSA_Spectrum_Sensing() {
 CE_Two_Channel_DSA_Spectrum_Sensing::~CE_Two_Channel_DSA_Spectrum_Sensing() {}
 
 // execute function
-void CE_Two_Channel_DSA_Spectrum_Sensing::execute(void *_args) {
-  // type cast pointer to cognitive radio object
-  ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *)_args;
-
+void CE_Two_Channel_DSA_Spectrum_Sensing::execute(ExtensibleCognitiveRadio *ECR) {
+  
   // If the noise floor hasn't been measured yet, do so now.
   if (noise_floor_measured == 0) {
     dprintf("Stopping transceiver\n");

@@ -14,16 +14,25 @@
 #define GMSK_PAYLOAD_LENGTH 50
 #define GMSK_HEADER_LENGTH 8
 
+#define RRC_SYMS_PER_FRAME 100
 #define RRC_SAMPS_PER_SYM 2
 #define RRC_FILTER_SEMILENGTH 32
 #define RRC_BETA 0.35
 
-#define OFDM_CP_LENGTH 4
-#define OFDM_TAPER_LENGTH 4
-#define OFDM_HEADER_LENGTH 8
+#define OFDM_CP_LENGTH 16
+#define OFDM_TAPER_LENGTH 6
+#define OFDM_HEADER_LENGTH 64
 #define OFDM_PAYLOAD_LENGTH 128
 
 #define DAC_RATE 64e6
+
+enum tx_states {
+  TX_STOPPED = 0,
+  TX_DUTY_CYCLE_ON,
+  TX_DUTY_CYCLE_OFF
+};
+
+void *Interferer_tx_worker(void *_arg);
 
 class Interferer {
 public:
@@ -32,24 +41,70 @@ public:
 
   // Interference parameters
   int interference_type;
-  float tx_gain_soft; // soft transmit gain (linear)
-  float tx_gain;
-  float tx_freq;
-  float tx_rate;
+  double tx_gain_soft; // soft transmit gain (linear)
+  double tx_gain;
+  double tx_freq;
+  double tx_rate;
 
-  float period;
-  float duty_cycle;
+  double period;
+  double duty_cycle;
 
-  int tx_freq_hop_type;
-  float tx_freq_hop_min;
-  float tx_freq_hop_max;
-  float tx_freq_hop_dwell_time;
-  float tx_freq_hop_increment;
+  // frequency hopping parameters
+  int tx_freq_behavior;
+  double tx_freq_min;
+  double tx_freq_max;
+  double tx_freq_bandwidth;
+  double tx_freq_dwell_time;
+  double tx_freq_resolution;
+
+  // timers
+  timer duty_cycle_timer;
+  timer freq_dwell_timer;
+  
+  // log parameters
+  bool log_tx_flag;
+  std::ofstream tx_log_file;
+  char tx_log_file_name[100];
+
+  // liquid-dsp objects
+  resamp2_crcf interp;
+  gmskframegen gmsk_fg;
+  firfilt_crcf rrc_filt;
+  ofdmflexframegenprops_s fgprops;
+  ofdmflexframegen ofdm_fg;
 
   // RF objects and properties
   uhd::usrp::multi_usrp::sptr usrp_tx;
   uhd::tx_metadata_t metadata_tx;
 
+  unsigned int buffered_samps;
+  std::vector<std::complex<float> > tx_buffer;
+
+  // transmit thread objects
+  pthread_t tx_process;
+  pthread_mutex_t tx_mutex;
+  pthread_cond_t tx_cond;
+  bool tx_running;
+  bool tx_thread_running;
+  friend void *Interferer_tx_worker(void *);
+
+  int tx_state;
+
+  void start_tx();
+  void stop_tx();
+
+  void set_log_file(char*);
+  void log_tx_parameters();
+
+  void UpdateFrequency();
+  void TransmitInterference();
+
+  void BuildCWTransmission();
+  void BuildNOISETransmission();
+  void BuildGMSKTransmission();
+  void BuildRRCTransmission();
+  void BuildOFDMTransmission();
+  
 private:
 };
 

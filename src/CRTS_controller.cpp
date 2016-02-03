@@ -17,6 +17,7 @@
 #include <string.h>
 #include <time.h>
 #include <errno.h>
+#include "CRTS.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
 
@@ -167,7 +168,7 @@ int main(int argc, char **argv) {
   memset(&serv_addr, 0, sizeof(serv_addr));      // Zero out structure
   serv_addr.sin_family = AF_INET;                // Internet address family
   serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); // Any incoming interface
-  serv_addr.sin_port = htons(4444);              // Local port
+  serv_addr.sin_port = htons(CRTS_TCP_CONTROL_PORT);              // Local port
   // Bind to the local address to a port
   if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
     printf("ERROR: bind() error\n");
@@ -183,7 +184,6 @@ int main(int argc, char **argv) {
   struct node_parameters np[48];
 
   // read master scenario config file
-  //char scenario_list[30][60];
   char scenario_name[60];
   char scenario_file[64];
   unsigned int scenario_reps;
@@ -367,8 +367,7 @@ int main(int argc, char **argv) {
         send(client[j], (void *)&sp, sizeof(struct scenario_parameters), 0);
         print_node_parameters(&np[j]);
 		send(client[j], (void *)&np[j], sizeof(struct node_parameters), 0);
-        printf("Sent %lu bytes\n", sizeof(struct node_parameters));
-	  }
+   	  }
 
       // if in manual mode update the start time for all nodes
       if (manual_execution && !sig_terminate) {
@@ -408,6 +407,7 @@ int main(int argc, char **argv) {
 
       // terminate the current scenario on all nodes
 	  if (sig_terminate) {
+	    printf("Sending message to terminate nodes\n");
         // tell all nodes in the scenario to terminate the testing process
 	    char msg = CRTS_MSG_TERMINATE;
         for (int j = 0; j < sp.num_nodes; j++) {
@@ -419,14 +419,16 @@ int main(int argc, char **argv) {
         time_t msg_sent_time_s = tv.tv_sec;
           
 		// listen for confirmation that all nodes have terminated
-		while (!msg_terminate) {
-          msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
+		while ((!msg_terminate) && (!time_terminate)) {
+		  msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
       
 	      // check if the scenario should be terminated based on the elapsed time
 		  gettimeofday(&tv, NULL);
           time_s = tv.tv_sec;
-          if(time_s > msg_sent_time_s + 10)
+          if(time_s > msg_sent_time_s + 3){
+		    printf("Nodes have not all responded with a successful termination... forciblly terminating any CRTS processes still running\n");
 		    time_terminate = 1;
+		  }
 	    }
       }
  
@@ -450,6 +452,10 @@ int main(int argc, char **argv) {
 			       j, np[j].CORNET_IP);
 		}
       }
+      // don't continue to next scenario if there was a user issued termination
+      if (sig_terminate)
+        break;
+
     } // scenario repition loop
 
     // don't continue to next scenario if there was a user issued termination
