@@ -93,6 +93,21 @@ void Interferer::set_log_file(char *log_file_name) {
   log_tx_flag = true;
   strcpy(tx_log_file_name, log_file_name);
 
+  // If log file names use subdirectories, create them if they don't exist
+  char * subdirptr = strrchr(tx_log_file_name, '/');
+  if (subdirptr)
+  {
+    char subdirs[60];
+    // Get the names of the subdirectories
+    strncpy(subdirs, tx_log_file_name, subdirptr - tx_log_file_name);
+    subdirs[subdirptr - tx_log_file_name] = '\0';
+    char mkdir_cmd[100];
+    strcpy(mkdir_cmd, "mkdir -p ./logs/bin/");
+    strcat(mkdir_cmd, subdirs);
+    // Create them
+    system(mkdir_cmd);
+  }
+
   // open tx log file to delete any current contents
   if (log_tx_flag) {
     tx_log_file.open(tx_log_file_name, std::ofstream::out | std::ofstream::trunc);
