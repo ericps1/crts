@@ -64,7 +64,7 @@ void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
     // if data is available, read it in
     if(select(newsockfd+1, &fds, NULL, NULL, &timeout)){
         // read the first byte which designates the message type
-        i = recv(newsockfd, buffer, 7, 0);
+        i = recv(newsockfd, buffer, 8, 0);
     }
 
     if (i < 0) 
@@ -182,6 +182,24 @@ void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
             ECR->set_tx_fec1(LIQUID_FEC_CONV_V39); 
         if (buffer[5]=='1' && buffer[6] == '1')
             ECR->set_tx_fec1(LIQUID_FEC_CONV_V615); 
+       
+	float tx_freq; 
+       if (buffer[7]=='1')
+       tx_freq=140e6;
+       if (buffer[7]=='2')
+       tx_freq=160e6;
+       if (buffer[7]=='3')
+       tx_freq=500e6;
+       if (buffer[7]=='4')
+       tx_freq=770e6;
+       if (buffer[7]=='5')
+       tx_freq=1800e6;
+       if (buffer[7]=='6')
+       tx_freq=1900e6;
+       if (buffer[7]=='7')
+       tx_freq=3500e6;
+       ECR->set_tx_freq(tx_frq);
+
     }
 }
 
