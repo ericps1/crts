@@ -57,7 +57,7 @@ CE_CORNET3Drx::~CE_CORNET3Drx() {
 // execute function
 void CE_CORNET3Drx::execute(ExtensibleCognitiveRadio *ECR){
 
-int i = 0;
+    int i = 0;
 
     // setup file descriptor to listen for data on TCP controller link.
     fd_set fds;
@@ -79,25 +79,35 @@ int i = 0;
     }
     else if(i > 0)
     {
-	    //If user closes CORNET3D, it sends a message starting with 9 to tell 
-	    //the CE to shut down. Killing CRTS_controller (which runs on the same
-	    //node as the transmitter) causes a graceful shutdown on both all nodes
-	    float rx_freq;
-	    if (buffer[7]=='1')
-		    rx_freq=140e6;
-	    if (buffer[7]=='2')
-		    rx_freq=160e6;
-	    if (buffer[7]=='3')
-		    rx_freq=500e6;
-	    if (buffer[7]=='4')
-		    rx_freq=770e6;
-	    if (buffer[7]=='5')
-		    rx_freq=1800e6;
-	    if (buffer[7]=='6')
-		    rx_freq=1900e6;
-	    if (buffer[7]=='7')
-		    rx_freq=3500e6;
-	    ECR->set_rx_freq(rx_freq);
+        if (buffer[7]=='1')
+            ECR->set_rx_freq(140e6);
+        if (buffer[7]=='2')
+            ECR->set_rx_freq(160e6);
+        if (buffer[7]=='3')
+            ECR->set_rx_freq(500e6);
+        if (buffer[7]=='4')
+            ECR->set_rx_freq(770e6);
+        if (buffer[7]=='5')
+            ECR->set_rx_freq(1800e6);
+        if (buffer[7]=='6')
+            ECR->set_rx_freq(1900e6);
+        if (buffer[7]=='7')
+            ECR->set_rx_freq(3500e6);
+
+        if (buffer[8] == '1')
+            ECR->set_rx_rate(200e3);
+        if (buffer[8] == '2')
+            ECR->set_rx_rate(500e3);
+        if (buffer[8] == '3')
+            ECR->set_rx_rate(1000e3);
+        if (buffer[8] == '4')
+            ECR->set_rx_rate(1500e3);
+        if (buffer[8] == '5')
+            ECR->set_rx_rate(2000e3);
+        if (buffer[8] == '6')
+            ECR->set_rx_rate(2500e3);
+        if (buffer[8] == '7')
+            ECR->set_rx_rate(5000e3);
     }
 
 
@@ -107,8 +117,7 @@ int i = 0;
         {    
             good_packets++;
         }
-        else if (!ECR->CE_metrics.control_valid
-                || !ECR->CE_metrics.payload_valid)
+        else if (!ECR->CE_metrics.control_valid || !ECR->CE_metrics.payload_valid)
         {
             bad_packets++;
         }
