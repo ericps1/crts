@@ -92,7 +92,7 @@ Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
       Int->duty_cycle = np->duty_cycle;
       Int->tx_rate = np->tx_rate;
       Int->tx_gain = np->tx_gain;
-	  Int->tx_gain_soft = np->tx_gain_soft;
+      Int->tx_gain_soft = np->tx_gain_soft;
 
       // set USRP settings
       Int->usrp_tx->set_tx_freq(Int->tx_freq);
@@ -101,16 +101,16 @@ Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
 
       // set freq parameters
       Int->tx_freq_behavior = np->tx_freq_behavior;
-	  Int->tx_freq_min = np->tx_freq_min;
+      Int->tx_freq_min = np->tx_freq_min;
       Int->tx_freq_max = np->tx_freq_max;
       Int->tx_freq_dwell_time = np->tx_freq_dwell_time;
       Int->tx_freq_resolution = np->tx_freq_resolution;
-      Int->tx_freq_bandwidth = floor(np->tx_freq_max - np->tx_freq_min); 
+      Int->tx_freq_bandwidth = floor(np->tx_freq_max - np->tx_freq_min);
 
       // FIXME
       // If log file names use subdirectories, create them if they don't exist
-      //char * subdirptr_tx = strrchr(phy_tx_log_file, '/');
-      //if (subdirptr_tx) {
+      // char * subdirptr_tx = strrchr(phy_tx_log_file, '/');
+      // if (subdirptr_tx) {
       //  char subdirs_tx[60];
       //  // Get the names of the subdirectories
       //  strncpy(subdirs_tx, phy_tx_log_file, subdirptr_tx - phy_tx_log_file);
@@ -121,7 +121,7 @@ Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
       //  // Create them
       //  system(mkdir_cmd);
       //}
-      
+
       // create string of actual log file location
       char tx_log_full_path[100];
       strcpy(tx_log_full_path, "./logs/bin/");
@@ -129,7 +129,7 @@ Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
       strcat(tx_log_full_path, ".log");
       Int->set_log_file(tx_log_full_path);
       Int->log_tx_flag = np->log_phy_tx;
-      
+
       break;
     }
 
@@ -141,7 +141,7 @@ Receive_command_from_controller(Interferer *Int, struct node_parameters *np,
     case CRTS_MSG_TERMINATE: // terminate program
       dprintf("Received termination command from controller\n");
       sig_terminate = 1;
-	  break;
+      break;
     }
   }
 }
@@ -180,7 +180,7 @@ void terminate(int signum) { sig_terminate = 1; }
 // ==========================================================================
 // ==========================================================================
 int main(int argc, char **argv) {
-  
+
   // register signal handlers
   signal(SIGINT, terminate);
   signal(SIGQUIT, terminate);
@@ -236,13 +236,13 @@ int main(int argc, char **argv) {
   struct scenario_parameters sp;
   Interferer *Int;
   Int = new Interferer;
-  
+
   // Read initial scenario info from controller
   dprintf("Receiving command from controller\n");
   Receive_command_from_controller(Int, &np, &sp);
 
   sig_terminate = 0;
-  
+
   // wait for start time and calculate stop time
   stop_time_s = sp.start_time_s + run_time;
   while (1) {
@@ -256,7 +256,7 @@ int main(int argc, char **argv) {
   sleep(2);
   dprintf("Starting interferer\n");
   Int->start_tx();
-  
+
   // loop until end of scenario
   while (!sig_terminate && time_s < stop_time_s) {
     Receive_command_from_controller(Int, &np, &sp);
@@ -268,19 +268,19 @@ int main(int argc, char **argv) {
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;
   }
-  
+
   Int->stop_tx();
   sleep(1);
   delete Int;
 
-  if(np.generate_octave_logs) {
+  if (np.generate_octave_logs) {
     char command[100];
     sprintf(command, "./logs/logs2octave -i -l %s -N %d -n %d",
             np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
     printf("command: %s\n", command);
-	system(command);
+    system(command);
   }
-  
+
   dprintf("Sending termination message to controller\n");
   char term_message = CRTS_MSG_TERMINATE;
   write(TCP_controller, &term_message, 1);
