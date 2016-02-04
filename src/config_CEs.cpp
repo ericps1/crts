@@ -84,9 +84,9 @@ int main() {
 
         // push all lines to map subclass
         for (int i = 0; i < num_ces; i++) {
-          line = "    if(!strcmp(ce, \"" + ce_list[i] + "\"))";
+          line = "  if(!strcmp(ce, \"" + ce_list[i] + "\"))";
           file_lines.push_back(line);
-          line = "        CE = new " + ce_list[i] + "(argc, argv);";
+          line = "    CE = new " + ce_list[i] + "(argc, argv);";
           file_lines.push_back(line);
         }
       }

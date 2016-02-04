@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
   getcwd(crts_dir, 1000);
 
   // Default name of master scenario file
-  char * nameMasterScenFile = (char *) "master_scenario_file.cfg";
+  char *nameMasterScenFile = (char *)"master_scenario_file.cfg";
 
   // Default IP address of server as seen by other nodes
   char *serv_ip_addr;
@@ -165,10 +165,10 @@ int main(int argc, char **argv) {
   }
   // Construct local (server) address structure
   struct sockaddr_in serv_addr;
-  memset(&serv_addr, 0, sizeof(serv_addr));      // Zero out structure
-  serv_addr.sin_family = AF_INET;                // Internet address family
-  serv_addr.sin_addr.s_addr = htonl(INADDR_ANY); // Any incoming interface
-  serv_addr.sin_port = htons(CRTS_TCP_CONTROL_PORT);              // Local port
+  memset(&serv_addr, 0, sizeof(serv_addr));          // Zero out structure
+  serv_addr.sin_family = AF_INET;                    // Internet address family
+  serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);     // Any incoming interface
+  serv_addr.sin_port = htons(CRTS_TCP_CONTROL_PORT); // Local port
   // Bind to the local address to a port
   if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
     printf("ERROR: bind() error\n");
@@ -179,7 +179,7 @@ int main(int argc, char **argv) {
   int client[48];
   struct sockaddr_in clientAddr[48];
   socklen_t client_addr_size[48];
-  for(int i=0; i<48; i++)
+  for (int i = 0; i < 48; i++)
     client_addr_size[i] = sizeof(clientAddr[i]);
   struct node_parameters np[48];
 
@@ -197,19 +197,20 @@ int main(int argc, char **argv) {
 
   // loop through scenarios
   for (int i = 0; i < num_scenarios; i++) {
-    
-	// read scenario name and repetitions
-	scenario_reps = read_master_scenario(nameMasterScenFile, i+1, scenario_name);
-    
-	for (unsigned int scenRepNum = 1; scenRepNum <= scenario_reps;
+
+    // read scenario name and repetitions
+    scenario_reps =
+        read_master_scenario(nameMasterScenFile, i + 1, scenario_name);
+
+    for (unsigned int scenRepNum = 1; scenRepNum <= scenario_reps;
          scenRepNum++) {
       printf("Scenario %i:\n", i + 1);
       printf("Rep %i:\n", scenRepNum);
       printf("Config file: %s\n", scenario_name);
       // read the scenario parameters from file
-	  strcpy(scenario_file, scenario_name);
-	  strcat(scenario_file, ".cfg");
-	  struct scenario_parameters sp = read_scenario_parameters(scenario_file);
+      strcpy(scenario_file, scenario_name);
+      strcat(scenario_file, ".cfg");
+      struct scenario_parameters sp = read_scenario_parameters(scenario_file);
       // Set the number of scenario  repititions in struct.
       sp.totalNumReps = scenario_reps;
       sp.repNumber = scenRepNum;
@@ -234,50 +235,57 @@ int main(int argc, char **argv) {
         memset(&np[j], 0, sizeof(struct node_parameters));
         printf("Reading node %i's parameters...\n", j + 1);
         np[j] = read_node_parameters(j + 1, scenario_file);
-        
-		// define log file names if they weren't defined by the scenario
-		if(!strcmp(np[j].phy_rx_log_file, "")) {
+
+        // define log file names if they weren't defined by the scenario
+        if (!strcmp(np[j].phy_rx_log_file, "")) {
           strcpy(np[j].phy_rx_log_file, scenario_name);
-		  sprintf(np[j].phy_rx_log_file, "%s_Node%i%s", np[j].phy_rx_log_file, 
-		          j+1, "_CR_PHY_RX");
-   		}
-		
-		if(!strcmp(np[j].phy_tx_log_file, "")) {
+          sprintf(np[j].phy_rx_log_file, "%s_Node%i%s", np[j].phy_rx_log_file,
+                  j + 1, "_CR_PHY_RX");
+        }
+
+        if (!strcmp(np[j].phy_tx_log_file, "")) {
           strcpy(np[j].phy_tx_log_file, scenario_name);
-		  sprintf(np[j].phy_tx_log_file, "%s_Node%i", np[j].phy_tx_log_file, j+1);
-          switch(np[j].type) {
-		  case(CR):
-		    sprintf(np[j].phy_tx_log_file, "%s%s", np[j].phy_tx_log_file, "_CR_PHY_TX");	
-		    break;
-		  case(interferer):
-		    sprintf(np[j].phy_tx_log_file, "%s%s", np[j].phy_tx_log_file, "_Int_PHY_TX");
-		    break;
-		  }
-		}
+          sprintf(np[j].phy_tx_log_file, "%s_Node%i", np[j].phy_tx_log_file,
+                  j + 1);
+          switch (np[j].type) {
+          case (CR):
+            sprintf(np[j].phy_tx_log_file, "%s%s", np[j].phy_tx_log_file,
+                    "_CR_PHY_TX");
+            break;
+          case (interferer):
+            sprintf(np[j].phy_tx_log_file, "%s%s", np[j].phy_tx_log_file,
+                    "_Int_PHY_TX");
+            break;
+          }
+        }
 
-        if(!strcmp(np[j].net_rx_log_file, "")) {
+        if (!strcmp(np[j].net_rx_log_file, "")) {
           strcpy(np[j].net_rx_log_file, scenario_name);
-		  sprintf(np[j].net_rx_log_file, "%s_Node%i%s", np[j].net_rx_log_file, 
-		          j+1, "_CR_NET_RX");
-        }  
+          sprintf(np[j].net_rx_log_file, "%s_Node%i%s", np[j].net_rx_log_file,
+                  j + 1, "_CR_NET_RX");
+        }
 
-        if(!strcmp(np[j].net_tx_log_file, "")) {
+        if (!strcmp(np[j].net_tx_log_file, "")) {
           strcpy(np[j].net_tx_log_file, scenario_name);
-		  sprintf(np[j].net_tx_log_file, "%s_Node%i%s", np[j].net_tx_log_file, 
-		          j+1, "_CR_NET_TX");
+          sprintf(np[j].net_tx_log_file, "%s_Node%i%s", np[j].net_tx_log_file,
+                  j + 1, "_CR_NET_TX");
         }
 
         // append the rep number if necessary
-		if (scenario_reps-1) {
-		  sprintf(np[j].phy_rx_log_file, "%s_Rep%i", np[j].phy_rx_log_file, scenRepNum);
-		  sprintf(np[j].phy_tx_log_file, "%s_Rep%i", np[j].phy_tx_log_file, scenRepNum);
-		  sprintf(np[j].net_tx_log_file, "%s_Rep%i", np[j].net_tx_log_file, scenRepNum);
-          sprintf(np[j].net_rx_log_file, "%s_Rep%i", np[j].net_rx_log_file, scenRepNum);
+        if (scenario_reps - 1) {
+          sprintf(np[j].phy_rx_log_file, "%s_Rep%i", np[j].phy_rx_log_file,
+                  scenRepNum);
+          sprintf(np[j].phy_tx_log_file, "%s_Rep%i", np[j].phy_tx_log_file,
+                  scenRepNum);
+          sprintf(np[j].net_tx_log_file, "%s_Rep%i", np[j].net_tx_log_file,
+                  scenRepNum);
+          sprintf(np[j].net_rx_log_file, "%s_Rep%i", np[j].net_rx_log_file,
+                  scenRepNum);
         }
 
         print_node_parameters(&np[j]);
 
-		// send command to launch executable if not doing so manually
+        // send command to launch executable if not doing so manually
         int ssh_return = 0;
         if (!manual_execution) {
           char command[2000] = "ssh ";
@@ -357,17 +365,17 @@ int main(int argc, char **argv) {
         fcntl(client[j], F_SETFL, O_NONBLOCK);
 
         // copy IP of connected node to node parameters if in manual mode
-		if (manual_execution)
-		  strcpy(np[j].CORNET_IP, inet_ntoa(clientAddr[j].sin_addr));
+        if (manual_execution)
+          strcpy(np[j].CORNET_IP, inet_ntoa(clientAddr[j].sin_addr));
 
         // send scenario and node parameters
-        printf("\nNode %i has connected. Sending its parameters...\n", j + 1); 
-		char msg_type = CRTS_MSG_SCENARIO_PARAMETERS;
+        printf("\nNode %i has connected. Sending its parameters...\n", j + 1);
+        char msg_type = CRTS_MSG_SCENARIO_PARAMETERS;
         send(client[j], (void *)&msg_type, sizeof(char), 0);
         send(client[j], (void *)&sp, sizeof(struct scenario_parameters), 0);
         print_node_parameters(&np[j]);
-		send(client[j], (void *)&np[j], sizeof(struct node_parameters), 0);
-   	  }
+        send(client[j], (void *)&np[j], sizeof(struct node_parameters), 0);
+      }
 
       // if in manual mode update the start time for all nodes
       if (manual_execution && !sig_terminate) {
@@ -383,63 +391,69 @@ int main(int argc, char **argv) {
         }
       } else {
         start_time_s = sp.start_time_s;
-	  }
+      }
 
       printf("Listening for scenario termination message from nodes\n");
 
       // main loop: wait for termination condition
       int time_terminate = 0;
-	  int msg_terminate = 0;
+      int msg_terminate = 0;
       num_nodes_terminated = 0;
       while ((!sig_terminate) && (!msg_terminate) && (!time_terminate)) {
         msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
-      
-	    // check if the scenario should be terminated based on the elapsed time
-		gettimeofday(&tv, NULL);
+
+        // check if the scenario should be terminated based on the elapsed time
+        gettimeofday(&tv, NULL);
         time_s = tv.tv_sec;
-        if(time_s > start_time_s + sp.runTime + 10)
-		  time_terminate = 1;
-	  }
+        if (time_s > start_time_s + sp.runTime + 10)
+          time_terminate = 1;
+      }
 
       if (msg_terminate)
         printf("Ending scenario %i because all nodes have sent a "
-               "termination message\n", i+1);
+               "termination message\n",
+               i + 1);
 
       // terminate the current scenario on all nodes
-	  if (sig_terminate) {
-	    printf("Sending message to terminate nodes\n");
+      if (sig_terminate) {
+        printf("Sending message to terminate nodes\n");
         // tell all nodes in the scenario to terminate the testing process
-	    char msg = CRTS_MSG_TERMINATE;
+        char msg = CRTS_MSG_TERMINATE;
         for (int j = 0; j < sp.num_nodes; j++) {
           write(client[j], &msg, 1);
         }
-        
+
         // get current time
         gettimeofday(&tv, NULL);
         time_t msg_sent_time_s = tv.tv_sec;
-          
-		// listen for confirmation that all nodes have terminated
-		while ((!msg_terminate) && (!time_terminate)) {
-		  msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
-      
-	      // check if the scenario should be terminated based on the elapsed time
-		  gettimeofday(&tv, NULL);
+
+        // listen for confirmation that all nodes have terminated
+        while ((!msg_terminate) && (!time_terminate)) {
+          msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
+
+          // check if the scenario should be terminated based on the elapsed
+          // time
+          gettimeofday(&tv, NULL);
           time_s = tv.tv_sec;
-          if(time_s > msg_sent_time_s + 3){
-		    printf("Nodes have not all responded with a successful termination... forciblly terminating any CRTS processes still running\n");
-		    time_terminate = 1;
-		  }
-	    }
+          if (time_s > msg_sent_time_s + 3) {
+            printf("Nodes have not all responded with a successful "
+                   "termination... forciblly terminating any CRTS processes "
+                   "still running\n");
+            time_terminate = 1;
+          }
+        }
       }
- 
-	  // forcefully terminate all processes if one or more has failed to terminate gracefully
+
+      // forcefully terminate all processes if one or more has failed to
+      // terminate gracefully
       if (time_terminate) {
-        for (int j=0; j < sp.num_nodes; j++) {
-          printf("Running CRTS_CR cleanup on node %i: %s\n", j+1, np[j].CORNET_IP);
-		  char command[2000] = "ssh ";
-          
-		  // define command to execute CRTS_CR termination script
-		  strcat(command, ssh_uname);
+        for (int j = 0; j < sp.num_nodes; j++) {
+          printf("Running CRTS_CR cleanup on node %i: %s\n", j + 1,
+                 np[j].CORNET_IP);
+          char command[2000] = "ssh ";
+
+          // define command to execute CRTS_CR termination script
+          strcat(command, ssh_uname);
           strcat(command, "@");
           strcat(command, np[j].CORNET_IP);
           strcat(command, " 'python ");
@@ -447,10 +461,10 @@ int main(int argc, char **argv) {
           strcat(command, "/src/CRTS_cr_terminate.py'");
           int ssh_return = system(command);
 
-		  if(ssh_return < 0)
-		    printf("Error command to terminate CRTS on node %i: %s", 
-			       j, np[j].CORNET_IP);
-		}
+          if (ssh_return < 0)
+            printf("Error command to terminate CRTS on node %i: %s", j,
+                   np[j].CORNET_IP);
+        }
       }
       // don't continue to next scenario if there was a user issued termination
       if (sig_terminate)
