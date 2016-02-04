@@ -223,7 +223,7 @@ int main(int argc, char **argv) {
       // on the current time and the number of nodes
       gettimeofday(&tv, NULL);
       time_s = tv.tv_sec;
-      int pad_s = manual_execution ? 120 : 1;
+      int pad_s = manual_execution ? 120 : 10;
       sp.start_time_s = time_s + 1 * sp.num_nodes + pad_s;
 
       // loop through nodes in scenario

@@ -2,7 +2,7 @@
 net_rx_t = net_rx_t - net_rx_t(1);
 
 % define parameters used to calculate instantaneous throughput
-t_step = 0.01;
+t_step = (net_rx_t(end)-net_rx_t(1))/1e4;
 steps = ceil(net_rx_t(end)/t_step);
 t = linspace(t_step, t_step*steps, steps);
 net_throughput = zeros(1,steps);
@@ -22,16 +22,16 @@ for i = 1:steps
   end
 end
 
-% taking a moving average
-MA_span = 1.0;
-taps = round(MA_span/t_step);
-net_throughput = filter(ones(1,taps)/taps, 1, [net_throughput zeros(1,taps)]);
-
-% normalize samples at either end of the filter
-for i=1:taps
-  net_throughput(i) = net_throughput(i)*(taps/i);
-  net_throughput(end-i+1) = net_throughput(end-i+1)*(taps/i);
+% create a normal moving average filter
+b = [0.5, 0.5];
+h = conv(b,b);
+for i = 1:3999
+  h = conv(h,b);
 end
+taps = length(h);
+
+% filter throughput
+net_throughput = filter(h, 1, [net_throughput zeros(1,taps)]);
 
 % remove filter delay
 net_throughput = net_throughput(1+floor(taps/2):end-ceil(taps/2));
@@ -42,4 +42,4 @@ plot(t,net_throughput);
 title('Throughput vs. Time');
 xlabel('Time (s)');
 ylabel('Throughput (bps)');
-
+xlim([net_rx_t(1), net_rx_t(end)]);
