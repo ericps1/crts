@@ -63,7 +63,7 @@ void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
     // if data is available, read it in
     if(select(newsockfd+1, &fds, NULL, NULL, &timeout)){
         // read the first byte which designates the message type
-        i = recv(newsockfd, buffer, 9, 0);
+        i = recv(newsockfd, buffer, 11, 0);
     }
 
     if (i < 0) 
@@ -211,6 +211,18 @@ void CE_CORNET3Dtx::execute(ExtensibleCognitiveRadio *ECR){
             ECR->set_tx_rate(2500e3);
         if (buffer[8] == '7')
             ECR->set_tx_rate(5000e3);
+
+        if(buffer[9] != '0')
+        {
+            float gain = atoi(&buffer[9]);
+            ECR->set_tx_gain_uhd(gain);
+        }
+        else
+        {
+            std::string g(&buffer[9], 2);
+            float gain = std::stof(g);
+            ECR->set_tx_gain_uhd(gain);
+        }
 
     }
 }
