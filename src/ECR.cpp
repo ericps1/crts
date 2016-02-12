@@ -23,6 +23,7 @@
 #include "../cognitive_engines/CE_FEC_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
 #include "../cognitive_engines/CE_Simultaneous_RX_And_Sensing.hpp"
+#include "../cognitive_engines/CE_Throughput_Test.hpp"
 // EDIT INCLUDE END FLAG
 
 #define DEBUG 0
@@ -314,26 +315,24 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio() {
 void ExtensibleCognitiveRadio::set_ce(char *ce, int argc, char **argv) {
   ///@cond INTERNAL
   // EDIT SET_CE START FLAG
-  if (!strcmp(ce, "CE_Template"))
-    CE = new CE_Template();
-  if (!strcmp(ce, "CE_Subcarrier_Alloc"))
-    CE = new CE_Subcarrier_Alloc();
-  if (!strcmp(ce, "CE_Mod_Adaptation"))
-    CE = new CE_Mod_Adaptation();
-  if (!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
-    CE = new CE_Two_Channel_DSA_Spectrum_Sensing();
-  if (!strcmp(ce, "CE_Two_Channel_DSA_PU"))
-    CE = new CE_Two_Channel_DSA_PU();
-  if (!strcmp(ce, "CE_FEC_Adaptation"))
-    CE = new CE_FEC_Adaptation();
-  if (!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
-    CE = new CE_Two_Channel_DSA_Link_Reliability();
-  if (!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
-    CE = new CE_Simultaneous_RX_And_Sensing();
-  if (!strcmp(ce, "CE_Network_Traffic_Gen_Test"))
-    CE = new CE_Network_Traffic_Gen_Test();
-  if (!strcmp(ce, "CE_Throughput_Test"))
-    CE = new CE_Throughput_Test();
+    if(!strcmp(ce, "CE_Template"))
+        CE = new CE_Template();
+    if(!strcmp(ce, "CE_Subcarrier_Alloc"))
+        CE = new CE_Subcarrier_Alloc();
+    if(!strcmp(ce, "CE_Mod_Adaptation"))
+        CE = new CE_Mod_Adaptation();
+    if(!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
+        CE = new CE_Two_Channel_DSA_Spectrum_Sensing();
+    if(!strcmp(ce, "CE_Two_Channel_DSA_PU"))
+        CE = new CE_Two_Channel_DSA_PU();
+    if(!strcmp(ce, "CE_FEC_Adaptation"))
+        CE = new CE_FEC_Adaptation();
+    if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
+        CE = new CE_Two_Channel_DSA_Link_Reliability();
+    if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
+        CE = new CE_Simultaneous_RX_And_Sensing();
+    if(!strcmp(ce, "CE_Throughput_Test"))
+        CE = new CE_Throughput_Test();
   // EDIT SET_CE END FLAG
   ///@endcond
 }
