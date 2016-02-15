@@ -218,7 +218,8 @@ void send_feedback_to_controller(int *TCP_controller,
   // variables used to define the feedback message to the controller
   char fb_msg[1024];
   fb_msg[0] = CRTS_MSG_FEEDBACK;
-  int fb_msg_ind = 1;
+  int fb_args = 0;
+  int fb_msg_ind = 2;
 
   // check for all possible update messages
   if (fb_enables & CRTS_TX_STATE_FB_EN){
@@ -228,6 +229,7 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_state, sizeof(tx_state));
       fb_msg_ind += 1+sizeof(tx_state);
       last_tx_state = tx_state;
+      fb_args++;
     }
   }
   if (fb_enables & CRTS_TX_FREQ_FB_EN){
@@ -237,6 +239,7 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_freq, sizeof(tx_freq));
       fb_msg_ind += 1+sizeof(tx_freq);
       last_tx_freq = tx_freq;
+      fb_args++;
     }
   }
   if (fb_enables & CRTS_TX_RATE_FB_EN){
@@ -246,6 +249,7 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_rate, sizeof(tx_rate));
       fb_msg_ind += 1+sizeof(tx_rate);
       last_tx_rate = tx_rate;
+      fb_args++;
     }
   }
   if (fb_enables & CRTS_TX_GAIN_FB_EN){
@@ -255,6 +259,7 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_gain, sizeof(tx_gain));
       fb_msg_ind += 1+sizeof(tx_gain);
       last_tx_gain = tx_gain;
+      fb_args++;
     }
   }
   if (fb_enables & CRTS_TX_MOD_FB_EN){
@@ -264,6 +269,7 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_mod, sizeof(tx_mod));
       fb_msg_ind += 1+sizeof(tx_mod);
       last_tx_mod = tx_mod;
+      fb_args++;
     }
   }
   if (fb_enables & CRTS_TX_FEC0_FB_EN){
@@ -273,6 +279,7 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_fec0, sizeof(tx_fec0));
       fb_msg_ind += 1+sizeof(tx_fec0);
       last_tx_fec0 = tx_fec0;
+      fb_args++;
     }
   }
   if (fb_enables & CRTS_TX_FEC1_FB_EN){
@@ -282,6 +289,7 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_fec1, sizeof(tx_fec1));
       fb_msg_ind += 1+sizeof(tx_fec1);
       last_tx_fec1 = tx_fec1;
+      fb_args++;
     }
   }
 
@@ -292,6 +300,7 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_state, sizeof(rx_state));
       fb_msg_ind += 1+sizeof(rx_state);
       last_rx_state = rx_state;
+      fb_args++;
     }
   }
   if (fb_enables & CRTS_RX_FREQ_FB_EN){
@@ -301,6 +310,7 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_freq, sizeof(rx_freq));
       fb_msg_ind += 1+sizeof(rx_freq);
       last_rx_freq = rx_freq;
+      fb_args++;
     }
   }
   if (fb_enables & CRTS_RX_RATE_FB_EN){
@@ -310,6 +320,7 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_rate, sizeof(rx_rate));
       fb_msg_ind += 1+sizeof(rx_rate);
       last_rx_rate = rx_rate;
+      fb_args++;
     }
   }
   if (fb_enables & CRTS_RX_GAIN_FB_EN){
@@ -319,6 +330,7 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_gain, sizeof(rx_gain));
       fb_msg_ind += 1+sizeof(rx_gain);
       last_rx_gain = rx_gain;
+      fb_args++;
     }
   }
   if (fb_enables & CRTS_RX_STATS){
@@ -328,11 +340,14 @@ void send_feedback_to_controller(int *TCP_controller,
       fb_msg[fb_msg_ind] = CRTS_RX_STATS;
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_stats, sizeof(rx_stats));
       fb_msg_ind += 1+sizeof(rx_stats);
+      fb_args++;
     }
   }
 
+  fb_msg[1] = fb_args;
+  
   // send feedback to controller
-  if(fb_msg_ind > 1){
+  if(fb_args > 0){
     send(*TCP_controller, fb_msg, fb_msg_ind, 0);
   }      
 }
@@ -730,7 +745,6 @@ int main(int argc, char **argv) {
   // main loop: receives control, sends feedback, and generates/receives network traffic
   while (time_s < stop_time_s && !sig_terminate) {
     // Listen for any updates from the controller
-    dprintf("CRTS: Listening to controller for command\n");
     receive_command_from_controller(&TCP_controller, &sp, &np, ECR, &fb_enables, &t_step);
 
     // send feedback to the controller if applicable

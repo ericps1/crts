@@ -38,7 +38,7 @@ int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, Scenario_Controller *S
   // Listen to sockets for messages from any node
   char msg[256];
   for (int i = 0; i < num_nodes; i++) {
-    int rflag = recv(TCP_nodes[i], &msg, 256, 0);
+    int rflag = recv(TCP_nodes[i], msg, 1, 0);
     int err = errno;
 
     // Handle errors
@@ -68,13 +68,18 @@ int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, Scenario_Controller *S
             return 1;
           break;
         case CRTS_MSG_FEEDBACK:{
-          int fb_msg_ind = 1;
-          while(fb_msg_ind < rflag){
-            SC->execute(i+1, msg[fb_msg_ind], (void *) &msg[fb_msg_ind+1]);
-            
-            // increment the index based on each feedback type
+          // receive the number of feedback arguments sent
+          rflag = recv(TCP_nodes[i], &msg[1], 1, 0);
+          int fb_msg_ind = 2;
+          // receive all feedback arguments
+          for(int j=0; j<msg[1]; j++){
+            rflag = recv(TCP_nodes[i], &msg[fb_msg_ind], 1, 0);
             int fb_arg_len = get_feedback_arg_len(msg[fb_msg_ind]);
-            fb_msg_ind += 1+fb_arg_len;
+            fb_msg_ind++;
+            
+            rflag = recv(TCP_nodes[i], &msg[fb_msg_ind], fb_arg_len, 0);
+            SC->execute(i, msg[fb_msg_ind-1], (void *) &msg[fb_msg_ind]);
+            fb_msg_ind += fb_arg_len;
           }
           break;
         }

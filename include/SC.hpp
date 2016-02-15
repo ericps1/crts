@@ -6,6 +6,8 @@
 #include <string.h>
 #include <unistd.h>
 #include "CRTS.hpp"
+#include "ECR.hpp"
+#include "interferer.hpp"
 #include "read_configs.hpp"
 #include "node_parameters.hpp"
 

@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <liquid/liquid.h>
-#include "CRTS.hpp"
-#include "ECR.hpp"
 #include "SC_Template.hpp"
 
 // constructor

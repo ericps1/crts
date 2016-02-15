@@ -34,7 +34,16 @@ enum crts_ctrl_and_fdbk_type {
   CRTS_NET_THROUGHPUT,
   CRTS_NET_MODEL,
 
-  CRTS_FB_EN
+  CRTS_FB_EN,
+  
+  // interferer specific parameters
+  CRTS_TX_DUTY_CYCLE,
+  CRTS_TX_PERIOD,
+  CRTS_TX_FREQ_BEHAVIOR,
+  CRTS_TX_FREQ_MIN,
+  CRTS_TX_FREQ_MAX,
+  CRTS_TX_FREQ_DWELL_TIME,
+  CRTS_TX_FREQ_RES
 };
 
 // defines bit masks used for feedback enables

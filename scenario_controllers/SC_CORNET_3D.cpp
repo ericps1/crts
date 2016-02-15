@@ -5,8 +5,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "CRTS.hpp"
-#include "ECR.hpp"
 #include "SC_CORNET_3D.hpp"
 
 // constructor
