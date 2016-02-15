@@ -6,7 +6,7 @@ CEs = src/CE.cpp cognitive_engines/CE_Template.cpp cognitive_engines/CE_Subcarri
 #EDIT CE END FLAG
 
 #EDIT SC START FLAG
-SCs = src/SC.cpp scenario_controllers/SC_Control_and_Feedback_Test.cpp scenario_controllers/SC_Template.cpp
+SCs = src/SC.cpp scenario_controllers/SC_Control_and_Feedback_Test.cpp scenario_controllers/SC_CORNET_3D.cpp scenario_controllers/SC_Template.cpp
 #EDIT SC END FLAG
 
 all: lib/TUN.o lib/read_configs.o config_CEs config_SCs lib/ECR.o logs/logs2python logs/logs2octave CRTS_CR lib/interferer.o CRTS_interferer CRTS_controller
@@ -27,7 +27,7 @@ lib/ECR.o: include/ECR.hpp src/ECR.cpp
 	g++ $(FLAGS) -c -o lib/ECR.o src/ECR.cpp
 
 CRTS_CR: include/ECR.hpp src/TUN.cpp src/ECR.cpp src/CRTS_CR.cpp  $(CEs)
-	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp src/read_configs.cpp src/timer.cc $(CEs) $(LIBS)
+	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp src/CRTS_common.cpp src/read_configs.cpp src/timer.cc $(CEs) $(LIBS)
 
 lib/interferer.o: src/interferer.cpp 
 	g++ $(FLAGS) -c -o lib/interferer.o src/interferer.cpp
@@ -36,7 +36,7 @@ CRTS_interferer: src/CRTS_interferer.cpp src/interferer.cpp
 	g++ $(FLAGS) -o CRTS_interferer src/CRTS_interferer.cpp src/timer.cc lib/interferer.o lib/read_configs.o -luhd -lc -lconfig -lliquid -lpthread
 
 CRTS_controller: include/node_parameters.hpp src/CRTS_controller.cpp src/read_configs.cpp $(SCs)
-	g++ $(FLAGS) -o CRTS_controller src/CRTS_controller.cpp lib/read_configs.o -lconfig -lliquid $(SCs)
+	g++ $(FLAGS) -o CRTS_controller src/CRTS_controller.cpp src/CRTS_common.cpp lib/read_configs.o -lconfig -lliquid $(SCs)
 
 logs/logs2octave: src/logs2octave.cpp
 	g++ $(FLAGS) -o logs/logs2octave src/logs2octave.cpp -luhd

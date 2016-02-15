@@ -24,6 +24,7 @@
 
 // EDIT INCLUDE START FLAG
 #include "../scenario_controllers/SC_Control_and_Feedback_Test.hpp"
+#include "../scenario_controllers/SC_CORNET_3D.hpp"
 #include "../scenario_controllers/SC_Template.hpp"
 // EDIT INCLUDE END FLAG
 
@@ -72,26 +73,8 @@ int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, Scenario_Controller *S
             SC->execute(i+1, msg[fb_msg_ind], (void *) &msg[fb_msg_ind+1]);
             
             // increment the index based on each feedback type
-            switch(msg[fb_msg_ind]){
-              case CRTS_TX_STATE:
-              case CRTS_TX_MOD:
-              case CRTS_TX_FEC0:
-              case CRTS_TX_FEC1:
-              case CRTS_RX_STATE:
-                fb_msg_ind += 1+sizeof(int);
-                break;
-              case CRTS_TX_FREQ:
-              case CRTS_TX_RATE:
-              case CRTS_TX_GAIN:
-              case CRTS_RX_FREQ:
-              case CRTS_RX_RATE:
-              case CRTS_RX_GAIN:
-                fb_msg_ind += 1+sizeof(double);
-                break;
-              case CRTS_RX_STATS:
-                fb_msg_ind += 1+sizeof(struct ExtensibleCognitiveRadio::rx_statistics);
-                break;
-            }
+            int fb_arg_len = get_feedback_arg_len(msg[fb_msg_ind]);
+            fb_msg_ind += 1+fb_arg_len;
           }
           break;
         }
@@ -259,6 +242,8 @@ int main(int argc, char **argv) {
       // EDIT SET SC START FLAG
       if(!strcmp(sp.SC, "SC_Control_and_Feedback_Test"))
         SC = new SC_Control_and_Feedback_Test();
+      if(!strcmp(sp.SC, "SC_CORNET_3D"))
+        SC = new SC_CORNET_3D();
       if(!strcmp(sp.SC, "SC_Template"))
         SC = new SC_Template();
       // EDIT SET SC END FLAG
@@ -279,7 +264,7 @@ int main(int argc, char **argv) {
         memset(&np[j], 0, sizeof(struct node_parameters));
         printf("Reading node %i's parameters...\n", j + 1);
         np[j] = read_node_parameters(j + 1, scenario_file);
-
+       
         // define log file names if they weren't defined by the scenario
         if (!strcmp(np[j].phy_rx_log_file, "")) {
           strcpy(np[j].phy_rx_log_file, scenario_name);
@@ -418,11 +403,14 @@ int main(int argc, char **argv) {
         send(TCP_nodes[j], (void *)&msg_type, sizeof(char), 0);
         send(TCP_nodes[j], (void *)&sp, sizeof(struct scenario_parameters), 0);
         send(TCP_nodes[j], (void *)&np[j], sizeof(struct node_parameters), 0);
+      
+        // copy node parameters to the scenario controller object
+        SC->np[j] = np[j];
       }
 
       // initialize feedback settings on nodes
       SC->TCP_nodes = TCP_nodes;
-      SC->num_nodes = sp.num_nodes;
+      SC->sp = sp;
       SC->initialize_node_fb();
 
       //sleep(5);
