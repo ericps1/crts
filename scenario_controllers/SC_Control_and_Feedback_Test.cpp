@@ -13,16 +13,16 @@ void SC_Control_and_Feedback_Test::initialize_node_fb() {
   printf("Sending control for fb enables\n");
   int fb_enables = CRTS_TX_STATE_FB_EN | CRTS_TX_GAIN_FB_EN | CRTS_RX_STATS_FB_EN | 
                    CRTS_TX_FREQ_FB_EN;
+  set_node_parameter(0, CRTS_FB_EN, (void*) &fb_enables);
   set_node_parameter(1, CRTS_FB_EN, (void*) &fb_enables);
   set_node_parameter(2, CRTS_FB_EN, (void*) &fb_enables);
-  set_node_parameter(3, CRTS_FB_EN, (void*) &fb_enables);
 
   double rx_stats_period = 1.0;
+  set_node_parameter(0, CRTS_RX_STATS, (void*) &rx_stats_period);
   set_node_parameter(1, CRTS_RX_STATS, (void*) &rx_stats_period);
-  set_node_parameter(2, CRTS_RX_STATS, (void*) &rx_stats_period);
   
+  set_node_parameter(0, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
   set_node_parameter(1, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
-  set_node_parameter(2, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
 }
 
 // execute function
