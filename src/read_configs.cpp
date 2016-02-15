@@ -102,11 +102,18 @@ struct scenario_parameters read_scenario_parameters(char *scenario_file) {
   struct scenario_parameters sp;
   int tmpI;
   double tmpD;
-
+  const char *tmpS;
+  
   config_lookup_int(&cfg, "num_nodes", &tmpI);
   sp.num_nodes = tmpI;
   config_lookup_float(&cfg, "run_time", &tmpD);
   sp.runTime = (time_t)tmpD;
+  
+  if (config_lookup_string(&cfg, "scenario_controller", &tmpS))
+    strcpy(sp.SC, tmpS);
+  else
+    strcpy(sp.SC, "SC_Template");
+  
   config_destroy(&cfg);
 
   return sp;
@@ -252,7 +259,6 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
 
   if (config_setting_lookup_float(node_config, "net_mean_throughput", &tmpD)) {
     np.net_mean_throughput = tmpD;
-    printf("net mean throughput: %f\n", np.net_mean_throughput);
   } else
     np.net_mean_throughput = 1e3;
 
@@ -260,7 +266,6 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   np.net_burst_length = 1;
   if (config_setting_lookup_string(node_config, "net_traffic_type", &tmpS)) {
     if (!strcmp(tmpS, "stream")) {
-      printf("net traffic is stream\n");
       np.net_traffic_type = NET_TRAFFIC_STREAM;
     } else if (!strcmp(tmpS, "burst")) {
       np.net_traffic_type = NET_TRAFFIC_BURST;

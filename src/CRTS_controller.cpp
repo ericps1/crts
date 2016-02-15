@@ -18,8 +18,14 @@
 #include <time.h>
 #include <errno.h>
 #include "CRTS.hpp"
+#include "ECR.hpp"
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
+
+// EDIT INCLUDE START FLAG
+#include "../scenario_controllers/SC_Control_and_Feedback_Test.hpp"
+#include "../scenario_controllers/SC_Template.hpp"
+// EDIT INCLUDE END FLAG
 
 #define MAXPENDING 5
 
@@ -27,24 +33,24 @@
 int sig_terminate;
 int num_nodes_terminated;
 
-int Receive_msg_from_nodes(int *client, int num_nodes) {
+int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, Scenario_Controller *SC) {
   // Listen to sockets for messages from any node
-  char msg;
+  char msg[256];
   for (int i = 0; i < num_nodes; i++) {
-    int rflag = recv(client[i], &msg, 1, 0);
+    int rflag = recv(TCP_nodes[i], &msg, 256, 0);
     int err = errno;
 
     // Handle errors
     if (rflag <= 0) {
       if (!((err == EAGAIN) || (err == EWOULDBLOCK))) {
-        close(client[i]);
+        close(TCP_nodes[i]);
         printf(
             "Node %i has disconnected. Terminating the current scenario..\n\n",
             i + 1);
         // sig_terminate = 1;
         // tell all nodes to terminate program
         for (int j = 0; j < num_nodes; j++) {
-          write(client[j], &msg, 1);
+          write(TCP_nodes[j], &msg, 1);
         }
         return 1;
       }
@@ -52,16 +58,45 @@ int Receive_msg_from_nodes(int *client, int num_nodes) {
 
     // Parse command if received a message
     else {
-      switch (msg) {
-      case CRTS_MSG_TERMINATE: // terminate program
-        printf("Node %i has sent a termination message...\n", i + 1);
-        num_nodes_terminated++;
-        // check if all nodes have terminated
-        if (num_nodes_terminated == num_nodes)
-          return 1;
-        break;
-      default:
-        printf("Invalid message type received from node %i\n", i);
+      switch (msg[0]) {
+        case CRTS_MSG_TERMINATE: // terminate program
+          printf("Node %i has sent a termination message...\n", i + 1);
+          num_nodes_terminated++;
+          // check if all nodes have terminated
+          if (num_nodes_terminated == num_nodes)
+            return 1;
+          break;
+        case CRTS_MSG_FEEDBACK:{
+          int fb_msg_ind = 1;
+          while(fb_msg_ind < rflag){
+            SC->execute(i+1, msg[fb_msg_ind], (void *) &msg[fb_msg_ind+1]);
+            
+            // increment the index based on each feedback type
+            switch(msg[fb_msg_ind]){
+              case CRTS_TX_STATE:
+              case CRTS_TX_MOD:
+              case CRTS_TX_FEC0:
+              case CRTS_TX_FEC1:
+              case CRTS_RX_STATE:
+                fb_msg_ind += 1+sizeof(int);
+                break;
+              case CRTS_TX_FREQ:
+              case CRTS_TX_RATE:
+              case CRTS_TX_GAIN:
+              case CRTS_RX_FREQ:
+              case CRTS_RX_RATE:
+              case CRTS_RX_GAIN:
+                fb_msg_ind += 1+sizeof(double);
+                break;
+              case CRTS_RX_STATS:
+                fb_msg_ind += 1+sizeof(struct ExtensibleCognitiveRadio::rx_statistics);
+                break;
+            }
+          }
+          break;
+        }
+        default:
+          printf("Invalid message type received from node %i\n", i+1);
       }
     }
   }
@@ -176,11 +211,11 @@ int main(int argc, char **argv) {
   }
 
   // objects needs for TCP links to cognitive radio nodes
-  int client[48];
-  struct sockaddr_in clientAddr[48];
-  socklen_t client_addr_size[48];
+  int TCP_nodes[48];
+  struct sockaddr_in nodeAddr[48];
+  socklen_t node_addr_size[48];
   for (int i = 0; i < 48; i++)
-    client_addr_size[i] = sizeof(clientAddr[i]);
+    node_addr_size[i] = sizeof(nodeAddr[i]);
   struct node_parameters np[48];
 
   // read master scenario config file
@@ -216,9 +251,18 @@ int main(int argc, char **argv) {
       sp.repNumber = scenRepNum;
 
       printf("Number of nodes: %i\n", sp.num_nodes);
-      // printf("Run time: %f\n", sp.runTime);
       printf("Run time: %lld\n", (long long)sp.runTime);
+      printf("Scenario controller: %s\n", sp.SC);
 
+      // create the scenario controller
+      Scenario_Controller *SC;
+      // EDIT SET SC START FLAG
+      if(!strcmp(sp.SC, "SC_Control_and_Feedback_Test"))
+        SC = new SC_Control_and_Feedback_Test();
+      if(!strcmp(sp.SC, "SC_Template"))
+        SC = new SC_Template();
+      // EDIT SET SC END FLAG
+    
       // determine the start time for the scenario based
       // on the current time and the number of nodes
       gettimeofday(&tv, NULL);
@@ -347,9 +391,9 @@ int main(int argc, char **argv) {
           FD_ZERO(&fds);
           FD_SET(sockfd, &fds);
           if (select(sockfd + 1, &fds, NULL, NULL, &timeout) > 0) {
-            client[j] = accept(sockfd, (struct sockaddr *)&clientAddr[j],
-                               &client_addr_size[j]);
-            if (client[j] < 0) {
+            TCP_nodes[j] = accept(sockfd, (struct sockaddr *)&nodeAddr[j],
+                               &node_addr_size[j]);
+            if (TCP_nodes[j] < 0) {
               fprintf(stderr, "ERROR: Sever Failed to Connect to Client\n");
               exit(EXIT_FAILURE);
             }
@@ -362,21 +406,27 @@ int main(int argc, char **argv) {
           break;
 
         // set socket to non-blocking
-        fcntl(client[j], F_SETFL, O_NONBLOCK);
+        fcntl(TCP_nodes[j], F_SETFL, O_NONBLOCK);
 
         // copy IP of connected node to node parameters if in manual mode
         if (manual_execution)
-          strcpy(np[j].CORNET_IP, inet_ntoa(clientAddr[j].sin_addr));
+          strcpy(np[j].CORNET_IP, inet_ntoa(nodeAddr[j].sin_addr));
 
         // send scenario and node parameters
         printf("\nNode %i has connected. Sending its parameters...\n", j + 1);
         char msg_type = CRTS_MSG_SCENARIO_PARAMETERS;
-        send(client[j], (void *)&msg_type, sizeof(char), 0);
-        send(client[j], (void *)&sp, sizeof(struct scenario_parameters), 0);
-        print_node_parameters(&np[j]);
-        send(client[j], (void *)&np[j], sizeof(struct node_parameters), 0);
+        send(TCP_nodes[j], (void *)&msg_type, sizeof(char), 0);
+        send(TCP_nodes[j], (void *)&sp, sizeof(struct scenario_parameters), 0);
+        send(TCP_nodes[j], (void *)&np[j], sizeof(struct node_parameters), 0);
       }
 
+      // initialize feedback settings on nodes
+      SC->TCP_nodes = TCP_nodes;
+      SC->num_nodes = sp.num_nodes;
+      SC->initialize_node_fb();
+
+      //sleep(5);
+      
       // if in manual mode update the start time for all nodes
       if (manual_execution && !sig_terminate) {
 
@@ -386,8 +436,8 @@ int main(int argc, char **argv) {
         // send updated start time to all nodes
         char msg_type = CRTS_MSG_MANUAL_START;
         for (int j = 0; j < sp.num_nodes; j++) {
-          send(client[j], (void *)&msg_type, sizeof(char), 0);
-          send(client[j], (void *)&start_time_s, sizeof(time_t), 0);
+          send(TCP_nodes[j], (void *)&msg_type, sizeof(char), 0);
+          send(TCP_nodes[j], (void *)&start_time_s, sizeof(time_t), 0);
         }
       } else {
         start_time_s = sp.start_time_s;
@@ -400,7 +450,7 @@ int main(int argc, char **argv) {
       int msg_terminate = 0;
       num_nodes_terminated = 0;
       while ((!sig_terminate) && (!msg_terminate) && (!time_terminate)) {
-        msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
+        msg_terminate = receive_msg_from_nodes(&TCP_nodes[0], sp.num_nodes, SC);
 
         // check if the scenario should be terminated based on the elapsed time
         gettimeofday(&tv, NULL);
@@ -420,7 +470,7 @@ int main(int argc, char **argv) {
         // tell all nodes in the scenario to terminate the testing process
         char msg = CRTS_MSG_TERMINATE;
         for (int j = 0; j < sp.num_nodes; j++) {
-          write(client[j], &msg, 1);
+          write(TCP_nodes[j], &msg, 1);
         }
 
         // get current time
@@ -429,7 +479,7 @@ int main(int argc, char **argv) {
 
         // listen for confirmation that all nodes have terminated
         while ((!msg_terminate) && (!time_terminate)) {
-          msg_terminate = Receive_msg_from_nodes(&client[0], sp.num_nodes);
+          msg_terminate = receive_msg_from_nodes(&TCP_nodes[0], sp.num_nodes, SC);
 
           // check if the scenario should be terminated based on the elapsed
           // time
