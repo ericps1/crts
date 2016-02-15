@@ -18,6 +18,6 @@ void Scenario_Controller::set_node_parameter(int node, char cont_type, void* _ar
     printf("set_node_parameters() was called for a node which exceeds the number of nodes in this scenario\n");
     exit(1);
   } else {
-    write(TCP_nodes[node-1], cont_msg, 2+arg_len);
+    write(TCP_nodes[node], cont_msg, 2+arg_len);
   }
 }

@@ -40,11 +40,11 @@ void SC_CORNET_3D::initialize_node_fb() {
   
   // enable all feedback types
   int fb_enables = INT_MAX;
-  for(int i=1; i<sp.num_nodes; i++)
+  for(int i=0; i<sp.num_nodes; i++)
     set_node_parameter(i, CRTS_FB_EN, (void*) &fb_enables);
   
   double rx_stats_period = 0.1;
-  for(int i=1; i<sp.num_nodes; i++){
+  for(int i=0; i<sp.num_nodes; i++){
     set_node_parameter(i, CRTS_RX_STATS, (void*) &rx_stats_period);
     set_node_parameter(i, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
   }
@@ -55,15 +55,16 @@ void SC_CORNET_3D::execute(int node, char fb_type, void *_arg) {
 
   char msg[16];
 
-  msg[0] = node;
-  msg[1] = fb_type;
+  msg[0] = CRTS_MSG_FEEDBACK;
+  msg[1] = node;
+  msg[2] = fb_type;
   
   int arg_len = get_feedback_arg_len(fb_type);
 
-  memcpy((void*) &msg[2], _arg, arg_len);
+  memcpy((void*) &msg[3], _arg, arg_len);
 
   // forward feedback to CORNET 3D web server
-  send(TCP_CORNET_3D, msg, 2+arg_len, 0);
+  send(TCP_CORNET_3D, msg, 3+arg_len, 0);
 
   // forward commands from CORNET 3D webserver to node
   fd_set fds;
@@ -74,16 +75,25 @@ void SC_CORNET_3D::execute(int node, char fb_type, void *_arg) {
   FD_SET(TCP_CORNET_3D, &fds);
   
   while(select(TCP_CORNET_3D+1, &fds, NULL, NULL, &timeout)) {
-    int rlen = recv(TCP_CORNET_3D, msg, 2, 0);
+    int rlen = recv(TCP_CORNET_3D, msg, 1, 0);
     if (rlen < 0) {
       printf("CORNET 3D socket failure\n");
       exit(1);
     }
-    int node = msg[0];
-    char cont_type = msg[1];
-    int arg_len = get_control_arg_len(cont_type);
-    rlen = recv(TCP_CORNET_3D, &msg[2], arg_len, 0);
-    set_node_parameter(node, cont_type, &msg[2]);
+    // switch for different message types
+    int node, cont_type, arg_len;
+    switch (msg[0]) {
+      case CRTS_MSG_CONTROL:
+        rlen = recv(TCP_CORNET_3D, &msg[1], 2, 0);
+        node = msg[1];
+        cont_type = msg[2];
+        arg_len = get_control_arg_len(cont_type);
+        rlen = recv(TCP_CORNET_3D, &msg[3], arg_len, 0);
+        set_node_parameter(node, cont_type, &msg[3]);
+        break;
+      default:
+        printf("undefined message received from CORNET 3D web server\n");
+    }
   }
 
   /*printf("\n");
