@@ -2,9 +2,8 @@
 CRTS_CR
 CRTS_controller
 CRTS_interferer
-TUN
 config_CEs
-post_process_logs
+config_SCs
 
 # Ignore VIM swap files
 *.swp

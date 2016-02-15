@@ -22,6 +22,7 @@
 #include "../cognitive_engines/CE_Two_Channel_DSA_PU.hpp"
 #include "../cognitive_engines/CE_FEC_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
+#include "../cognitive_engines/CE_Control_and_Feedback_Test.hpp"
 #include "../cognitive_engines/CE_Simultaneous_RX_And_Sensing.hpp"
 #include "../cognitive_engines/CE_Throughput_Test.hpp"
 // EDIT INCLUDE END FLAG
@@ -134,7 +135,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
 
   // create and start rx thread
   dprintf("Starting rx thread...\n");
-  rx_running = false;                  // receiver is not running initially
+  rx_state = RX_CONTINUOUS;            // receiver is not running initially
   rx_thread_running = true;            // receiver thread IS running initially
   pthread_mutex_init(&rx_mutex, NULL); // receiver mutex
   pthread_cond_init(&rx_cond, NULL);   // receiver condition
@@ -314,7 +315,7 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio() {
 
 void ExtensibleCognitiveRadio::set_ce(char *ce) {
   ///@cond INTERNAL
-  // EDIT SET_CE START FLAG
+  // EDIT SET CE START FLAG
     if(!strcmp(ce, "CE_Template"))
         CE = new CE_Template();
     if(!strcmp(ce, "CE_Subcarrier_Alloc"))
@@ -329,11 +330,13 @@ void ExtensibleCognitiveRadio::set_ce(char *ce) {
         CE = new CE_FEC_Adaptation();
     if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
         CE = new CE_Two_Channel_DSA_Link_Reliability();
+    if(!strcmp(ce, "CE_Control_and_Feedback_Test"))
+        CE = new CE_Control_and_Feedback_Test();
     if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
         CE = new CE_Simultaneous_RX_And_Sensing();
     if(!strcmp(ce, "CE_Throughput_Test"))
         CE = new CE_Throughput_Test();
-  // EDIT SET_CE END FLAG
+  // EDIT SET CE END FLAG
   ///@endcond
 }
 
@@ -442,10 +445,14 @@ void ExtensibleCognitiveRadio::set_tx_freq(double _tx_freq, double _dsp_freq) {
   // pthread_mutex_unlock(&tx_mutex);
 }
 
+// get transmitter state
+int ExtensibleCognitiveRadio::get_tx_state() {
+  return tx_state;
+}
+
 // get transmitter frequency
 double ExtensibleCognitiveRadio::get_tx_freq() {
   return tx_params.tx_freq + tx_params.tx_dsp_freq;
-  // return tx_params.tx_freq;
 }
 
 // set transmitter sample rate
@@ -453,9 +460,6 @@ void ExtensibleCognitiveRadio::set_tx_rate(double _tx_rate) {
   tx_params_updated.tx_rate = _tx_rate;
   update_tx_flag = 1;
   update_usrp_tx = 1;
-  // pthread_mutex_lock(&tx_mutex);
-  // usrp_tx->set_tx_rate(_tx_rate);
-  // pthread_mutex_unlock(&tx_mutex);
 }
 
 // get transmitter sample rate
@@ -796,7 +800,12 @@ void ExtensibleCognitiveRadio::set_rx_freq(double _rx_freq, double _dsp_freq) {
   update_usrp_rx = 1;
 }
 
-// set receiver frequency
+// get receiver state
+double ExtensibleCognitiveRadio::get_rx_state() {
+  return rx_state;
+}
+
+// get receiver frequency
 double ExtensibleCognitiveRadio::get_rx_freq() {
   return rx_params.rx_freq - rx_params.rx_dsp_freq;
 }
@@ -908,10 +917,30 @@ unsigned int ExtensibleCognitiveRadio::get_rx_taper_len() {
   return rx_params.taper_len;
 }
 
+// set the period of time considered in the calculation of average rx statistics
+void ExtensibleCognitiveRadio::set_rx_stat_tracking(bool state, float sec){
+  rx_stat_tracking = state;
+  rx_stat_tracking_period = sec;
+}
+
+float ExtensibleCognitiveRadio::get_rx_stat_tracking_period(){
+  float rv;
+  if(rx_stat_tracking)
+    rv = rx_stat_tracking_period;
+  else
+    rv = 0.0;
+
+  return rv;
+}
+
+struct ExtensibleCognitiveRadio::rx_statistics ExtensibleCognitiveRadio::get_rx_stats(){
+  return rx_stats;
+}
+
 // start receiver
 void ExtensibleCognitiveRadio::start_rx() {
   // set rx running flag
-  rx_running = true;
+  rx_state = RX_CONTINUOUS;
 
   // tell device to start
   usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
@@ -923,30 +952,10 @@ void ExtensibleCognitiveRadio::start_rx() {
 // stop receiver
 void ExtensibleCognitiveRadio::stop_rx() {
   // set rx running flag
-  rx_running = false;
+  rx_state = RX_STOPPED;
 
   // tell device to stop
   usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
-}
-
-// start liquid-dsp processing
-void ExtensibleCognitiveRadio::start_liquid_rx() {
-  printf("Starting liquid\n");
-
-  // set rx running flag
-  rx_running = true;
-
-  // signal condition (tell rx worker to start)
-  pthread_cond_signal(&rx_cond);
-}
-
-// stop receiver
-void ExtensibleCognitiveRadio::stop_liquid_rx() {
-  // set rx running flag
-  // pthread_mutex_lock(&rx_mutex);
-  printf("Stopping liquid\n");
-  rx_running = false;
-  // pthread_mutex_unlock(&rx_mutex);
 }
 
 // update the actual parameters being used by the transmitter
@@ -1017,7 +1026,7 @@ void *ECR_rx_worker(void *_arg) {
     }
 
     // run receiver
-    while (ECR->rx_running) {
+    while (ECR->rx_state == RX_CONTINUOUS) {
 
       // dprintf("rx_running\n");
       // grab data from device
@@ -1138,11 +1147,14 @@ int rxCallback(unsigned char *_header, int _header_valid,
     // Print metrics if required
     if (ECR->print_metrics_flag)
       ECR->print_metrics(ECR);
-
-    // Pass metrics to controller if required
+    
     // Log metrics locally if required
     if (ECR->log_phy_rx_flag)
       ECR->log_rx_metrics();
+
+    // Track statistics if required
+    if (ECR->rx_stat_tracking)
+      ECR->update_rx_stats();
   }
 
   // print payload
@@ -1170,6 +1182,136 @@ int rxCallback(unsigned char *_header, int _header_valid,
   }
 
   return 0;
+}
+
+void ExtensibleCognitiveRadio::update_rx_stats(){
+  // static variables only needed by this function to track statistics
+  static std::vector<struct timeval> time_stamp;
+  static std::vector<float> evm;
+  static std::vector<float> rssi;
+  static std::vector<int> payload_valid;
+  static std::vector<int> payload_len;
+  
+  static float sum_evm = 0.0;
+  static float sum_rssi = 0.0;
+  static int sum_payload_valid = 0;
+  static int sum_payload_len = 0;
+
+  static int N = 0; // number of valid data points (frames received)
+  static int K = 0; // 
+  static int ind_first = 0;
+  static int ind_last;
+
+  // initial allocation of memory vectors
+  if (K ==0){
+    K = 128;
+    time_stamp.resize(K);
+    evm.resize(K,0.0);
+    rssi.resize(K,0.0);
+    payload_valid.resize(K,0);
+    payload_len.resize(K,0);
+  }
+
+  // update tracking period since it can be modified
+  struct timeval stat_tracking_period;
+  stat_tracking_period.tv_sec = (time_t)rx_stat_tracking_period;
+  stat_tracking_period.tv_usec = (suseconds_t)(fmod(rx_stat_tracking_period,1.0)*1e6);
+
+  // compute timeval for earliest time that will be considered in the statistics
+  struct timeval time_now;
+  gettimeofday(&time_now, NULL);
+  struct timeval begin_time;
+  timersub(&time_now, &stat_tracking_period, &begin_time);
+
+  // remove any old data points from consideration
+  while(timercmp(&time_stamp[ind_first], &begin_time, <) && N>0){
+    sum_evm -= evm[ind_first];
+    sum_rssi -= rssi[ind_first];
+    sum_payload_valid -= payload_valid[ind_first];
+    sum_payload_len -= payload_valid[ind_first]*payload_len[ind_first]; 
+    N--;
+
+    if (ind_first == K-1)
+      ind_first = 0;
+    else
+      ind_first++;
+  }
+
+  // resize memory if needed
+  N++;
+  if (N>K) {
+    K *= 2;
+    time_stamp.resize(K);
+    evm.resize(K,0.0);
+    rssi.resize(K,0.0);
+    payload_valid.resize(K,0);
+    payload_len.resize(K,0);
+  }
+
+  // update the last data point index
+  ind_last = ind_first+(N-1);
+  if(ind_last >= K)
+    ind_last -= K;
+
+  // store latest values
+  time_stamp[ind_last] = time_now;
+  evm[ind_last] = pow(10.0,CE_metrics.stats.evm/10.0);
+  rssi[ind_last] = pow(10.0,CE_metrics.stats.rssi/10.0);
+  payload_valid[ind_last] = CE_metrics.payload_valid;
+  payload_len[ind_last] = CE_metrics.payload_len;
+
+  // update sums
+  sum_evm += evm[ind_last];
+  sum_rssi += rssi[ind_last];
+  sum_payload_valid += payload_valid[ind_last];
+  sum_payload_len += payload_valid[ind_last]*payload_len[ind_last];
+    
+  // update average values
+  rx_stats.frames_received = N;
+  rx_stats.avg_evm = 10.0*log10(sum_evm/(float)N);
+  rx_stats.avg_rssi = 10.0*log10(sum_rssi/(float)N);
+  rx_stats.avg_per = (float)(N-sum_payload_valid)/(float)N;
+  rx_stats.avg_throughput = 8.0*(float)sum_payload_len/rx_stat_tracking_period;
+
+  /*printf("\n");
+  printf("N: %i\n", N);
+  printf("K:, %i\n", K);
+  printf("evm: %f", evm[ind_first]);
+  for(int i=0; i<N-1; i++){
+    int ind = ind_first + i;
+    if (ind > K)
+      ind -= K;
+    printf(", %f", evm[ind]);
+  }
+  printf("\navg evm: %f\n", sum_evm/(float)N);
+  printf("rssi: %f", rssi[ind_first]);
+  for(int i=0; i<N-1; i++){
+    int ind = ind_first + i;
+    if (ind > K)
+      ind -= K;
+    printf(", %f", rssi[ind]);
+  }
+  printf("\navg rssi: %f\n", sum_rssi/(float)N);
+  printf("ind_first: %i\n", ind_first);
+  printf("ind_last: %i\n", ind_last);
+  printf("valid: %i", payload_valid[ind_first]);
+  for(int i=1; i<N; i++){
+    int ind = ind_first + i;
+    if (ind >= K)
+      ind -= K;
+    printf(", %i", payload_valid[ind]);
+  }
+  printf("\nsum valid: %i\n", sum_payload_valid);
+  printf("avg per: %f\n", (float)(N-sum_payload_valid)/(float)N);
+  printf("length: %i", payload_len[ind_first]);
+  for(int i=1; i<N; i++){
+    int ind = ind_first + i;
+    if (ind >= K)
+      ind -= K;
+    printf(", %i", payload_len[ind]);
+  }
+  printf("\nthroughput: %f\n", 8.0*(float)sum_payload_len/(float)rx_stat_tracking_period);
+  */
 }
 
 // transmitter worker thread

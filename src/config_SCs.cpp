@@ -8,31 +8,31 @@
 
 int main() {
 
-  // Read in all file names in cognitive_engines directory.
-  // Count number of CEs and truncate '.cpp' from file name.
-  int num_ces = 0;
+  // Read in all file names in scenario_controllers directory.
+  // Count number of SCs and truncate '.cpp' from file name.
+  int num_scs = 0;
   int num_srcs = 0;
-  std::string ce_list[100];
+  std::string sc_list[100];
   std::string src_list[100];
   DIR *dpdf;
   struct dirent *epdf;
 
-  dpdf = opendir("./cognitive_engines");
+  dpdf = opendir("./scenario_controllers");
   if (dpdf != NULL) {
     while ((epdf = readdir(dpdf))) {
       // find all CE files
       if (strlen(epdf->d_name) >= 3) {
-        if (epdf->d_name[0] == 'C' && epdf->d_name[1] == 'E' &&
+        if (epdf->d_name[0] == 'S' && epdf->d_name[1] == 'C' &&
             epdf->d_name[2] == '_' &&
             epdf->d_name[strlen(epdf->d_name) - 3] == 'c' &&
             epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
             epdf->d_name[strlen(epdf->d_name) - 1] == 'p') {
           // Copy filename into list of CE names
-          ce_list[num_ces].assign(epdf->d_name);
+          sc_list[num_scs].assign(epdf->d_name);
           // Strip the extension from the name
-          std::size_t dot_pos = ce_list[num_ces].find(".");
-          ce_list[num_ces].resize(dot_pos);
-          num_ces++;
+          std::size_t dot_pos = sc_list[num_scs].find(".");
+          sc_list[num_scs].resize(dot_pos);
+          num_scs++;
         } else if (epdf->d_name[strlen(epdf->d_name) - 3] == 'c' &&
                    epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
                    epdf->d_name[strlen(epdf->d_name) - 1] == 'p') {
@@ -47,9 +47,9 @@ int main() {
     }
   }
 
-  printf("Configuring CRTS to use the following cognitive engines:\n\n");
-  for (int i = 0; i < num_ces; i++)
-    printf("%s\n", ce_list[i].c_str());
+  printf("Configuring CRTS to use the following scenario controllers:\n\n");
+  for (int i = 0; i < num_scs; i++)
+    printf("%s\n", sc_list[i].c_str());
 
   printf("\nThe following files will be included as additional sources:\n\n");
   for (int i = 0; i < num_srcs; i++)
@@ -64,13 +64,13 @@ int main() {
   bool edit_content = false;
 
   //////////////////////////////////////////////////////////////////////////////////
-  // Edit ECR.cpp
+  // Edit set controller in CRTS_controller.cpp
 
-  flag_beg = "EDIT SET CE START FLAG";
-  flag_end = "EDIT SET CE END FLAG";
+  flag_beg = "EDIT SET SC START FLAG";
+  flag_end = "EDIT SET SC END FLAG";
 
   // open read file
-  std::ifstream file_in("src/ECR.cpp", std::ifstream::in);
+  std::ifstream file_in("src/CRTS_controller.cpp", std::ifstream::in);
 
   // read file until the end
   while (!(file_in.eof())) {
@@ -83,10 +83,10 @@ int main() {
         edit_content = true;
 
         // push all lines to map subclass
-        for (int i = 0; i < num_ces; i++) {
-          line = "    if(!strcmp(ce, \"" + ce_list[i] + "\"))";
+        for (int i = 0; i < num_scs; i++) {
+          line = "      if(!strcmp(sp.SC, \"" + sc_list[i] + "\"))";
           file_lines.push_back(line);
-          line = "        CE = new " + ce_list[i] + "();";
+          line = "        SC = new " + sc_list[i] + "();";
           file_lines.push_back(line);
         }
       }
@@ -106,7 +106,7 @@ int main() {
   file_in.close();
 
   // write file
-  std::ofstream file_out("src/ECR.cpp", std::ofstream::out);
+  std::ofstream file_out("src/CRTS_controller.cpp", std::ofstream::out);
   for (std::vector<std::string>::iterator i = file_lines.begin();
        i != file_lines.end(); i++) {
     file_out << (*i);
@@ -116,7 +116,7 @@ int main() {
   file_out.close();
 
   /////////////////////////////////////////////////////////////////////////////////////
-  // Edit CE.hpp
+  // Edit includes in CRTS_controller.cpp
 
   flag_beg = "EDIT INCLUDE START FLAG";
   flag_end = "EDIT INCLUDE END FLAG";
@@ -124,7 +124,7 @@ int main() {
   file_lines.clear();
 
   // open read file
-  file_in.open("src/ECR.cpp", std::ifstream::in);
+  file_in.open("src/CRTS_controller.cpp", std::ifstream::in);
 
   // read file until the end
   while (!(file_in.eof())) {
@@ -139,8 +139,8 @@ int main() {
 
         // push all lines to map subclass
         std::string line_new;
-        for (int i = 0; i < num_ces; i++) {
-          line_new = "#include \"../cognitive_engines/" + ce_list[i] + ".hpp\"";
+        for (int i = 0; i < num_scs; i++) {
+          line_new = "#include \"../scenario_controllers/" + sc_list[i] + ".hpp\"";
           file_lines.push_back(line_new);
           /*line_new = "class " + ce_list[i] + " : public Cognitive_Engine {\r";
 file_lines.push_back(line_new);
@@ -174,7 +174,7 @@ file_lines.push_back(line_new);*/
   file_in.close();
 
   // write file
-  file_out.open("src/ECR.cpp", std::ofstream::out);
+  file_out.open("src/CRTS_controller.cpp", std::ofstream::out);
   for (std::vector<std::string>::iterator i = file_lines.begin();
        i != file_lines.end(); i++) {
     file_out << (*i);
@@ -188,8 +188,8 @@ file_lines.push_back(line_new);*/
 
   file_lines.clear();
 
-  flag_beg = "EDIT CE START FLAG";
-  flag_end = "EDIT CE END FLAG";
+  flag_beg = "EDIT SC START FLAG";
+  flag_end = "EDIT SC END FLAG";
 
   // open header file
   file_in.open("makefile", std::ifstream::in);
@@ -207,14 +207,14 @@ file_lines.push_back(line_new);*/
 
         // push all lines to map subclass
         std::string line_new;
-        line_new = "CEs = src/CE.cpp";
-        for (int i = 0; i < num_ces; i++) {
-          line_new += " cognitive_engines/";
-          line_new += ce_list[i];
+        line_new = "SCs = src/SC.cpp";
+        for (int i = 0; i < num_scs; i++) {
+          line_new += " scenario_controllers/";
+          line_new += sc_list[i];
           line_new += ".cpp";
         }
         for (int i = 0; i < num_srcs; i++) {
-          line_new += " cognitive_engines/";
+          line_new += " scenario_controllers/";
           line_new += src_list[i];
         }
         // line_new += "\r";

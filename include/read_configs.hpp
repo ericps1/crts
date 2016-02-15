@@ -22,6 +22,9 @@ struct scenario_parameters {
   // The repetition number of this scenario instance
   // i.e. 1 <= repNumber <= totalNumReps
   unsigned int repNumber;
+
+  // Scenario controller
+  char SC[100];
 };
 
 int read_master_num_scenarios(char * nameMasterScenFile);
