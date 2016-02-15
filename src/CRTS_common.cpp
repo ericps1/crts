@@ -12,6 +12,7 @@ int get_control_arg_len(int control_type){
     case CRTS_RX_STATE:
     case CRTS_NET_MODEL:
     case CRTS_FB_EN:
+    case CRTS_TX_FREQ_BEHAVIOR:
       len = sizeof(int);
       break;
     case CRTS_TX_FREQ:
@@ -23,7 +24,13 @@ int get_control_arg_len(int control_type){
     case CRTS_RX_STATS:
     case CRTS_RX_STATS_FB:
     case CRTS_NET_THROUGHPUT:
-     len = sizeof(double);
+    case CRTS_TX_DUTY_CYCLE:
+    case CRTS_TX_PERIOD:
+    case CRTS_TX_FREQ_MIN:
+    case CRTS_TX_FREQ_MAX:
+    case CRTS_TX_FREQ_DWELL_TIME:
+    case CRTS_TX_FREQ_RES:
+      len = sizeof(double);
       break;
     default:
       len = 0;
