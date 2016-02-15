@@ -80,11 +80,11 @@ void receive_command_from_controller(int *TCP_controller,
       }
     }
 
-    printf("Received %i byte command type %i from controller\n", rflag, command_buffer[0]);
+    dprintf("Received %i byte command type %i from controller\n", rflag, command_buffer[0]);
     // Parse command based on the message type
     switch (command_buffer[0]) {
       case CRTS_MSG_SCENARIO_PARAMETERS: // settings for upcoming scenario
-        printf("Received settings for scenario\n");
+        dprintf("Received settings for scenario\n");
         // receive and copy scenario parameters
         rflag = recv(*TCP_controller, &command_buffer[1],
                      sizeof(struct scenario_parameters), 0);
@@ -99,19 +99,19 @@ void receive_command_from_controller(int *TCP_controller,
         print_node_parameters(np);
         break;
       case CRTS_MSG_MANUAL_START: // updated start time (used for manual mode)
-        printf("Received manual start from controller");
+        dprintf("Received manual start from controller");
         rflag = recv(*TCP_controller, &command_buffer[1], sizeof(time_t), 0);
         memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
         stop_time_s = sp->start_time_s + sp->runTime;
         break;
       case CRTS_MSG_TERMINATE: // terminate program
-        printf("Received termination command from controller\n");
+        dprintf("Received termination command from controller\n");
         sig_terminate = 1;
         break;
       case CRTS_MSG_CONTROL:
         rflag = recv(*TCP_controller, &command_buffer[1], 1, 0);
         rflag = recv(*TCP_controller, &command_buffer[2], (size_t)command_buffer[1], 0);
-        printf("Received a %i byte control message\n", rflag);
+        dprintf("Received a %i byte control message\n", rflag);
         apply_control_msg(command_buffer[2], (void*) &command_buffer[3], np, ECR, fb_enables, t_step); 
         break;
     }
@@ -124,7 +124,6 @@ void apply_control_msg(char cont_type,
                        ExtensibleCognitiveRadio * ECR,
                        int *fb_enables,
                        float *t_step){
-  printf("Applying control message type %i\n", cont_type);
   switch (cont_type){
     case CRTS_TX_STATE:
       if (*(int*)_arg == TX_STOPPED)
@@ -166,14 +165,12 @@ void apply_control_msg(char cont_type,
       break;
     case CRTS_RX_STATS:
       if (*(double*)_arg > 0.0){
-        printf("Setting rx stat tracking to %f\n", *(double*)_arg);
         ECR->set_rx_stat_tracking(true, *(double*)_arg);
       } else {
         ECR->set_rx_stat_tracking(false, 0.0);
       }
       break;
     case CRTS_RX_STATS_FB:
-      printf("Setting rx stat fb period to %f\n", *(double*)_arg);
       rx_stats_fb_period = *(double*)_arg;
       break;
     case CRTS_NET_THROUGHPUT:
@@ -184,7 +181,6 @@ void apply_control_msg(char cont_type,
       np->net_traffic_type = *(int*)_arg;
       break;
     case CRTS_FB_EN:
-      printf("Updating fb enables to %i\n", *(int*)_arg);
       *fb_enables = *(int*)_arg;
       break;
     default:
