@@ -1,34 +1,94 @@
 #include <stdio.h>
 #include <liquid/liquid.h>
+#include <limits.h>
+#include <net/if.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "CRTS.hpp"
 #include "ECR.hpp"
-#include "SC_Control_and_Feedback_Test.hpp"
+#include "SC_CORNET_3D.hpp"
 
 // constructor
-SC_Control_and_Feedback_Test::SC_Control_and_Feedback_Test() {}
+SC_CORNET_3D::SC_CORNET_3D() {
+  // Create TCP client to CORNET3D
+  TCP_CORNET_3D = socket(AF_INET, SOCK_STREAM, 0);
+  if (TCP_CORNET_3D < 0) {
+    printf("ERROR: Receiver Failed to Create Client Socket\n");
+    exit(EXIT_FAILURE);
+  }
+  // Parameters for connecting to server
+  struct sockaddr_in addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = inet_addr(CORNET_3D_IP);
+  addr.sin_port = htons(CORNET_3D_PORT);
+
+  // Attempt to connect client socket to server
+  int connect_status =
+      connect(TCP_CORNET_3D, (struct sockaddr *)&addr,
+              sizeof(addr));
+  if (connect_status) {
+    printf("Failed to Connect to server.\n");
+    exit(EXIT_FAILURE);
+  }
+}
 
 // destructor
-SC_Control_and_Feedback_Test::~SC_Control_and_Feedback_Test() {}
+SC_CORNET_3D::~SC_CORNET_3D() {}
 
 // setup feedback enables for each node
-void SC_Control_and_Feedback_Test::initialize_node_fb() {
-  printf("Sending control for fb enables\n");
-  int fb_enables = CRTS_TX_STATE_FB_EN | CRTS_TX_GAIN_FB_EN | CRTS_RX_STATS_FB_EN;
-  set_node_parameter(1, CRTS_FB_EN, (void*) &fb_enables);
-  set_node_parameter(2, CRTS_FB_EN, (void*) &fb_enables);
-
-  double rx_stats_period = 1.0;
-  set_node_parameter(1, CRTS_RX_STATS, (void*) &rx_stats_period);
-  set_node_parameter(2, CRTS_RX_STATS, (void*) &rx_stats_period);
+void SC_CORNET_3D::initialize_node_fb() {
   
-  set_node_parameter(1, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
-  set_node_parameter(2, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
+  // enable all feedback types
+  int fb_enables = INT_MAX;
+  for(int i=1; i<sp.num_nodes; i++)
+    set_node_parameter(i, CRTS_FB_EN, (void*) &fb_enables);
+  
+  double rx_stats_period = 0.1;
+  for(int i=1; i<sp.num_nodes; i++){
+    set_node_parameter(i, CRTS_RX_STATS, (void*) &rx_stats_period);
+    set_node_parameter(i, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
+  }
 }
 
 // execute function
-void SC_Control_and_Feedback_Test::execute(int node, char fb_type, void *_arg) {
+void SC_CORNET_3D::execute(int node, char fb_type, void *_arg) {
 
-  printf("\n");
+  char msg[16];
+
+  msg[0] = node;
+  msg[1] = fb_type;
+  
+  int arg_len = get_feedback_arg_len(fb_type);
+
+  memcpy((void*) &msg[2], _arg, arg_len);
+
+  // forward feedback to CORNET 3D web server
+  send(TCP_CORNET_3D, msg, 2+arg_len, 0);
+
+  // forward commands from CORNET 3D webserver to node
+  fd_set fds;
+  struct timeval timeout;
+  timeout.tv_sec = 0;
+  timeout.tv_usec = 100;
+  FD_ZERO(&fds);
+  FD_SET(TCP_CORNET_3D, &fds);
+  
+  while(select(TCP_CORNET_3D+1, &fds, NULL, NULL, &timeout)) {
+    int rlen = recv(TCP_CORNET_3D, msg, 2, 0);
+    if (rlen < 0) {
+      printf("CORNET 3D socket failure\n");
+      exit(1);
+    }
+    int node = msg[0];
+    char cont_type = msg[1];
+    int arg_len = get_control_arg_len(cont_type);
+    rlen = recv(TCP_CORNET_3D, &msg[2], arg_len, 0);
+    set_node_parameter(node, cont_type, &msg[2]);
+  }
+
+  /*printf("\n");
   
   // handle all possible feedback types
   switch (fb_type) {
@@ -86,6 +146,7 @@ void SC_Control_and_Feedback_Test::execute(int node, char fb_type, void *_arg) {
       printf("  Average throughput:        %.3e\n", rx_stats.avg_throughput);
       break;
    }
+   */
 }
 
 

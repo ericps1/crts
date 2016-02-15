@@ -80,7 +80,7 @@ void receive_command_from_controller(int *TCP_controller,
       }
     }
 
-    dprintf("Received %i byte command type %i from controller\n", rflag, command_buffer[0]);
+    dprintf("Received command type %i from controller\n", command_buffer[0]);
     // Parse command based on the message type
     switch (command_buffer[0]) {
       case CRTS_MSG_SCENARIO_PARAMETERS: // settings for upcoming scenario
@@ -110,9 +110,10 @@ void receive_command_from_controller(int *TCP_controller,
         break;
       case CRTS_MSG_CONTROL:
         rflag = recv(*TCP_controller, &command_buffer[1], 1, 0);
-        rflag = recv(*TCP_controller, &command_buffer[2], (size_t)command_buffer[1], 0);
+        int arg_len = get_control_arg_len(command_buffer[1]);
+        rflag = recv(*TCP_controller, &command_buffer[2], arg_len, 0);
         dprintf("Received a %i byte control message\n", rflag);
-        apply_control_msg(command_buffer[2], (void*) &command_buffer[3], np, ECR, fb_enables, t_step); 
+        apply_control_msg(command_buffer[1], (void*) &command_buffer[2], np, ECR, fb_enables, t_step); 
         break;
     }
   }
@@ -332,7 +333,7 @@ void send_feedback_to_controller(int *TCP_controller,
 
   // send feedback to controller
   if(fb_msg_ind > 1){
-    write(*TCP_controller, fb_msg, fb_msg_ind);
+    send(*TCP_controller, fb_msg, fb_msg_ind, 0);
   }      
 }
 

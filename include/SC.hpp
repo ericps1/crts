@@ -6,6 +6,8 @@
 #include <string.h>
 #include <unistd.h>
 #include "CRTS.hpp"
+#include "read_configs.hpp"
+#include "node_parameters.hpp"
 
 class Scenario_Controller {
 public:
@@ -13,9 +15,10 @@ public:
   ~Scenario_Controller();
   virtual void execute(int node, char fb_type, void *_arg);
   virtual void initialize_node_fb();
-  void set_node_parameters(int node, char cont_type, void* _arg);
+  void set_node_parameter(int node, char cont_type, void* _arg);
   int * TCP_nodes;
-  int num_nodes;
+  struct scenario_parameters sp;
+  struct node_parameters np[48];
 };
 
 #endif

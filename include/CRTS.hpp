@@ -28,7 +28,6 @@ enum crts_ctrl_and_fdbk_type {
   CRTS_RX_FREQ,
   CRTS_RX_RATE,
   CRTS_RX_GAIN,
-  CRTS_RX_PER,
   CRTS_RX_STATS,
   CRTS_RX_STATS_FB,
 
@@ -51,9 +50,11 @@ enum crts_ctrl_and_fdbk_type {
 #define CRTS_RX_FREQ_FB_EN        (1<<CRTS_RX_FREQ)
 #define CRTS_RX_RATE_FB_EN        (1<<CRTS_RX_RATE)
 #define CRTS_RX_GAIN_FB_EN        (1<<CRTS_RX_GAIN)
-#define CRTS_RX_PER_FB_EN         (1<<CRTS_RX_PER)
 #define CRTS_RX_STATS_FB_EN       (1<<CRTS_RX_STATS)
 
 void set_node_parameter(int node, char cont_type, void* _arg);
+
+int get_control_arg_len(int control_type);
+int get_feedback_arg_len(int fb_type);
 
 #endif
