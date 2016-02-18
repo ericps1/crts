@@ -65,6 +65,7 @@ clean:
 	rm -rf logs/logs2octave
 	rm -rf logs/logs2python
 	rm -rf config_CEs
+	rm -rf config_SCs
 	$(MAKE) -C doc clean
 
     
