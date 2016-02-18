@@ -11,8 +11,7 @@ SC_Control_and_Feedback_Test::~SC_Control_and_Feedback_Test() {}
 // setup feedback enables for each node
 void SC_Control_and_Feedback_Test::initialize_node_fb() {
   printf("Sending control for fb enables\n");
-  int fb_enables = CRTS_TX_STATE_FB_EN | CRTS_TX_GAIN_FB_EN | CRTS_RX_STATS_FB_EN | 
-                   CRTS_TX_FREQ_FB_EN;
+  int fb_enables = INT_MAX; 
   set_node_parameter(0, CRTS_FB_EN, (void*) &fb_enables);
   set_node_parameter(1, CRTS_FB_EN, (void*) &fb_enables);
   set_node_parameter(2, CRTS_FB_EN, (void*) &fb_enables);

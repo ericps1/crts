@@ -40,7 +40,7 @@ Interferer::Interferer() {
   usrp_tx->set_tx_antenna("TX/RX", 0);
 
   // create and start tx thread
-  tx_state = TX_STOPPED;
+  tx_state = INT_TX_STOPPED;
   tx_thread_running = true;
   pthread_mutex_init(&tx_mutex, NULL);
   pthread_cond_init(&tx_cond, NULL);
@@ -83,11 +83,11 @@ Interferer::~Interferer() {
 }
 
 void Interferer::start_tx() {
-  tx_state = TX_DUTY_CYCLE_ON;
+  tx_state = INT_TX_DUTY_CYCLE_ON;
   pthread_cond_signal(&tx_cond);
 }
 
-void Interferer::stop_tx() { tx_state = TX_STOPPED; }
+void Interferer::stop_tx() { tx_state = INT_TX_STOPPED; }
 
 void Interferer::set_log_file(char *log_file_name) {
   log_tx_flag = true;
@@ -364,7 +364,7 @@ void *Interferer_tx_worker(void *_arg) {
     Int->metadata_tx.start_of_burst = false;
 
     // run transmitter
-    while (Int->tx_state != TX_STOPPED) {
+    while (Int->tx_state != INT_TX_STOPPED) {
       // determine if we need to freq hop
       if ((Int->tx_freq_behavior != (FIXED)) &&
           (timer_toc(Int->freq_dwell_timer) >= Int->tx_freq_dwell_time)) {
@@ -372,11 +372,11 @@ void *Interferer_tx_worker(void *_arg) {
         Int->UpdateFrequency();
       }
       // determine if we need to change state
-      if (Int->tx_state == TX_DUTY_CYCLE_ON &&
+      if (Int->tx_state == INT_TX_DUTY_CYCLE_ON &&
           timer_toc(Int->duty_cycle_timer) >= Int->duty_cycle * Int->period) {
         timer_tic(Int->duty_cycle_timer);
         dprintf("Turning off\n");
-        Int->tx_state = TX_DUTY_CYCLE_OFF;
+        Int->tx_state = INT_TX_DUTY_CYCLE_OFF;
 
         // send end of burst packet
         Int->metadata_tx.end_of_burst = true;
@@ -384,12 +384,12 @@ void *Interferer_tx_worker(void *_arg) {
                                          uhd::io_type_t::COMPLEX_FLOAT32,
                                          uhd::device::SEND_MODE_FULL_BUFF);
       }
-      if (Int->tx_state == TX_DUTY_CYCLE_OFF &&
+      if (Int->tx_state == INT_TX_DUTY_CYCLE_OFF &&
           timer_toc(Int->duty_cycle_timer) >=
               (1.0 - Int->duty_cycle) * Int->period) {
         timer_tic(Int->duty_cycle_timer);
         dprintf("Turning on\n");
-        Int->tx_state = TX_DUTY_CYCLE_ON;
+        Int->tx_state = INT_TX_DUTY_CYCLE_ON;
 
         // send start of burst packet
         Int->metadata_tx.start_of_burst = true;
@@ -401,7 +401,7 @@ void *Interferer_tx_worker(void *_arg) {
       }
 
       // generate frame and transmit if in the on state
-      if (Int->tx_state == TX_DUTY_CYCLE_ON) {
+      if (Int->tx_state == INT_TX_DUTY_CYCLE_ON) {
         switch (Int->interference_type) {
         case (CW):
           Int->BuildCWTransmission();

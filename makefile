@@ -29,7 +29,7 @@ lib/ECR.o: include/ECR.hpp src/ECR.cpp
 CRTS_CR: include/ECR.hpp src/TUN.cpp src/ECR.cpp src/CRTS_CR.cpp  $(CEs)
 	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp src/CRTS_common.cpp src/read_configs.cpp src/timer.cc $(CEs) $(LIBS)
 
-lib/interferer.o: src/interferer.cpp 
+lib/interferer.o: src/interferer.cpp include/interferer.hpp
 	g++ $(FLAGS) -c -o lib/interferer.o src/interferer.cpp
 
 CRTS_interferer: src/CRTS_interferer.cpp src/interferer.cpp src/CRTS_common.cpp 
