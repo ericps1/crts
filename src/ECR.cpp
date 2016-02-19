@@ -24,7 +24,9 @@
 #include "../cognitive_engines/CE_FEC_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
 #include "../cognitive_engines/CE_CORNET3Dtx.hpp"
+#include "../cognitive_engines/CE_Control_and_Feedback_Test.hpp"
 #include "../cognitive_engines/CE_Simultaneous_RX_And_Sensing.hpp"
+#include "../cognitive_engines/CE_Throughput_Test.hpp"
 // EDIT INCLUDE END FLAG
 
 #define DEBUG 0
@@ -47,27 +49,27 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
   tx_params.numSubcarriers = 32;
   tx_params.cp_len = 16;
   tx_params.taper_len = 4;
-  tx_params.subcarrierAlloc = (unsigned char*)malloc(32*sizeof(char));
-  tx_params.payload_sym_length = 288*8; //256 * 8;
+  tx_params.subcarrierAlloc = (unsigned char *)malloc(32 * sizeof(char));
+  tx_params.payload_sym_length = 288 * 8; // 256 * 8;
   rx_params.numSubcarriers = 32;
   rx_params.cp_len = 16;
   rx_params.taper_len = 4;
-  rx_params.subcarrierAlloc = (unsigned char*)malloc(32*sizeof(char));
+  rx_params.subcarrierAlloc = (unsigned char *)malloc(32 * sizeof(char));
 
   // use liquid default subcarrier allocation
   ofdmframe_init_default_sctype(32, tx_params.subcarrierAlloc);
   ofdmframe_init_default_sctype(32, rx_params.subcarrierAlloc);
-  
+
   // determine how many subcarriers carry data
   numDataSubcarriers = 0;
-  for (unsigned int i=0; i<tx_params.numSubcarriers; i++) {
-    if(tx_params.subcarrierAlloc[i] == OFDMFRAME_SCTYPE_DATA)
+  for (unsigned int i = 0; i < tx_params.numSubcarriers; i++) {
+    if (tx_params.subcarrierAlloc[i] == OFDMFRAME_SCTYPE_DATA)
       numDataSubcarriers++;
   }
   update_tx_data_rate = 1;
 
   CE_metrics.payload = NULL;
-  
+
   // Initialize header to all zeros
   memset(tx_header, 0, sizeof(tx_header));
 
@@ -126,7 +128,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
   dprintf("Connecting to tun interface\n");
   sprintf(systemCMD, "sudo ip link set dev %s up", tun_name);
   system(systemCMD);
-    
+
   // Get reference to TUN interface
   tunfd = tun_alloc(tun_name, IFF_TUN);
 
@@ -135,7 +137,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
 
   // create and start rx thread
   dprintf("Starting rx thread...\n");
-  rx_running = false;                  // receiver is not running initially
+  rx_state = RX_CONTINUOUS;            // receiver is not running initially
   rx_thread_running = true;            // receiver thread IS running initially
   pthread_mutex_init(&rx_mutex, NULL); // receiver mutex
   pthread_cond_init(&rx_cond, NULL);   // receiver condition
@@ -143,7 +145,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
 
   // create and start tx thread
   frame_num = 0;
-  tx_state = TX_STOPPED;       // transmitter is not running initially
+  tx_state = TX_STOPPED;    // transmitter is not running initially
   tx_thread_running = true; // transmitter thread IS running initially
   pthread_mutex_init(&tx_mutex, NULL); // transmitter mutex
   pthread_cond_init(&tx_cond, NULL);   // transmitter condition
@@ -315,7 +317,7 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio() {
 
 void ExtensibleCognitiveRadio::set_ce(char *ce) {
   ///@cond INTERNAL
-  // EDIT SET_CE START FLAG
+  // EDIT SET CE START FLAG
     if(!strcmp(ce, "CE_Template"))
         CE = new CE_Template();
     if(!strcmp(ce, "CE_Subcarrier_Alloc"))
@@ -334,9 +336,13 @@ void ExtensibleCognitiveRadio::set_ce(char *ce) {
         CE = new CE_Two_Channel_DSA_Link_Reliability();
     if(!strcmp(ce, "CE_CORNET3Dtx"))
         CE = new CE_CORNET3Dtx();
+    if(!strcmp(ce, "CE_Control_and_Feedback_Test"))
+        CE = new CE_Control_and_Feedback_Test();
     if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
         CE = new CE_Simultaneous_RX_And_Sensing();
-  // EDIT SET_CE END FLAG
+    if(!strcmp(ce, "CE_Throughput_Test"))
+        CE = new CE_Throughput_Test();
+  // EDIT SET CE END FLAG
   ///@endcond
 }
 
@@ -410,7 +416,7 @@ void ExtensibleCognitiveRadio::start_tx_for_frames(int _num_tx_frames) {
 // stop transmitter
 void ExtensibleCognitiveRadio::stop_tx() {
   // reset tx running flag
-  tx_state = TX_STOPPED; 
+  tx_state = TX_STOPPED;
 }
 
 // reset transmitter objects and buffers
@@ -445,10 +451,14 @@ void ExtensibleCognitiveRadio::set_tx_freq(double _tx_freq, double _dsp_freq) {
   // pthread_mutex_unlock(&tx_mutex);
 }
 
+// get transmitter state
+int ExtensibleCognitiveRadio::get_tx_state() {
+  return tx_state;
+}
+
 // get transmitter frequency
 double ExtensibleCognitiveRadio::get_tx_freq() {
   return tx_params.tx_freq + tx_params.tx_dsp_freq;
-  // return tx_params.tx_freq;
 }
 
 // set transmitter sample rate
@@ -456,9 +466,6 @@ void ExtensibleCognitiveRadio::set_tx_rate(double _tx_rate) {
   tx_params_updated.tx_rate = _tx_rate;
   update_tx_flag = 1;
   update_usrp_tx = 1;
-  // pthread_mutex_lock(&tx_mutex);
-  // usrp_tx->set_tx_rate(_tx_rate);
-  // pthread_mutex_unlock(&tx_mutex);
 }
 
 // get transmitter sample rate
@@ -560,22 +567,23 @@ unsigned int ExtensibleCognitiveRadio::get_tx_subcarriers() {
   return tx_params.numSubcarriers;
 }
 void ExtensibleCognitiveRadio::set_tx_subcarrier_alloc(char *_subcarrierAlloc) {
-  
-  tx_params_updated.subcarrierAlloc = (unsigned char *)realloc(
-        (void *)tx_params_updated.subcarrierAlloc, tx_params_updated.numSubcarriers);
-  
+
+  tx_params_updated.subcarrierAlloc =
+      (unsigned char *)realloc((void *)tx_params_updated.subcarrierAlloc,
+                               tx_params_updated.numSubcarriers);
+
   if (_subcarrierAlloc) {
     memcpy(tx_params_updated.subcarrierAlloc, _subcarrierAlloc,
            tx_params_updated.numSubcarriers);
   } else {
-    ofdmframe_init_default_sctype(tx_params_updated.numSubcarriers, 
-	       tx_params_updated.subcarrierAlloc); 
+    ofdmframe_init_default_sctype(tx_params_updated.numSubcarriers,
+                                  tx_params_updated.subcarrierAlloc);
   }
-  
+
   // calculate the number of data subcarriers
   numDataSubcarriers = 0;
-  for (unsigned int i=0; i<tx_params_updated.numSubcarriers; i++) {
-    if(tx_params_updated.subcarrierAlloc[i] == OFDMFRAME_SCTYPE_DATA)
+  for (unsigned int i = 0; i < tx_params_updated.numSubcarriers; i++) {
+    if (tx_params_updated.subcarrierAlloc[i] == OFDMFRAME_SCTYPE_DATA)
       numDataSubcarriers++;
   }
 
@@ -632,21 +640,26 @@ void ExtensibleCognitiveRadio::set_tx_payload_sym_len(unsigned int len) {
 
 // get approximate physical layer data rate
 double ExtensibleCognitiveRadio::get_tx_data_rate() {
-  
-  if (update_tx_data_rate){
-    double fec_rate = fec_get_rate((fec_scheme)tx_params.fgprops.fec0) * 
-	    fec_get_rate((fec_scheme)tx_params.fgprops.fec1);
-    double crc_len = (double) (crc_get_length((crc_scheme)tx_params.fgprops.check)*8);
-    double bps = (double)modulation_types[tx_params.fgprops.mod_scheme].bps;    
-    double syms = (double) ((tx_params.payload_sym_length*bps+crc_len) / (fec_rate*bps));
-    int ofdm_syms = 3 + (int)ceilf(224.0/numDataSubcarriers) + (int)ceilf(syms/numDataSubcarriers);
-    tx_data_rate = (double)tx_params.payload_sym_length*bps*tx_params.tx_rate / 
-	    (double)((tx_params_updated.cp_len+tx_params_updated.numSubcarriers)*ofdm_syms);
+
+  if (update_tx_data_rate) {
+    double fec_rate = fec_get_rate((fec_scheme)tx_params.fgprops.fec0) *
+                      fec_get_rate((fec_scheme)tx_params.fgprops.fec1);
+    double crc_len =
+        (double)(crc_get_length((crc_scheme)tx_params.fgprops.check) * 8);
+    double bps = (double)modulation_types[tx_params.fgprops.mod_scheme].bps;
+    double syms = (double)((tx_params.payload_sym_length * bps + crc_len) /
+                           (fec_rate * bps));
+    int ofdm_syms = 3 + (int)ceilf(224.0 / numDataSubcarriers) +
+                    (int)ceilf(syms / numDataSubcarriers);
+    tx_data_rate =
+        (double)tx_params.payload_sym_length * bps * tx_params.tx_rate /
+        (double)((tx_params_updated.cp_len + tx_params_updated.numSubcarriers) *
+                 ofdm_syms);
     update_tx_data_rate = 0;
-	printf("payload syms:%i\n", tx_params.payload_sym_length);
-	printf("bps: %f\n", bps);
-	printf("tx rate: %f\n", tx_params.tx_rate);
-	printf("\nUpdated tx rate: %f\n\n", tx_data_rate);
+    printf("payload syms:%i\n", tx_params.payload_sym_length);
+    printf("bps: %f\n", bps);
+    printf("tx rate: %f\n", tx_params.tx_rate);
+    printf("\nUpdated tx rate: %f\n\n", tx_data_rate);
   }
 
   return tx_data_rate;
@@ -721,7 +734,7 @@ void ExtensibleCognitiveRadio::transmit_frame(unsigned char *_header,
   // TODO: flush buffers
 
   // vector buffer to send data to device
-  std::vector<std::complex<float> > usrp_buffer(fgbuffer_len);
+  std::vector<std::complex<float>> usrp_buffer(fgbuffer_len);
 
   float tx_gain_soft_lin = powf(10.0f, tx_params.tx_gain_soft / 20.0f);
 
@@ -793,7 +806,12 @@ void ExtensibleCognitiveRadio::set_rx_freq(double _rx_freq, double _dsp_freq) {
   update_usrp_rx = 1;
 }
 
-// set receiver frequency
+// get receiver state
+double ExtensibleCognitiveRadio::get_rx_state() {
+  return rx_state;
+}
+
+// get receiver frequency
 double ExtensibleCognitiveRadio::get_rx_freq() {
   return rx_params.rx_freq - rx_params.rx_dsp_freq;
 }
@@ -844,13 +862,13 @@ unsigned int ExtensibleCognitiveRadio::get_rx_subcarriers() {
 
 // set subcarrier allocation
 void ExtensibleCognitiveRadio::set_rx_subcarrier_alloc(char *_subcarrierAlloc) {
-  
+
   if (_subcarrierAlloc) {
-    if(rx_params.subcarrierAlloc == NULL){
-	  rx_params.subcarrierAlloc = (unsigned char *)malloc(rx_params.numSubcarriers);
-    }
-	else{
-	  rx_params.subcarrierAlloc = (unsigned char *)realloc(
+    if (rx_params.subcarrierAlloc == NULL) {
+      rx_params.subcarrierAlloc =
+          (unsigned char *)malloc(rx_params.numSubcarriers);
+    } else {
+      rx_params.subcarrierAlloc = (unsigned char *)realloc(
           (void *)rx_params.subcarrierAlloc, rx_params.numSubcarriers);
     }
     memcpy(rx_params.subcarrierAlloc, _subcarrierAlloc,
@@ -872,13 +890,14 @@ void ExtensibleCognitiveRadio::get_rx_subcarrier_alloc(char *subcarrierAlloc) {
 // set cp_len
 void ExtensibleCognitiveRadio::set_rx_cp_len(unsigned int _cp_len) {
   // destroy frame gen, set cp length, recreate frame gen
-  //pthread_mutex_lock(&rx_mutex);
-  //ofdmflexframesync_destroy(fs);
+  // pthread_mutex_lock(&rx_mutex);
+  // ofdmflexframesync_destroy(fs);
   rx_params.cp_len = _cp_len;
-  //fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
-  //                              rx_params.taper_len, rx_params.subcarrierAlloc,
+  // fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
+  //                              rx_params.taper_len,
+  //                              rx_params.subcarrierAlloc,
   //                              rxCallback, (void *)this);
-  //pthread_mutex_unlock(&rx_mutex);
+  // pthread_mutex_unlock(&rx_mutex);
 }
 
 // get cp_len
@@ -889,13 +908,14 @@ unsigned int ExtensibleCognitiveRadio::get_rx_cp_len() {
 // set taper_len
 void ExtensibleCognitiveRadio::set_rx_taper_len(unsigned int _taper_len) {
   // destroy frame gen, set cp length, recreate frame gen
-  //pthread_mutex_lock(&rx_mutex);
-  //ofdmflexframesync_destroy(fs);
+  // pthread_mutex_lock(&rx_mutex);
+  // ofdmflexframesync_destroy(fs);
   rx_params.taper_len = _taper_len;
-  //fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
-  //                              rx_params.taper_len, rx_params.subcarrierAlloc,
+  // fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
+  //                              rx_params.taper_len,
+  //                              rx_params.subcarrierAlloc,
   //                              rxCallback, (void *)this);
-  //pthread_mutex_unlock(&rx_mutex);
+  // pthread_mutex_unlock(&rx_mutex);
 }
 
 // get taper_len
@@ -903,10 +923,30 @@ unsigned int ExtensibleCognitiveRadio::get_rx_taper_len() {
   return rx_params.taper_len;
 }
 
+// set the period of time considered in the calculation of average rx statistics
+void ExtensibleCognitiveRadio::set_rx_stat_tracking(bool state, float sec){
+  rx_stat_tracking = state;
+  rx_stat_tracking_period = sec;
+}
+
+float ExtensibleCognitiveRadio::get_rx_stat_tracking_period(){
+  float rv;
+  if(rx_stat_tracking)
+    rv = rx_stat_tracking_period;
+  else
+    rv = 0.0;
+
+  return rv;
+}
+
+struct ExtensibleCognitiveRadio::rx_statistics ExtensibleCognitiveRadio::get_rx_stats(){
+  return rx_stats;
+}
+
 // start receiver
 void ExtensibleCognitiveRadio::start_rx() {
   // set rx running flag
-  rx_running = true;
+  rx_state = RX_CONTINUOUS;
 
   // tell device to start
   usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
@@ -918,30 +958,10 @@ void ExtensibleCognitiveRadio::start_rx() {
 // stop receiver
 void ExtensibleCognitiveRadio::stop_rx() {
   // set rx running flag
-  rx_running = false;
+  rx_state = RX_STOPPED;
 
   // tell device to stop
   usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
-}
-
-// start liquid-dsp processing
-void ExtensibleCognitiveRadio::start_liquid_rx() {
-  printf("Starting liquid\n");
-
-  // set rx running flag
-  rx_running = true;
-
-  // signal condition (tell rx worker to start)
-  pthread_cond_signal(&rx_cond);
-}
-
-// stop receiver
-void ExtensibleCognitiveRadio::stop_liquid_rx() {
-  // set rx running flag
-  // pthread_mutex_lock(&rx_mutex);
-  printf("Stopping liquid\n");
-  rx_running = false;
-  // pthread_mutex_unlock(&rx_mutex);
 }
 
 // update the actual parameters being used by the transmitter
@@ -960,19 +980,19 @@ void ExtensibleCognitiveRadio::update_rx_params() {
     tune.dsp_freq = rx_params.rx_dsp_freq;
 
     usrp_rx->set_rx_freq(tune);
-    
-	update_usrp_rx = 0;
+
+    update_usrp_rx = 0;
   }
 
   // recreate the frame synchronizer only if necessary
   if (recreate_fs) {
     pthread_mutex_lock(&CE_fftw_mutex);
     ofdmflexframesync_destroy(fs);
-    fs = ofdmflexframesync_create(rx_params.numSubcarriers, rx_params.cp_len,
-                                  rx_params.taper_len, rx_params.subcarrierAlloc,
-                                  rxCallback, (void*)this);
+    fs = ofdmflexframesync_create(
+        rx_params.numSubcarriers, rx_params.cp_len, rx_params.taper_len,
+        rx_params.subcarrierAlloc, rxCallback, (void *)this);
     pthread_mutex_unlock(&CE_fftw_mutex);
-    recreate_fs = 0;	
+    recreate_fs = 0;
   }
 
   // reset flag
@@ -1012,26 +1032,26 @@ void *ECR_rx_worker(void *_arg) {
     }
 
     // run receiver
-    while (ECR->rx_running) {
+    while (ECR->rx_state == RX_CONTINUOUS) {
 
-      //dprintf("rx_running\n");
-	  // grab data from device
+      // dprintf("rx_running\n");
+      // grab data from device
       size_t num_rx_samps = 0;
       num_rx_samps = ECR->usrp_rx->get_device()->recv(
           buffer, max_samps_per_packet, ECR->metadata_rx,
           uhd::io_type_t::COMPLEX_FLOAT32, uhd::device::RECV_MODE_ONE_PACKET);
 
-      if(ECR->update_rx_flag)
-	    ECR->update_rx_params();
-	  
-	  // push resulting samples through synchronizer
+      if (ECR->update_rx_flag)
+        ECR->update_rx_params();
+
+      // push resulting samples through synchronizer
       pthread_mutex_lock(&(ECR->rx_mutex));
       ofdmflexframesync_execute(ECR->fs, buffer, num_rx_samps);
       pthread_mutex_unlock(&(ECR->rx_mutex));
 
       if (ECR->ce_sensing_flag) {
         dprintf("Sensing\n");
-		pthread_mutex_lock(&ECR->CE_mutex);
+        pthread_mutex_lock(&ECR->CE_mutex);
         // recheck flag incase it was unset by the CE while waiting to lock
         // mutex
         if (ECR->ce_sensing_flag) {
@@ -1075,7 +1095,7 @@ void *ECR_rx_worker(void *_arg) {
 
   free(buffer);
   free(ECR->ce_usrp_rx_buffer);
-  if(ECR->CE_metrics.payload != NULL)
+  if (ECR->CE_metrics.payload != NULL)
     free(ECR->CE_metrics.payload);
 
   dprintf("rx_worker exiting thread\n");
@@ -1099,13 +1119,15 @@ int rxCallback(unsigned char *_header, int _header_valid,
     ECR->CE_metrics.payload_valid = _payload_valid;
     if (_payload_valid) {
       ECR->CE_metrics.payload_len = _payload_len;
-	  if(ECR->CE_metrics.payload != NULL)
-	    ECR->CE_metrics.payload = (unsigned char *) realloc(
-	      ECR->CE_metrics.payload, _payload_len*sizeof(unsigned char));
-      else{
-	    ECR->CE_metrics.payload = (unsigned char *) malloc(_payload_len*sizeof(unsigned char));
+      if (ECR->CE_metrics.payload != NULL)
+        ECR->CE_metrics.payload = (unsigned char *)realloc(
+            ECR->CE_metrics.payload, _payload_len * sizeof(unsigned char));
+      else {
+        ECR->CE_metrics.payload =
+            (unsigned char *)malloc(_payload_len * sizeof(unsigned char));
       }
-      memcpy(ECR->CE_metrics.payload, _payload, _payload_len * sizeof(unsigned char));
+      memcpy(ECR->CE_metrics.payload, _payload,
+             _payload_len * sizeof(unsigned char));
       ECR->CE_metrics.payload_len = _payload_len;
     } else {
       ECR->CE_metrics.payload_len = 0;
@@ -1131,11 +1153,14 @@ int rxCallback(unsigned char *_header, int _header_valid,
     // Print metrics if required
     if (ECR->print_metrics_flag)
       ECR->print_metrics(ECR);
-
-    // Pass metrics to controller if required
+    
     // Log metrics locally if required
     if (ECR->log_phy_rx_flag)
       ECR->log_rx_metrics();
+
+    // Track statistics if required
+    if (ECR->rx_stat_tracking)
+      ECR->update_rx_stats();
   }
 
   // print payload
@@ -1163,6 +1188,136 @@ int rxCallback(unsigned char *_header, int _header_valid,
   }
 
   return 0;
+}
+
+void ExtensibleCognitiveRadio::update_rx_stats(){
+  // static variables only needed by this function to track statistics
+  static std::vector<struct timeval> time_stamp;
+  static std::vector<float> evm;
+  static std::vector<float> rssi;
+  static std::vector<int> payload_valid;
+  static std::vector<int> payload_len;
+  
+  static float sum_evm = 0.0;
+  static float sum_rssi = 0.0;
+  static int sum_payload_valid = 0;
+  static int sum_payload_len = 0;
+
+  static int N = 0; // number of valid data points (frames received)
+  static int K = 0; // 
+  static int ind_first = 0;
+  static int ind_last;
+
+  // initial allocation of memory vectors
+  if (K ==0){
+    K = 128;
+    time_stamp.resize(K);
+    evm.resize(K,0.0);
+    rssi.resize(K,0.0);
+    payload_valid.resize(K,0);
+    payload_len.resize(K,0);
+  }
+
+  // update tracking period since it can be modified
+  struct timeval stat_tracking_period;
+  stat_tracking_period.tv_sec = (time_t)rx_stat_tracking_period;
+  stat_tracking_period.tv_usec = (suseconds_t)(fmod(rx_stat_tracking_period,1.0)*1e6);
+
+  // compute timeval for earliest time that will be considered in the statistics
+  struct timeval time_now;
+  gettimeofday(&time_now, NULL);
+  struct timeval begin_time;
+  timersub(&time_now, &stat_tracking_period, &begin_time);
+
+  // remove any old data points from consideration
+  while(timercmp(&time_stamp[ind_first], &begin_time, <) && N>0){
+    sum_evm -= evm[ind_first];
+    sum_rssi -= rssi[ind_first];
+    sum_payload_valid -= payload_valid[ind_first];
+    sum_payload_len -= payload_valid[ind_first]*payload_len[ind_first]; 
+    N--;
+
+    if (ind_first == K-1)
+      ind_first = 0;
+    else
+      ind_first++;
+  }
+
+  // resize memory if needed
+  N++;
+  if (N>K) {
+    K *= 2;
+    time_stamp.resize(K);
+    evm.resize(K,0.0);
+    rssi.resize(K,0.0);
+    payload_valid.resize(K,0);
+    payload_len.resize(K,0);
+  }
+
+  // update the last data point index
+  ind_last = ind_first+(N-1);
+  if(ind_last >= K)
+    ind_last -= K;
+
+  // store latest values
+  time_stamp[ind_last] = time_now;
+  evm[ind_last] = pow(10.0,CE_metrics.stats.evm/10.0);
+  rssi[ind_last] = pow(10.0,CE_metrics.stats.rssi/10.0);
+  payload_valid[ind_last] = CE_metrics.payload_valid;
+  payload_len[ind_last] = CE_metrics.payload_len;
+
+  // update sums
+  sum_evm += evm[ind_last];
+  sum_rssi += rssi[ind_last];
+  sum_payload_valid += payload_valid[ind_last];
+  sum_payload_len += payload_valid[ind_last]*payload_len[ind_last];
+    
+  // update average values
+  rx_stats.frames_received = N;
+  rx_stats.avg_evm = 10.0*log10(sum_evm/(float)N);
+  rx_stats.avg_rssi = 10.0*log10(sum_rssi/(float)N);
+  rx_stats.avg_per = (float)(N-sum_payload_valid)/(float)N;
+  rx_stats.avg_throughput = 8.0*(float)sum_payload_len/rx_stat_tracking_period;
+
+  /*printf("\n");
+  printf("N: %i\n", N);
+  printf("K:, %i\n", K);
+  printf("evm: %f", evm[ind_first]);
+  for(int i=0; i<N-1; i++){
+    int ind = ind_first + i;
+    if (ind > K)
+      ind -= K;
+    printf(", %f", evm[ind]);
+  }
+  printf("\navg evm: %f\n", sum_evm/(float)N);
+  printf("rssi: %f", rssi[ind_first]);
+  for(int i=0; i<N-1; i++){
+    int ind = ind_first + i;
+    if (ind > K)
+      ind -= K;
+    printf(", %f", rssi[ind]);
+  }
+  printf("\navg rssi: %f\n", sum_rssi/(float)N);
+  printf("ind_first: %i\n", ind_first);
+  printf("ind_last: %i\n", ind_last);
+  printf("valid: %i", payload_valid[ind_first]);
+  for(int i=1; i<N; i++){
+    int ind = ind_first + i;
+    if (ind >= K)
+      ind -= K;
+    printf(", %i", payload_valid[ind]);
+  }
+  printf("\nsum valid: %i\n", sum_payload_valid);
+  printf("avg per: %f\n", (float)(N-sum_payload_valid)/(float)N);
+  printf("length: %i", payload_len[ind_first]);
+  for(int i=1; i<N; i++){
+    int ind = ind_first + i;
+    if (ind >= K)
+      ind -= K;
+    printf(", %i", payload_len[ind]);
+  }
+  printf("\nthroughput: %f\n", 8.0*(float)sum_payload_len/(float)rx_stat_tracking_period);
+  */
 }
 
 // transmitter worker thread
@@ -1197,9 +1352,9 @@ void *ECR_tx_worker(void *_arg) {
     bool tx_frame_flag = 1;
 
     // run transmitter
-    while ((ECR->tx_state!=TX_STOPPED) && tx_frame_flag) {
-      
-	  if (ECR->update_tx_flag) {
+    while ((ECR->tx_state != TX_STOPPED) && tx_frame_flag) {
+
+      if (ECR->update_tx_flag) {
         ECR->update_tx_params();
       }
 
@@ -1209,7 +1364,7 @@ void *ECR_tx_worker(void *_arg) {
       int payload_byte_length =
           (int)ceilf((float)(payload_sym_length * bps) / 8.0);
 
-      while (nread < payload_byte_length && (ECR->tx_state!=TX_STOPPED)) {
+      while (nread < payload_byte_length && (ECR->tx_state != TX_STOPPED)) {
         FD_ZERO(&fds);
         FD_SET(ECR->tunfd, &fds);
 
@@ -1222,21 +1377,22 @@ void *ECR_tx_worker(void *_arg) {
             printf("Error reading from interface");
             close(ECR->tunfd);
             exit(1);
-          } 
-		}
+          }
+        }
       }
 
       payload = buffer;
       payload_len = nread;
 
       // transmit frame
-	  tx_frame_counter++;
+      tx_frame_counter++;
       ECR->transmit_frame(ECR->tx_header, payload, payload_len);
 
-	  // update frame flag
-	  if((ECR->tx_state==TX_FOR_FRAMES) && (tx_frame_counter>=ECR->num_tx_frames)){
-	    tx_frame_flag = 0;
-	  }
+      // update frame flag
+      if ((ECR->tx_state == TX_FOR_FRAMES) &&
+          (tx_frame_counter >= ECR->num_tx_frames)) {
+        tx_frame_flag = 0;
+      }
     } // while tx_running
     dprintf("tx_worker finished running\n");
   } // while tx_thread_running

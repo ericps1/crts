@@ -10,7 +10,7 @@
 #include "read_configs.hpp"
 #include "node_parameters.hpp"
 
-int read_master_num_scenarios(char * nameMasterScenFile) {
+int read_master_num_scenarios(char *nameMasterScenFile) {
   config_t cfg; // Returns all parameters in this structure
   char config_str[30];
   const char *tmpS;
@@ -35,14 +35,14 @@ int read_master_num_scenarios(char * nameMasterScenFile) {
     sprintf(config_str, "scenario_%d", i + 1);
     if (!config_lookup_string(&cfg, config_str, &tmpS)) {
       printf("Scenario %i is not specified!\n", i);
-	  exit(1);
-	}
+      exit(1);
+    }
   }
 
   return num_scenarios;
 }
 
-int read_master_scenario(char * nameMasterScenFile, int scenario_num,
+int read_master_scenario(char *nameMasterScenFile, int scenario_num,
                          char *scenario_name) {
   config_t cfg; // Returns all parameters in this structure
   char config_str[30];
@@ -62,7 +62,7 @@ int read_master_scenario(char * nameMasterScenFile, int scenario_num,
   sprintf(config_str, "scenario_%d", scenario_num);
   if (config_lookup_string(&cfg, config_str, &tmpS))
     strcpy(scenario_name, tmpS);
-  
+
   // Read the reps for all scenarios
   sprintf(config_str, "reps_all_scenarios");
   int reps;
@@ -70,7 +70,7 @@ int read_master_scenario(char * nameMasterScenFile, int scenario_num,
     reps = tmpI;
   else
     reps = 1;
-  
+
   // Read the reps for this specific scenario
   sprintf(config_str, "reps_scenario_%d", scenario_num);
   if (config_lookup_int(&cfg, config_str, &tmpI))
@@ -102,11 +102,18 @@ struct scenario_parameters read_scenario_parameters(char *scenario_file) {
   struct scenario_parameters sp;
   int tmpI;
   double tmpD;
-
+  const char *tmpS;
+  
   config_lookup_int(&cfg, "num_nodes", &tmpI);
   sp.num_nodes = tmpI;
   config_lookup_float(&cfg, "run_time", &tmpD);
   sp.runTime = (time_t)tmpD;
+  
+  if (config_lookup_string(&cfg, "scenario_controller", &tmpS))
+    strcpy(sp.SC, tmpS);
+  else
+    strcpy(sp.SC, "SC_Template");
+  
   config_destroy(&cfg);
 
   return sp;
@@ -250,31 +257,26 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   if (config_setting_lookup_float(node_config, "ce_timeout_ms", &tmpD))
     np.ce_timeout_ms = tmpD;
 
-  if (config_setting_lookup_float(node_config, "net_mean_throughput", &tmpD)){
+  if (config_setting_lookup_float(node_config, "net_mean_throughput", &tmpD)) {
     np.net_mean_throughput = tmpD;
-	printf("net mean throughput: %f\n", np.net_mean_throughput);
-  }
-  else
+  } else
     np.net_mean_throughput = 1e3;
 
   // look up network traffic type
   np.net_burst_length = 1;
   if (config_setting_lookup_string(node_config, "net_traffic_type", &tmpS)) {
-    if (!strcmp(tmpS, "stream")){
-      printf("net traffic is stream\n");
-	  np.net_traffic_type = NET_TRAFFIC_STREAM;
-	}
-    else if (!strcmp(tmpS, "burst")){
+    if (!strcmp(tmpS, "stream")) {
+      np.net_traffic_type = NET_TRAFFIC_STREAM;
+    } else if (!strcmp(tmpS, "burst")) {
       np.net_traffic_type = NET_TRAFFIC_BURST;
-	  // look up the burst length if traffic type is burst
-	  if (config_setting_lookup_int(node_config, "net_burst_length", &tmpI))
+      // look up the burst length if traffic type is burst
+      if (config_setting_lookup_int(node_config, "net_burst_length", &tmpI))
         np.net_burst_length = tmpI;
-	}
-    else if (!strcmp(tmpS, "poisson"))
+    } else if (!strcmp(tmpS, "poisson"))
       np.net_traffic_type = NET_TRAFFIC_POISSON;
     else
       np.duplex = NET_TRAFFIC_STREAM;
-  } 
+  }
 
   if (config_setting_lookup_string(node_config, "duplex", &tmpS)) {
     if (!strcmp(tmpS, "FDD"))
@@ -667,17 +669,25 @@ void print_node_parameters(struct node_parameters *np) {
     printf("\nVirtual Network Interface Settings:\n");
     printf("    CRTS IP:                           %-s\n", np->CRTS_IP);
     printf("    Target IP:                         %-s\n", np->TARGET_IP);
-	char traffic[15];
-    switch (np->net_traffic_type) { 
-	  case NET_TRAFFIC_STREAM: strcpy(traffic, "stream"); break;
-      case NET_TRAFFIC_BURST: strcpy(traffic, "burst"); break;
-      case NET_TRAFFIC_POISSON: strcpy(traffic, "poisson"); break;
-	}
+    char traffic[15];
+    switch (np->net_traffic_type) {
+    case NET_TRAFFIC_STREAM:
+      strcpy(traffic, "stream");
+      break;
+    case NET_TRAFFIC_BURST:
+      strcpy(traffic, "burst");
+      break;
+    case NET_TRAFFIC_POISSON:
+      strcpy(traffic, "poisson");
+      break;
+    }
     printf("    Traffic pattern:                   %-s\n", traffic);
-	printf("    Average throughput:                %-.2f\n", np->net_mean_throughput);
-	if (np->net_traffic_type == NET_TRAFFIC_BURST)
-	  printf("    Burst length:                      %i\n", np->net_burst_length);
-	//
+    printf("    Average throughput:                %-.2f\n",
+           np->net_mean_throughput);
+    if (np->net_traffic_type == NET_TRAFFIC_BURST)
+      printf("    Burst length:                      %i\n",
+             np->net_burst_length);
+    //
     printf("\nCognitive Engine Settings:\n");
     printf("    Cognitive Engine:                  %-s\n", np->CE);
     printf("    CE timeout:                        %-.2f\n", np->ce_timeout_ms);
@@ -775,10 +785,8 @@ void print_node_parameters(struct node_parameters *np) {
     printf("    Interference duty cycle:           %-.2f\n", np->duty_cycle);
     printf("\n");
     printf("    tx freq behavior:                  %-s\n", tx_freq_behavior);
-    printf("    tx freq min:                       %-.2e\n",
-           np->tx_freq_min);
-    printf("    tx freq max:                       %-.2e\n",
-           np->tx_freq_max);
+    printf("    tx freq min:                       %-.2e\n", np->tx_freq_min);
+    printf("    tx freq max:                       %-.2e\n", np->tx_freq_max);
     printf("    tx freq dwell time:                %-.2f\n",
            np->tx_freq_dwell_time);
     printf("    tx freq resolution:                %-.2e\n",

@@ -32,6 +32,11 @@ enum tx_states {
   TX_FOR_FRAMES
 };
   
+enum rx_states {
+  RX_STOPPED = 0,
+  RX_CONTINUOUS
+};
+
 class ExtensibleCognitiveRadio {
 public:
   ExtensibleCognitiveRadio();
@@ -45,7 +50,7 @@ public:
   ///
   /// The different circumstances under which the CE
   /// can be executed are defined here.
-  enum Event {
+  enum CE_Event {
     /// \brief The CE had not been executed for a period
     /// of time as defined by ExtensibleCognitiveRadio::ce_timeout_ms.
     /// It is now executed as a timeout event.
@@ -146,7 +151,7 @@ public:
     /// When the CE is executed, this value is set according
     /// to the type of event that caused the CE execution,
     /// as specified in ExtensibleCognitiveRadio::Event.
-    ExtensibleCognitiveRadio::Event CE_event;
+    ExtensibleCognitiveRadio::CE_Event CE_event;
 
     // PHY
     /// \brief Specifies the type of frame received as
@@ -486,6 +491,15 @@ public:
     double rx_rate;
   };
 
+  // struct for receive statistics
+  struct rx_statistics{
+    int frames_received;
+    float avg_evm;
+    float avg_rssi;
+    float avg_per;
+    float avg_throughput;
+  };
+
   //=================================================================================
   // Cognitive Engine Methods
   //=================================================================================
@@ -598,6 +612,10 @@ public:
   /// \brief Decreases the modulation order if possible.
   void decrease_tx_mod_order();
 
+  /// \brief Return the value of
+  /// ExtensibleCognitiveRadio::tx_parameter_s::tx_state.
+  int get_tx_state();
+  
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
   double get_tx_freq();
@@ -720,6 +738,10 @@ public:
   void set_rx_taper_len(unsigned int taper_len);
 
   /// \brief Return the value of
+  /// ExtensibleCognitiveRadio::rx_parameter_s::rx_state.
+  double get_rx_state();
+
+  /// \brief Return the value of
   /// ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
   double get_rx_freq();
 
@@ -760,6 +782,11 @@ public:
   void stop_rx();
   void start_liquid_rx();
   void stop_liquid_rx();
+
+  // functions/variables for tracking rx statistics
+  void set_rx_stat_tracking(bool state, float sec);
+  float get_rx_stat_tracking_period();
+  struct rx_statistics get_rx_stats();
 
   //=================================================================================
   // Print/Log Methods and Variables
@@ -827,6 +854,12 @@ private:
   bool ce_running;
   friend void *ECR_ce_worker(void *);
 
+  // private members for tracking rx statistics
+  struct rx_statistics rx_stats;
+  bool rx_stat_tracking;
+  float rx_stat_tracking_period;
+  void update_rx_stats();
+  
   //=================================================================================
   // Private Network Interface Objects
   //=================================================================================
@@ -857,7 +890,7 @@ private:
   pthread_t rx_process;     // receive thread
   pthread_mutex_t rx_mutex; // receive mutex
   pthread_cond_t rx_cond;   // receive condition
-  bool rx_running;          // is receiver running? (physical receiver)
+  int rx_state;             // is receiver running?
   bool rx_thread_running;   // is receiver thread running?
   friend void *ECR_rx_worker(void *);
 

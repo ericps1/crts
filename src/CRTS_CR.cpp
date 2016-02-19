@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <random>
+#include "timer.h"
 #include "CRTS.hpp"
 #include "ECR.hpp"
 #include "node_parameters.hpp"
@@ -35,10 +36,21 @@ int sig_terminate;
 time_t stop_time_s;
 std::ofstream log_rx_fstream;
 std::ofstream log_tx_fstream;
+float rx_stats_fb_period = 1.0;
 
-void Receive_command_from_controller(int *TCP_controller,
+void apply_control_msg(char cont_type, 
+                       void* _arg, 
+                       struct node_parameters *np,
+                       ExtensibleCognitiveRadio * ECR,
+                       int *fb_enables,
+                       float *t_step); 
+
+void receive_command_from_controller(int *TCP_controller,
                                      struct scenario_parameters *sp,
-                                     struct node_parameters *np) {
+                                     struct node_parameters *np,
+                                     ExtensibleCognitiveRadio *ECR,
+                                     int *fb_enables,
+                                     float *t_step) {
   // Listen to socket for message from controller
   char command_buffer[1 + sizeof(struct scenario_parameters) +
                       sizeof(struct node_parameters)];
@@ -68,34 +80,276 @@ void Receive_command_from_controller(int *TCP_controller,
       }
     }
 
+    dprintf("Received command type %i from controller\n", command_buffer[0]);
     // Parse command based on the message type
     switch (command_buffer[0]) {
-    case CRTS_MSG_SCENARIO_PARAMETERS: // settings for upcoming scenario
-      printf("Received settings for scenario\n");
-      // receive and copy scenario parameters
-      rflag = recv(*TCP_controller, &command_buffer[1],
-                   sizeof(struct scenario_parameters), 0);
-      memcpy(sp, &command_buffer[1], sizeof(struct scenario_parameters));
+      case CRTS_MSG_SCENARIO_PARAMETERS: // settings for upcoming scenario
+        dprintf("Received settings for scenario\n");
+        // receive and copy scenario parameters
+        rflag = recv(*TCP_controller, &command_buffer[1],
+                     sizeof(struct scenario_parameters), 0);
+        memcpy(sp, &command_buffer[1], sizeof(struct scenario_parameters));
 
-      // receive and copy node_parameters
-      rflag = recv(*TCP_controller,
-                   &command_buffer[1 + sizeof(struct scenario_parameters)],
-                   sizeof(struct node_parameters), 0);
-      printf("Received %i bytes\n", rflag);
-	  memcpy(np, &command_buffer[1 + sizeof(struct scenario_parameters)],
-             sizeof(struct node_parameters));
-      print_node_parameters(np);
-      break;
-    case CRTS_MSG_MANUAL_START: // updated start time (used for manual mode)
-      rflag = recv(*TCP_controller, &command_buffer[1], sizeof(time_t), 0);
-      memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
-      stop_time_s = sp->start_time_s + sp->runTime;
-      break;
-    case CRTS_MSG_TERMINATE: // terminate program
-      printf("Received termination command from controller\n");
-      sig_terminate = 1;
+        // receive and copy node_parameters
+        rflag = recv(*TCP_controller,
+                     &command_buffer[1 + sizeof(struct scenario_parameters)],
+                     sizeof(struct node_parameters), 0);
+        memcpy(np, &command_buffer[1 + sizeof(struct scenario_parameters)],
+               sizeof(struct node_parameters));
+        print_node_parameters(np);
+        break;
+      case CRTS_MSG_MANUAL_START: // updated start time (used for manual mode)
+        dprintf("Received manual start from controller");
+        rflag = recv(*TCP_controller, &command_buffer[1], sizeof(time_t), 0);
+        memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
+        stop_time_s = sp->start_time_s + sp->runTime;
+        break;
+      case CRTS_MSG_TERMINATE: // terminate program
+        dprintf("Received termination command from controller\n");
+        sig_terminate = 1;
+        break;
+      case CRTS_MSG_CONTROL:
+        rflag = recv(*TCP_controller, &command_buffer[1], 1, 0);
+        int arg_len = get_control_arg_len(command_buffer[1]);
+        rflag = recv(*TCP_controller, &command_buffer[2], arg_len, 0);
+        dprintf("Received a %i byte control message\n", rflag);
+        apply_control_msg(command_buffer[1], (void*) &command_buffer[2], np, ECR, fb_enables, t_step); 
+        break;
     }
   }
+}
+
+void apply_control_msg(char cont_type, 
+                       void* _arg, 
+                       struct node_parameters *np,
+                       ExtensibleCognitiveRadio * ECR,
+                       int *fb_enables,
+                       float *t_step){
+  switch (cont_type){
+    case CRTS_TX_STATE:
+      if (*(int*)_arg == TX_STOPPED)
+        ECR->stop_tx();
+      if (*(int*)_arg == TX_CONTINUOUS)
+        ECR->start_tx();
+      break;
+    case CRTS_TX_FREQ:
+      ECR->set_tx_freq(*(double*)_arg);
+      break;
+    case CRTS_TX_RATE:
+      ECR->set_tx_rate(*(double*)_arg);
+    case CRTS_TX_GAIN:
+      ECR->set_tx_gain_uhd(*(double*)_arg);
+      break;
+    case CRTS_TX_MOD:
+      ECR->set_tx_modulation(*(int*)_arg);
+      break;
+    case CRTS_TX_FEC0:
+      ECR->set_tx_fec0(*(int*)_arg);
+      break;
+    case CRTS_TX_FEC1:
+      ECR->set_tx_fec1(*(int*)_arg);
+      break;
+    case CRTS_RX_STATE:
+      if (*(int*)_arg == RX_STOPPED)
+        ECR->stop_rx();
+      if (*(int*)_arg == RX_CONTINUOUS)
+        ECR->start_rx();
+      break;
+    case CRTS_RX_FREQ:
+      ECR->set_rx_freq(*(double*)_arg);
+      break;
+    case CRTS_RX_RATE:
+      ECR->set_rx_rate(*(double*)_arg);
+      break;
+    case CRTS_RX_GAIN:
+      ECR->set_rx_gain_uhd(*(double*)_arg);
+      break;
+    case CRTS_RX_STATS:
+      if (*(double*)_arg > 0.0){
+        ECR->set_rx_stat_tracking(true, *(double*)_arg);
+      } else {
+        ECR->set_rx_stat_tracking(false, 0.0);
+      }
+      break;
+    case CRTS_RX_STATS_FB:
+      rx_stats_fb_period = *(double*)_arg;
+      break;
+    case CRTS_NET_THROUGHPUT:
+      np->net_mean_throughput = *(double*)_arg;
+      *t_step = 8.0 * (double)CRTS_CR_NET_PACKET_LEN / np->net_mean_throughput;
+      break;
+    case CRTS_NET_MODEL:
+      np->net_traffic_type = *(int*)_arg;
+      break;
+    case CRTS_FB_EN:
+      *fb_enables = *(int*)_arg;
+      break;
+    default:
+      printf("Unknown control type\n");
+  }
+}
+
+void send_feedback_to_controller(int *TCP_controller,
+                                 unsigned int fb_enables,
+                                 ExtensibleCognitiveRadio *ECR) {
+  // variables used to keep track of the state and send feedback to the controller when needed
+  static int last_tx_state = TX_STOPPED;
+  static double last_tx_freq = ECR->get_tx_freq();
+  static double last_tx_rate = ECR->get_tx_rate();
+  static double last_tx_gain = ECR->get_tx_gain_uhd();
+  static int last_tx_mod = ECR->get_tx_modulation();
+  static int last_tx_fec0 = ECR->get_tx_fec0();
+  static int last_tx_fec1 = ECR->get_tx_fec1();
+
+  static int last_rx_state = RX_STOPPED;
+  static double last_rx_freq = ECR->get_rx_freq();
+  static double last_rx_rate = ECR->get_rx_rate();
+  static double last_rx_gain = ECR->get_rx_gain_uhd();
+  
+  static timer rx_stat_fb_timer;
+  static bool timer_init = 0;
+
+  if(!timer_init){
+    timer_init = 1;
+    rx_stat_fb_timer = timer_create();
+    timer_tic(rx_stat_fb_timer);
+  }
+  
+  // variables used to define the feedback message to the controller
+  char fb_msg[1024];
+  fb_msg[0] = CRTS_MSG_FEEDBACK;
+  int fb_args = 0;
+  int fb_msg_ind = 2;
+
+  // check for all possible update messages
+  if (fb_enables & CRTS_TX_STATE_FB_EN){
+    int tx_state = ECR->get_tx_state();
+    if(tx_state != last_tx_state){
+      fb_msg[fb_msg_ind] = CRTS_TX_STATE;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_state, sizeof(tx_state));
+      fb_msg_ind += 1+sizeof(tx_state);
+      last_tx_state = tx_state;
+      fb_args++;
+    }
+  }
+  if (fb_enables & CRTS_TX_FREQ_FB_EN){
+    double tx_freq = ECR->get_tx_freq();
+    if(tx_freq != last_tx_freq){
+      fb_msg[fb_msg_ind] = CRTS_TX_FREQ;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_freq, sizeof(tx_freq));
+      fb_msg_ind += 1+sizeof(tx_freq);
+      last_tx_freq = tx_freq;
+      fb_args++;
+    }
+  }
+  if (fb_enables & CRTS_TX_RATE_FB_EN){
+    double tx_rate = ECR->get_tx_rate();
+    if(tx_rate != last_tx_rate){
+      fb_msg[fb_msg_ind] = CRTS_TX_RATE;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_rate, sizeof(tx_rate));
+      fb_msg_ind += 1+sizeof(tx_rate);
+      last_tx_rate = tx_rate;
+      fb_args++;
+    }
+  }
+  if (fb_enables & CRTS_TX_GAIN_FB_EN){
+    double tx_gain = ECR->get_tx_gain_uhd();
+    if(tx_gain != last_tx_gain){
+      fb_msg[fb_msg_ind] = CRTS_TX_GAIN;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_gain, sizeof(tx_gain));
+      fb_msg_ind += 1+sizeof(tx_gain);
+      last_tx_gain = tx_gain;
+      fb_args++;
+    }
+  }
+  if (fb_enables & CRTS_TX_MOD_FB_EN){
+    int tx_mod = ECR->get_tx_modulation();
+    if(tx_mod != last_tx_mod){
+      fb_msg[fb_msg_ind] = CRTS_TX_MOD;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_mod, sizeof(tx_mod));
+      fb_msg_ind += 1+sizeof(tx_mod);
+      last_tx_mod = tx_mod;
+      fb_args++;
+    }
+  }
+  if (fb_enables & CRTS_TX_FEC0_FB_EN){
+    int tx_fec0 = ECR->get_tx_fec0();
+    if(tx_fec0 != last_tx_fec0){
+      fb_msg[fb_msg_ind] = CRTS_TX_FEC0;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_fec0, sizeof(tx_fec0));
+      fb_msg_ind += 1+sizeof(tx_fec0);
+      last_tx_fec0 = tx_fec0;
+      fb_args++;
+    }
+  }
+  if (fb_enables & CRTS_TX_FEC1_FB_EN){
+    int tx_fec1 = ECR->get_tx_fec1();
+    if(tx_fec1 != last_tx_fec1){
+      fb_msg[fb_msg_ind] = CRTS_TX_FEC1;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_fec1, sizeof(tx_fec1));
+      fb_msg_ind += 1+sizeof(tx_fec1);
+      last_tx_fec1 = tx_fec1;
+      fb_args++;
+    }
+  }
+
+  if (fb_enables & CRTS_RX_STATE_FB_EN){
+    int rx_state = ECR->get_rx_state();
+    if(rx_state != last_rx_state){
+      fb_msg[fb_msg_ind] = CRTS_RX_STATE;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_state, sizeof(rx_state));
+      fb_msg_ind += 1+sizeof(rx_state);
+      last_rx_state = rx_state;
+      fb_args++;
+    }
+  }
+  if (fb_enables & CRTS_RX_FREQ_FB_EN){
+    int rx_freq = ECR->get_rx_freq();
+    if(rx_freq != last_rx_freq){
+      fb_msg[fb_msg_ind] = CRTS_RX_FREQ;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_freq, sizeof(rx_freq));
+      fb_msg_ind += 1+sizeof(rx_freq);
+      last_rx_freq = rx_freq;
+      fb_args++;
+    }
+  }
+  if (fb_enables & CRTS_RX_RATE_FB_EN){
+    double rx_rate = ECR->get_rx_rate();
+    if(rx_rate != last_rx_rate){
+      fb_msg[fb_msg_ind] = CRTS_RX_RATE;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_rate, sizeof(rx_rate));
+      fb_msg_ind += 1+sizeof(rx_rate);
+      last_rx_rate = rx_rate;
+      fb_args++;
+    }
+  }
+  if (fb_enables & CRTS_RX_GAIN_FB_EN){
+    double rx_gain = ECR->get_rx_gain_uhd();
+    if(rx_gain != last_rx_gain){
+      fb_msg[fb_msg_ind] = CRTS_RX_GAIN;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_gain, sizeof(rx_gain));
+      fb_msg_ind += 1+sizeof(rx_gain);
+      last_rx_gain = rx_gain;
+      fb_args++;
+    }
+  }
+  if (fb_enables & CRTS_RX_STATS){
+    if(timer_toc(rx_stat_fb_timer) > rx_stats_fb_period){
+      timer_tic(rx_stat_fb_timer);
+      struct ExtensibleCognitiveRadio::rx_statistics rx_stats = ECR->get_rx_stats();
+      fb_msg[fb_msg_ind] = CRTS_RX_STATS;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_stats, sizeof(rx_stats));
+      fb_msg_ind += 1+sizeof(rx_stats);
+      fb_args++;
+    }
+  }
+
+  fb_msg[1] = fb_args;
+  
+  // send feedback to controller
+  if(fb_args > 0){
+    send(*TCP_controller, fb_msg, fb_msg_ind, 0);
+  }      
 }
 
 void Initialize_CR(struct node_parameters *np, void *ECR_p) {
@@ -142,6 +396,7 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p) {
     ECR->set_tx_fec1(np->tx_fec1);
     ECR->set_ce(np->CE);
     ECR->reset_log_files();
+    ECR->set_rx_stat_tracking(false, 0.0);
 
     // copy subcarrier allocations if other than liquid-dsp default
     if (np->tx_subcarrier_alloc_method == CUSTOM_SUBCARRIER_ALLOC ||
@@ -149,13 +404,13 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p) {
       ECR->set_tx_subcarrier_alloc(np->tx_subcarrier_alloc);
     } else {
       ECR->set_tx_subcarrier_alloc(NULL);
-	}
+    }
     if (np->rx_subcarrier_alloc_method == CUSTOM_SUBCARRIER_ALLOC ||
         np->rx_subcarrier_alloc_method == STANDARD_SUBCARRIER_ALLOC) {
       ECR->set_rx_subcarrier_alloc(np->rx_subcarrier_alloc);
     } else {
-	  ECR->set_rx_subcarrier_alloc(NULL);
-	}
+      ECR->set_rx_subcarrier_alloc(NULL);
+    }
   }
   // intialize python radio if applicable
   else if (np->cr_type == python) {
@@ -181,7 +436,7 @@ void log_rx_data(struct scenario_parameters *sp, struct node_parameters *np,
   if (log_rx_fstream.is_open()) {
     log_rx_fstream.write((char *)&tv, sizeof(tv));
     log_rx_fstream.write((char *)&bytes, sizeof(bytes));
-	log_rx_fstream.write((char *)&packet_num, sizeof(packet_num));
+    log_rx_fstream.write((char *)&packet_num, sizeof(packet_num));
   } else
     printf("Error opening log file: %s\n", np->net_rx_log_file);
 }
@@ -196,7 +451,7 @@ void log_tx_data(struct scenario_parameters *sp, struct node_parameters *np,
   if (log_tx_fstream.is_open()) {
     log_tx_fstream.write((char *)&tv, sizeof(tv));
     log_tx_fstream.write((char *)&bytes, sizeof(bytes));
-	log_tx_fstream.write((char *)&packet_num, sizeof(packet_num));
+    log_tx_fstream.write((char *)&packet_num, sizeof(packet_num));
   } else
     printf("Error opening log file: %s\n", np->net_tx_log_file);
 }
@@ -265,6 +520,9 @@ int main(int argc, char **argv) {
   // Port to be used by CRTS server and client
   int port = CRTS_CR_PORT;
 
+  // pointer to ECR which may or may not be used
+  ExtensibleCognitiveRadio *ECR = NULL;
+
   // Create node parameters struct and the scenario parameters struct
   // and read info from controller
   struct node_parameters np;
@@ -272,7 +530,9 @@ int main(int argc, char **argv) {
   struct scenario_parameters sp;
   dprintf("Receiving command from controller...\n");
   sleep(1);
-  Receive_command_from_controller(&TCP_controller, &sp, &np);
+  float t_step;
+  int fb_enables = 0;;
+  receive_command_from_controller(&TCP_controller, &sp, &np, ECR, &fb_enables, &t_step);
   // fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking
   // for future communication
 
@@ -281,7 +541,35 @@ int main(int argc, char **argv) {
   strcpy(net_rx_log_file_cpy, np.net_rx_log_file);
   char net_tx_log_file_cpy[100];
   strcpy(net_tx_log_file_cpy, np.net_tx_log_file);
-  
+
+  // If log file names use subdirectories, create them if they don't exist
+  char *subdirptr_rx = strrchr(net_rx_log_file_cpy, '/');
+  char *subdirptr_tx = strrchr(net_tx_log_file_cpy, '/');
+  if (subdirptr_rx) {
+    char subdirs_rx[60];
+    // Get the names of the subdirectories
+    strncpy(subdirs_rx, net_rx_log_file_cpy,
+            subdirptr_rx - net_rx_log_file_cpy);
+    subdirs_rx[subdirptr_rx - net_rx_log_file_cpy] = '\0';
+    char mkdir_cmd[100];
+    strcpy(mkdir_cmd, "mkdir -p ./logs/bin/");
+    strcat(mkdir_cmd, subdirs_rx);
+    // Create them
+    system(mkdir_cmd);
+  }
+  if (subdirptr_tx) {
+    char subdirs_tx[60];
+    // Get the names of the subdirectories
+    strncpy(subdirs_tx, net_tx_log_file_cpy,
+            subdirptr_tx - net_tx_log_file_cpy);
+    subdirs_tx[subdirptr_tx - net_tx_log_file_cpy] = '\0';
+    char mkdir_cmd[100];
+    strcpy(mkdir_cmd, "mkdir -p ./logs/bin/");
+    strcat(mkdir_cmd, subdirs_tx);
+    // Create them
+    system(mkdir_cmd);
+  }
+
   // modify log file name in node parameters for logging function
   char net_rx_log_file[100];
   strcpy(net_rx_log_file, "./logs/bin/");
@@ -298,14 +586,14 @@ int main(int argc, char **argv) {
   // open CRTS log files to delete any current contents
   if (np.log_net_rx) {
     log_rx_fstream.open(net_rx_log_file,
-                     std::ofstream::out | std::ofstream::trunc);
+                        std::ofstream::out | std::ofstream::trunc);
     if (!log_rx_fstream.is_open()) {
       std::cout << "Error opening log file:" << net_rx_log_file << std::endl;
     }
   }
   if (np.log_net_tx) {
     log_tx_fstream.open(net_tx_log_file,
-                     std::ofstream::out | std::ofstream::trunc);
+                        std::ofstream::out | std::ofstream::trunc);
     if (!log_tx_fstream.is_open()) {
       std::cout << "Error opening log file:" << net_rx_log_file << std::endl;
     }
@@ -314,9 +602,6 @@ int main(int argc, char **argv) {
   // this is used to create a child process for python radios which can be
   // killed later
   pid_t pid = 0;
-
-  // pointer to ECR which may or may not be used
-  ExtensibleCognitiveRadio *ECR = NULL;
 
   // Create and start the ECR or python CR so that they are in a ready
   // state when the experiment begins
@@ -386,7 +671,8 @@ int main(int argc, char **argv) {
   /*int size;
   socklen_t len;
   size = 288*25;
-  buff_err = setsockopt(CRTS_client_sock, SOL_SOCKET, SO_SNDBUF, &size, sizeof(int));
+  buff_err = setsockopt(CRTS_client_sock, SOL_SOCKET, SO_SNDBUF, &size,
+  sizeof(int));
   */
 
   // Bind CRTS server socket
@@ -395,17 +681,18 @@ int main(int argc, char **argv) {
   // Define a buffer for receiving and a temporary message for sending
   int recv_buffer_len = 8192 * 2;
   char recv_buffer[recv_buffer_len];
-  
+
   // Define parameters and message for sending
   int packet_counter = 0;
   const int packet_num_bytes = 4; // number of bytes used for the packet number
-  unsigned char packet_num_prs[packet_num_bytes]; // pseudo-random sequence used to modify packet number
+  unsigned char packet_num_prs[packet_num_bytes]; // pseudo-random sequence used
+                                                  // to modify packet number
   unsigned char message[CRTS_CR_NET_PACKET_LEN];
-  strcpy((char*)message, np.CRTS_IP);
+  strcpy((char *)message, np.CRTS_IP);
   srand(12);
-  for (int i=0; i < packet_num_bytes; i++)
+  for (int i = 0; i < packet_num_bytes; i++)
     packet_num_prs[i] = rand() & 0xff;
-  
+
   // initialize sig_terminate flag and check return from socket call
   sig_terminate = 0;
   if (CRTS_client_sock < 0) {
@@ -417,9 +704,9 @@ int main(int argc, char **argv) {
     sig_terminate = 1;
   }
 
-  float t_step = 8.0*(float)CRTS_CR_NET_PACKET_LEN/np.net_mean_throughput;
-  float tx_time_delta = 0;
-  struct timeval tx_time;
+  t_step = 8.0 * (float)CRTS_CR_NET_PACKET_LEN / np.net_mean_throughput;
+  float send_time_delta = 0;
+  struct timeval send_time;
   fd_set read_fds;
   struct timeval timeout;
   timeout.tv_sec = 0;
@@ -429,13 +716,13 @@ int main(int argc, char **argv) {
   std::default_random_engine rand_generator;
   std::poisson_distribution<int> poisson_generator(1e6);
   int poisson_rv;
-  
+
   // Wait for the start-time before beginning the scenario
   struct timeval tv;
   time_t time_s;
   stop_time_s = sp.start_time_s + sp.runTime;
   while (1) {
-    Receive_command_from_controller(&TCP_controller, &sp, &np);
+    receive_command_from_controller(&TCP_controller, &sp, &np, ECR, &fb_enables, &t_step);
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;
     if (time_s >= sp.start_time_s)
@@ -452,87 +739,102 @@ int main(int argc, char **argv) {
     ECR->start_tx();
     ECR->start_ce();
   }
-  
-  // main loop
-  while (time_s < stop_time_s && !sig_terminate) {
-    // Listen for any updates from the controller (non-blocking)
-    dprintf("CRTS: Listening to controller for command\n");
-    Receive_command_from_controller(&TCP_controller, &sp, &np);
 
-    // Send packets according to traffic model
-	switch(np.net_traffic_type){
-	case(NET_TRAFFIC_STREAM):
-	  tx_time_delta += t_step*1e6;
-	  break;
-    case(NET_TRAFFIC_BURST):
-	  tx_time_delta += t_step*np.net_burst_length*1e6;
-	  break;
-	case(NET_TRAFFIC_POISSON):
-	  poisson_rv = poisson_generator(rand_generator);
-	  tx_time_delta += t_step * (float)poisson_rv;
-	  break;
-	}
-	tx_time.tv_sec = sp.start_time_s + (long int)floorf(tx_time_delta / 1e6);
-    tx_time.tv_usec = (long int)fmod(tx_time_delta, 1e6);
-    while (1) {
-      gettimeofday(&tv, NULL);
-      if ((tv.tv_sec == tx_time.tv_sec && tv.tv_usec > tx_time.tv_usec) ||
-          tv.tv_sec > tx_time.tv_sec)
-        break;      
+  bool send_flag = true;
+    
+  // main loop: receives control, sends feedback, and generates/receives network traffic
+  while (time_s < stop_time_s && !sig_terminate) {
+    // Listen for any updates from the controller
+    receive_command_from_controller(&TCP_controller, &sp, &np, ECR, &fb_enables, &t_step);
+
+    // send feedback to the controller if applicable
+    if (fb_enables > 0)
+      send_feedback_to_controller(&TCP_controller, fb_enables, ECR);
+
+    // Update send time only after immediately sending (send_flag == true)
+    if (send_flag == true) {
+      send_flag = false;
+      // Send packets according to traffic model
+      switch (np.net_traffic_type) {
+      case (NET_TRAFFIC_STREAM):
+        send_time_delta += t_step * 1e6;
+        break;
+      case (NET_TRAFFIC_BURST):
+        send_time_delta += t_step * np.net_burst_length * 1e6;
+        break;
+      case (NET_TRAFFIC_POISSON):
+        poisson_rv = poisson_generator(rand_generator);
+        send_time_delta += t_step * (float)poisson_rv;
+        break;
+      }
+      send_time.tv_sec = sp.start_time_s + (long int)floorf(send_time_delta / 1e6);
+      send_time.tv_usec = (long int)fmod(send_time_delta, 1e6);
     }
 
-    // send burst of packets
-    for(int i=0; i<np.net_burst_length; i++){
-	  
-	  // update packet number
-	    packet_counter++;
-	    for (int i=0; i < packet_num_bytes; i++)
-          message[i+15] = ((packet_counter>>(8*(packet_num_bytes-i-1))) & 0xff )^packet_num_prs[i];
-        
-		// fill the rest with random data
-        for (int i=15+packet_num_bytes; i < CRTS_CR_NET_PACKET_LEN; i++)
+    // determine if it's time to send another packet burst
+    gettimeofday(&tv, NULL);
+    if ((tv.tv_sec == send_time.tv_sec && tv.tv_usec > send_time.tv_usec) ||
+        tv.tv_sec > send_time.tv_sec)
+      send_flag = true;
+
+    if (send_flag) {
+      // send burst of packets
+      for (int i = 0; i < np.net_burst_length; i++) {
+
+        // update packet number
+        packet_counter++;
+        for (int i = 0; i < packet_num_bytes; i++)
+          message[i + 15] =
+              ((packet_counter >> (8 * (packet_num_bytes - i - 1))) & 0xff) ^
+              packet_num_prs[i];
+
+        // fill the rest with random data
+        for (int i = 15 + packet_num_bytes; i < CRTS_CR_NET_PACKET_LEN; i++)
           message[i] = (rand() & 0xff);
 
-	    // send UDP packet via CR
+        // send UDP packet via CR
         dprintf("CRTS sending packet %i\n", packet_counter);
-        int send_return =
-            sendto(CRTS_client_sock, (char*)message, sizeof(message), 0,
-                 (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
+        int send_return = sendto(
+            CRTS_client_sock, (char *)message, sizeof(message), 0,
+            (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
         if (send_return < 0)
           printf("Failed to send message\n");
-	  
-	    if (np.log_net_tx){
-          log_tx_data(&sp, &np, send_return, packet_counter);
-		}
-	} 
 
+        if (np.log_net_tx) {
+          log_tx_data(&sp, &np, send_return, packet_counter);
+        }
+      }
+    }
 
     // read all available data from the UDP socket
     int recv_len = 0;
     FD_ZERO(&read_fds);
-	FD_SET(CRTS_server_sock, &read_fds);
-	while (select(CRTS_server_sock+1, &read_fds, NULL, NULL, &timeout) > 0 ){
-	  recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0,
+    FD_SET(CRTS_server_sock, &read_fds);
+    while (select(CRTS_server_sock + 1, &read_fds, NULL, NULL, &timeout) > 0) {
+      recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0,
                           (struct sockaddr *)&CRTS_server_addr, &clientlen);
-      
-	  // determine packet number
-	  int rx_packet_num = 0;
-	  for (int i=0; i < packet_num_bytes; i++)
-	    rx_packet_num += (((unsigned char)recv_buffer[15+i])^packet_num_prs[i]) << 8*(packet_num_bytes-i-1);
 
-	  // print out/log details of received messages
+      // determine packet number
+      int rx_packet_num = 0;
+      for (int i = 0; i < packet_num_bytes; i++)
+        rx_packet_num +=
+            (((unsigned char)recv_buffer[15 + i]) ^ packet_num_prs[i])
+            << 8 * (packet_num_bytes - i - 1);
+
+      // print out/log details of received messages
       if (recv_len > 0) {
         // TODO: Say what address message was received from.
         // (It's in CRTS_server_addr)
-        dprintf("CRTS received packet %i containing %i bytes:\n", rx_packet_num, recv_len);
+        dprintf("CRTS received packet %i containing %i bytes:\n", rx_packet_num,
+                recv_len);
         if (np.log_net_rx) {
           log_rx_data(&sp, &np, recv_len, rx_packet_num);
         }
       }
-	
-	  FD_ZERO(&read_fds);
-	  FD_SET(CRTS_server_sock, &read_fds);
-	}
+
+      FD_ZERO(&read_fds);
+      FD_SET(CRTS_server_sock, &read_fds);
+    }
 
     // Update the current time
     gettimeofday(&tv, NULL);
@@ -544,65 +846,64 @@ int main(int argc, char **argv) {
     log_rx_fstream.close();
   if (np.log_net_tx)
     log_tx_fstream.close();
- 
+
   // close all network connections
   close(CRTS_client_sock);
   close(CRTS_server_sock);
 
   // auto-generate octave logs from binary logs
   char command[1000];
-  if(np.generate_octave_logs){
-    if(np.log_net_rx){
+  if (np.generate_octave_logs) {
+    if (np.log_net_rx) {
       sprintf(command, "./logs/logs2octave -c -l %s -N %d -n %d",
               net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
       system(command);
     }
 
     if (np.log_net_tx) {
-      sprintf(command, "./logs/logs2octave -C -l %s -N %d -n %d", 
-	        net_tx_log_file_cpy, sp.totalNumReps, sp.repNumber );
+      sprintf(command, "./logs/logs2octave -C -l %s -N %d -n %d",
+              net_tx_log_file_cpy, sp.totalNumReps, sp.repNumber);
       system(command);
     }
-    
-    if(np.log_phy_rx){
+
+    if (np.log_phy_rx) {
       sprintf(command, "./logs/logs2octave -r -l %s -N %d -n %d",
               np.phy_rx_log_file, sp.totalNumReps, sp.repNumber);
       system(command);
     }
 
-    if(np.log_phy_tx){
+    if (np.log_phy_tx) {
       sprintf(command, "./logs/logs2octave -t -l %s -N %d -n %d",
               np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
       system(command);
     }
   }
   // auto-generate python logs from binary logs
-  if(np.generate_python_logs){
-    if(np.log_net_rx){
+  if (np.generate_python_logs) {
+    if (np.log_net_rx) {
       sprintf(command, "./logs/logs2python -c -l %s -N %d -n %d",
               net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
       system(command);
     }
 
     if (np.log_net_tx) {
-      sprintf(command, "./logs/logs2octave -C -l %s -N %d -n %d", 
-	       net_tx_log_file_cpy, sp.totalNumReps, sp.repNumber );
+      sprintf(command, "./logs/logs2octave -C -l %s -N %d -n %d",
+              net_tx_log_file_cpy, sp.totalNumReps, sp.repNumber);
       system(command);
     }
-    
-    if(np.log_phy_rx){
+
+    if (np.log_phy_rx) {
       sprintf(command, "./logs/logs2python -r -l %s -N %d -n %d",
               np.phy_rx_log_file, sp.totalNumReps, sp.repNumber);
       system(command);
     }
 
-    if(np.log_phy_tx){
+    if (np.log_phy_tx) {
       sprintf(command, "./logs/logs2python -t -l %s -N %d -n %d",
               np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
       system(command);
     }
   }
-
 
   // clean up ECR/python process
   if (np.cr_type == ecr) {

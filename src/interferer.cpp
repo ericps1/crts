@@ -34,13 +34,13 @@ Interferer::Interferer() {
   tx_freq_resolution = 1e6;
   tx_freq_bandwidth = 0.0;
 
-  // 
+  //
   uhd::device_addr_t dev_addr;
   usrp_tx = uhd::usrp::multi_usrp::make(dev_addr);
   usrp_tx->set_tx_antenna("TX/RX", 0);
-  
+
   // create and start tx thread
-  tx_state = TX_STOPPED;
+  tx_state = INT_TX_STOPPED;
   tx_thread_running = true;
   pthread_mutex_init(&tx_mutex, NULL);
   pthread_cond_init(&tx_cond, NULL);
@@ -52,17 +52,19 @@ Interferer::Interferer() {
   usrp_tx->set_tx_gain(tx_gain);
 
   // setup objects needed for signal generation
-  tx_buffer.resize(2*TX_BUFFER_LENGTH); 
+  tx_buffer.resize(2 * TX_BUFFER_LENGTH);
   gmsk_fg = gmskframegen_create();
   interp = resamp2_crcf_create(7, 0.0f, 40.0f);
   unsigned int h_len = 2 * RRC_SAMPS_PER_SYM * RRC_FILTER_SEMILENGTH + 1;
   float h[h_len];
-  liquid_firdes_rrcos(RRC_SAMPS_PER_SYM, RRC_FILTER_SEMILENGTH, RRC_BETA, 0.0, h);
+  liquid_firdes_rrcos(RRC_SAMPS_PER_SYM, RRC_FILTER_SEMILENGTH, RRC_BETA, 0.0,
+                      h);
   rrc_filt = firfilt_crcf_create(h, h_len);
   unsigned int num_subcarriers = 64;
   unsigned char *subcarrierAlloc = NULL;
   ofdmflexframegenprops_init_default(&fgprops);
-  ofdm_fg = ofdmflexframegen_create(num_subcarriers, OFDM_CP_LENGTH,
+  ofdm_fg =
+      ofdmflexframegen_create(num_subcarriers, OFDM_CP_LENGTH,
                               OFDM_TAPER_LENGTH, subcarrierAlloc, &fgprops);
 
   // create timers
@@ -80,22 +82,35 @@ Interferer::~Interferer() {
   pthread_join(tx_process, &tx_exit_status);
 }
 
-void Interferer::start_tx(){
-  tx_state = TX_DUTY_CYCLE_ON;
+void Interferer::start_tx() {
+  tx_state = INT_TX_DUTY_CYCLE_ON;
   pthread_cond_signal(&tx_cond);
 }
 
-void Interferer::stop_tx(){
-  tx_state = TX_STOPPED;
-}
+void Interferer::stop_tx() { tx_state = INT_TX_STOPPED; }
 
 void Interferer::set_log_file(char *log_file_name) {
   log_tx_flag = true;
   strcpy(tx_log_file_name, log_file_name);
 
+  // If log file names use subdirectories, create them if they don't exist
+  char *subdirptr = strrchr(tx_log_file_name, '/');
+  if (subdirptr) {
+    char subdirs[60];
+    // Get the names of the subdirectories
+    strncpy(subdirs, tx_log_file_name, subdirptr - tx_log_file_name);
+    subdirs[subdirptr - tx_log_file_name] = '\0';
+    char mkdir_cmd[100];
+    strcpy(mkdir_cmd, "mkdir -p ./logs/bin/");
+    strcat(mkdir_cmd, subdirs);
+    // Create them
+    system(mkdir_cmd);
+  }
+
   // open tx log file to delete any current contents
   if (log_tx_flag) {
-    tx_log_file.open(tx_log_file_name, std::ofstream::out | std::ofstream::trunc);
+    tx_log_file.open(tx_log_file_name,
+                     std::ofstream::out | std::ofstream::trunc);
     if (!tx_log_file.is_open()) {
       std::cout << "Error opening log file: " << tx_log_file_name << std::endl;
     }
@@ -142,8 +157,8 @@ void Interferer::BuildGMSKTransmission() {
   }
 
   // generate frame
-  gmskframegen_assemble(gmsk_fg, header, payload, GMSK_PAYLOAD_LENGTH, gmskCrcScheme,
-                        gmskFecSchemeInner, gmskFecSchemeOuter);
+  gmskframegen_assemble(gmsk_fg, header, payload, GMSK_PAYLOAD_LENGTH,
+                        gmskCrcScheme, gmskFecSchemeInner, gmskFecSchemeOuter);
 
   // set up framing buffers
   unsigned int k = 2;
@@ -191,17 +206,19 @@ void Interferer::BuildGMSKTransmission() {
 void Interferer::BuildRRCTransmission() {
   std::complex<float> complex_symbol;
   unsigned int h_len = 2 * RRC_SAMPS_PER_SYM * RRC_FILTER_SEMILENGTH + 1;
-  const int samps_per_frame = RRC_SYMS_PER_FRAME*RRC_SAMPS_PER_SYM;
+  const int samps_per_frame = RRC_SYMS_PER_FRAME * RRC_SAMPS_PER_SYM;
   buffered_samps = 0;
- 
+
   firfilt_crcf_reset(rrc_filt);
 
   for (unsigned int j = 0; j < samps_per_frame; j++) {
     // generate a random QPSK symbol until within a filter length of the end
     if ((j % RRC_SAMPS_PER_SYM == 0) &&
-        (buffered_samps < samps_per_frame - 2*h_len)) {
-      complex_symbol.real(0.5 * (float)roundf((float)rand()/(float)RAND_MAX) - 0.25);
-      complex_symbol.imag(0.5 * (float)roundf((float)rand()/(float)RAND_MAX) - 0.25);
+        (buffered_samps < samps_per_frame - 2 * h_len)) {
+      complex_symbol.real(0.5 * (float)roundf((float)rand() / (float)RAND_MAX) -
+                          0.25);
+      complex_symbol.imag(0.5 * (float)roundf((float)rand() / (float)RAND_MAX) -
+                          0.25);
     }
     // zero insert to interpolate
     else {
@@ -211,8 +228,8 @@ void Interferer::BuildRRCTransmission() {
 
     firfilt_crcf_push(rrc_filt, complex_symbol);
     firfilt_crcf_execute(rrc_filt, &tx_buffer[j]);
-    
-	buffered_samps++;
+
+    buffered_samps++;
   }
 }
 
@@ -282,10 +299,10 @@ void Interferer::TransmitInterference() {
   while (tx_samp_count < buffered_samps) {
     if (buffered_samps - tx_samp_count <= USRP_BUFFER_LENGTH)
       usrp_samps = buffered_samps - tx_samp_count;
-      
-    usrp_tx->get_device()->send(
-        &tx_buffer[tx_samp_count], usrp_samps, metadata_tx,
-        uhd::io_type_t::COMPLEX_FLOAT32, uhd::device::SEND_MODE_FULL_BUFF);
+
+    usrp_tx->get_device()->send(&tx_buffer[tx_samp_count], usrp_samps,
+                                metadata_tx, uhd::io_type_t::COMPLEX_FLOAT32,
+                                uhd::device::SEND_MODE_FULL_BUFF);
 
     // update number of tx samples remaining
     tx_samp_count += USRP_BUFFER_LENGTH;
@@ -302,14 +319,16 @@ void Interferer::UpdateFrequency() {
   switch (tx_freq_behavior) {
   case (SWEEP):
     tx_freq += (tx_freq_resolution * tx_freq_coeff);
-    if ((tx_freq > tx_freq_max) ||
-        (tx_freq < tx_freq_min)) {
+    if ((tx_freq > tx_freq_max) || (tx_freq < tx_freq_min)) {
       tx_freq_coeff = tx_freq_coeff * -1.0;
       tx_freq = tx_freq + (2.0 * tx_freq_resolution * tx_freq_coeff);
     }
     break;
   case (RANDOM):
-    tx_freq = tx_freq_resolution*roundf((double)(rand()%(int)tx_freq_bandwidth)/tx_freq_resolution) + tx_freq_min;
+    tx_freq =
+        tx_freq_resolution * roundf((double)(rand() % (int)tx_freq_bandwidth) /
+                                    tx_freq_resolution) +
+        tx_freq_min;
     dprintf("Set transmit frequency to %.0f\n", tx_freq);
     break;
   }
@@ -317,22 +336,22 @@ void Interferer::UpdateFrequency() {
 }
 
 // ========================================================================
-//  FUNCTION:  
+//  FUNCTION:
 // ========================================================================
 void *Interferer_tx_worker(void *_arg) {
 
   // typecast input
-  Interferer *Int = (Interferer*)_arg;
+  Interferer *Int = (Interferer *)_arg;
 
   while (Int->tx_thread_running) {
 
     // wait for condition to start transmitting
-	pthread_mutex_lock(&(Int->tx_mutex));
-	pthread_cond_wait(&(Int->tx_cond), &(Int->tx_mutex));
+    pthread_mutex_lock(&(Int->tx_mutex));
+    pthread_cond_wait(&(Int->tx_cond), &(Int->tx_mutex));
     pthread_mutex_unlock(&(Int->tx_mutex));
-	
+
     // initialize timers
-	timer_tic(Int->duty_cycle_timer);
+    timer_tic(Int->duty_cycle_timer);
     timer_tic(Int->freq_dwell_timer);
 
     // send start of burst packet
@@ -340,57 +359,58 @@ void *Interferer_tx_worker(void *_arg) {
     Int->metadata_tx.end_of_burst = false;
     Int->metadata_tx.has_time_spec = false;
     Int->usrp_tx->get_device()->send(&Int->tx_buffer[0], 0, Int->metadata_tx,
-                                  uhd::io_type_t::COMPLEX_FLOAT32,
-                                  uhd::device::SEND_MODE_FULL_BUFF);
+                                     uhd::io_type_t::COMPLEX_FLOAT32,
+                                     uhd::device::SEND_MODE_FULL_BUFF);
     Int->metadata_tx.start_of_burst = false;
 
     // run transmitter
-	while (Int->tx_state!=TX_STOPPED) {
-	  // determine if we need to freq hop
-      if ((Int->tx_freq_behavior != (FIXED)) && 
-	      (timer_toc(Int->freq_dwell_timer) >= Int->tx_freq_dwell_time)) {
+    while (Int->tx_state != INT_TX_STOPPED) {
+      // determine if we need to freq hop
+      if ((Int->tx_freq_behavior != (FIXED)) &&
+          (timer_toc(Int->freq_dwell_timer) >= Int->tx_freq_dwell_time)) {
         timer_tic(Int->freq_dwell_timer);
-		Int->UpdateFrequency();
+        Int->UpdateFrequency();
       }
       // determine if we need to change state
-	  if (Int->tx_state == TX_DUTY_CYCLE_ON &&
-          timer_toc(Int->duty_cycle_timer) >= Int->duty_cycle*Int->period) {
+      if (Int->tx_state == INT_TX_DUTY_CYCLE_ON &&
+          timer_toc(Int->duty_cycle_timer) >= Int->duty_cycle * Int->period) {
         timer_tic(Int->duty_cycle_timer);
-		dprintf("Turning off\n");
-        Int->tx_state = TX_DUTY_CYCLE_OFF;
-	
-	    // send end of burst packet
+        dprintf("Turning off\n");
+        Int->tx_state = INT_TX_DUTY_CYCLE_OFF;
+
+        // send end of burst packet
         Int->metadata_tx.end_of_burst = true;
-        Int->usrp_tx->get_device()->send(
-                                 "", 0, Int->metadata_tx, uhd::io_type_t::COMPLEX_FLOAT32, 
-								 uhd::device::SEND_MODE_FULL_BUFF);
-	  }
-      if (Int->tx_state == TX_DUTY_CYCLE_OFF &&
-          timer_toc(Int->duty_cycle_timer) >= (1.0-Int->duty_cycle)*Int->period) {
+        Int->usrp_tx->get_device()->send("", 0, Int->metadata_tx,
+                                         uhd::io_type_t::COMPLEX_FLOAT32,
+                                         uhd::device::SEND_MODE_FULL_BUFF);
+      }
+      if (Int->tx_state == INT_TX_DUTY_CYCLE_OFF &&
+          timer_toc(Int->duty_cycle_timer) >=
+              (1.0 - Int->duty_cycle) * Int->period) {
         timer_tic(Int->duty_cycle_timer);
-		dprintf("Turning on\n");
-        Int->tx_state = TX_DUTY_CYCLE_ON;
-	    
-		// send start of burst packet
+        dprintf("Turning on\n");
+        Int->tx_state = INT_TX_DUTY_CYCLE_ON;
+
+        // send start of burst packet
         Int->metadata_tx.start_of_burst = true;
         Int->metadata_tx.end_of_burst = false;
-        Int->usrp_tx->get_device()->send(&Int->tx_buffer[0], 0, Int->metadata_tx,
-                                  uhd::io_type_t::COMPLEX_FLOAT32,
-                                  uhd::device::SEND_MODE_FULL_BUFF);
+        Int->usrp_tx->get_device()->send(
+            &Int->tx_buffer[0], 0, Int->metadata_tx,
+            uhd::io_type_t::COMPLEX_FLOAT32, uhd::device::SEND_MODE_FULL_BUFF);
         Int->metadata_tx.start_of_burst = false;
       }
 
-      // generate frame and transmit if in the on state  
-      if (Int->tx_state == TX_DUTY_CYCLE_ON) {
-	    switch (Int->interference_type) {
+      // generate frame and transmit if in the on state
+      if (Int->tx_state == INT_TX_DUTY_CYCLE_ON) {
+        switch (Int->interference_type) {
         case (CW):
-		  Int->BuildCWTransmission();
-		  break;
+          Int->BuildCWTransmission();
+          break;
         case (NOISE):
           Int->BuildNOISETransmission();
           break;
         case (GMSK):
-		  Int->BuildGMSKTransmission();
+          Int->BuildGMSKTransmission();
           break;
         case (RRC):
           Int->BuildRRCTransmission();
@@ -402,10 +422,9 @@ void *Interferer_tx_worker(void *_arg) {
 
         Int->TransmitInterference();
       }
-	} // while tx_running
-	dprintf("tx_worker finished running");
+    } // while tx_running
+    dprintf("tx_worker finished running");
   } // while tx_thread_running
   dprintf("tx_worker exiting thread\n");
   pthread_exit(NULL);
 }
-
