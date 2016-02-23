@@ -5,7 +5,7 @@
 
 class CE_Two_Channel_DSA_Link_Reliability : public Cognitive_Engine {
 public:
-  CE_Two_Channel_DSA_Link_Reliability();
+  CE_Two_Channel_DSA_Link_Reliability(int argc, char **argv);
   ~CE_Two_Channel_DSA_Link_Reliability();
   virtual void execute(ExtensibleCognitiveRadio *ECR);
 

@@ -122,6 +122,9 @@ struct node_parameters {
   double tx_freq_max;        // center frequency maximum
   double tx_freq_dwell_time; // seconds at a given freq
   double tx_freq_resolution; // granularity for SWEEP and RANDOM frequency behaviors
+
+  // A getopt style string that can contain custom parameters to be passed to the CE.
+  char custom_param_str[2048]; 
 };
 
 #endif

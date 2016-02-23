@@ -7,7 +7,7 @@
 
 class CE_Two_Channel_DSA_PU : public Cognitive_Engine {
 public:
-  CE_Two_Channel_DSA_PU();
+  CE_Two_Channel_DSA_PU(int argc, char**argv);
   ~CE_Two_Channel_DSA_PU();
   virtual void execute(ExtensibleCognitiveRadio *ECR);
 

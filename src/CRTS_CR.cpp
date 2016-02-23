@@ -98,7 +98,8 @@ void Receive_command_from_controller(int *TCP_controller,
   }
 }
 
-void Initialize_CR(struct node_parameters *np, void *ECR_p) {
+void Initialize_CR(struct node_parameters *np, void *ECR_p,
+                   int argc, char **argv) {
 
   // initialize ECR parameters if applicable
   if (np->cr_type == ecr) {
@@ -140,7 +141,7 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p) {
     ECR->set_tx_crc(np->tx_crc);
     ECR->set_tx_fec0(np->tx_fec0);
     ECR->set_tx_fec1(np->tx_fec1);
-    ECR->set_ce(np->CE);
+    ECR->set_ce(np->CE, argc, argv);
     ECR->reset_log_files();
 
     // copy subcarrier allocations if other than liquid-dsp default
@@ -201,6 +202,54 @@ void log_tx_data(struct scenario_parameters *sp, struct node_parameters *np,
     printf("Error opening log file: %s\n", np->net_tx_log_file);
 }
 
+// Must call freeargcargv after calling this function to free memory
+void str2argcargv(char *string, char *progName, int &argc, char (**&argv))    {
+  char *stringCpy = (char *)malloc(sizeof(char)*strlen(string));
+  strcpy(stringCpy, string);
+  char* token = strtok(stringCpy, " ");
+  // Get number of arguments
+  argc = 1;
+  while(token != NULL){
+    argc++;
+    token = strtok(NULL, " ");
+  }
+  
+  argv = (char **) malloc(sizeof(char*) * (argc+1));
+  argv[argc] = 0;
+  // Set the name of the program in the first element
+  *argv = (char *) malloc(sizeof(char) * strlen(progName));
+  strcpy(*argv, progName); 
+  
+  if ((argc) > 1){
+    free(stringCpy);
+    stringCpy = (char *) malloc(sizeof(char)*strlen(string));
+    strcpy(stringCpy, string);
+    token = strtok(stringCpy, " ");
+    for (int i=1; token!=NULL; i++)
+    {
+      argv[i] = (char *) malloc(sizeof(char)*strlen(token));
+      strcpy( argv[i], token);
+      token = strtok(NULL, " ");
+    } 
+  }
+
+  //Debug
+  for (int i=0; i<argc; i++)
+  {
+    dprintf("argv[%d] = %s\n",i, argv[i]);
+  }
+}
+
+// Call when done with argc argv arrays created by str2argcargv().
+void freeargcargv(int &argc, char **&argv) {
+  for (int i = 1; i<argc+1; i++)
+  {
+    free( argv[i] );
+  }
+  free(argv);
+  argv = NULL;
+}
+
 void help_CRTS_CR() {
   printf("CRTS_CR -- Start a cognitive radio node. Only needs to be run "
          "explicitly when using CRTS_controller with -m option.\n");
@@ -238,6 +287,8 @@ int main(int argc, char **argv) {
       break;
     }
   }
+  // Must reset getopt in case it is used later by the CE constructor
+  optind = 0;
 
   // Create TCP client to controller
   int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
@@ -356,7 +407,13 @@ int main(int argc, char **argv) {
     uhd::time_spec_t t0(0, 0, 1e6);
     ECR->usrp_rx->set_time_now(t0, 0);
 
-    Initialize_CR(&np, (void *)ECR);
+    int argc = 0;
+    char ** argv = NULL;
+    dprintf("Converting custom_param_str to argc argv format\n");
+    str2argcargv(np.custom_param_str, np.CE, argc, argv);
+    dprintf("Initializing CR\n");
+    Initialize_CR(&np, (void *)ECR, argc, argv);
+    freeargcargv(argc, argv);
 
   } else if (np.cr_type == python) {
     dprintf("CRTS: Forking child process\n");
@@ -377,7 +434,7 @@ int main(int argc, char **argv) {
 
       sleep(5);
       dprintf("CRTS Child: Initializing python CR\n");
-      Initialize_CR(&np, NULL);
+      Initialize_CR(&np, NULL, 0, NULL);
 
       while (true) {
         if (sig_terminate)

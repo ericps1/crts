@@ -4,7 +4,8 @@
 #include <iostream>
 
 // constructor
-CE_Two_Channel_DSA_Link_Reliability::CE_Two_Channel_DSA_Link_Reliability() {
+CE_Two_Channel_DSA_Link_Reliability::CE_Two_Channel_DSA_Link_Reliability(
+    int argc, char **argv) {
   cons_invalid_payloads = 0;
   cons_invalid_control = 0;
   invalid_payloads_thresh = 3;

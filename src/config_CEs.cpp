@@ -66,8 +66,8 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////////
   // Edit ECR.cpp
 
-  flag_beg = "EDIT SET_CE START FLAG";
-  flag_end = "EDIT SET_CE END FLAG";
+  flag_beg = "EDIT SET CE START FLAG";
+  flag_end = "EDIT SET CE END FLAG";
 
   // open read file
   std::ifstream file_in("src/ECR.cpp", std::ifstream::in);
@@ -86,7 +86,7 @@ int main() {
         for (int i = 0; i < num_ces; i++) {
           line = "    if(!strcmp(ce, \"" + ce_list[i] + "\"))";
           file_lines.push_back(line);
-          line = "        CE = new " + ce_list[i] + "();";
+          line = "        CE = new " + ce_list[i] + "(argc, argv);";
           file_lines.push_back(line);
         }
       }
@@ -188,8 +188,8 @@ file_lines.push_back(line_new);*/
 
   file_lines.clear();
 
-  flag_beg = "EDIT START FLAG";
-  flag_end = "EDIT END FLAG";
+  flag_beg = "EDIT CE START FLAG";
+  flag_end = "EDIT CE END FLAG";
 
   // open header file
   file_in.open("makefile", std::ifstream::in);
