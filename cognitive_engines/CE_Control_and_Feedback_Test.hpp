@@ -19,7 +19,7 @@ private:
   float sum_rssi;
 
 public:
-  CE_Control_and_Feedback_Test();
+  CE_Control_and_Feedback_Test(int argc, char **argv);
   ~CE_Control_and_Feedback_Test();
   virtual void execute(ExtensibleCognitiveRadio *ECR);
 };
