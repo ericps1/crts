@@ -61,6 +61,10 @@ public:
     /// by the radio.
     PHY, // event is triggered by the reception of a physical layer frame
 
+    /// \brief Indicates that the transmit worker has completed
+    /// transmission of its final frame
+    TX_COMPLETE,
+    
     /// \brief The receiver processing is not able to keep up with the
     /// current settings.
     UHD_OVERFLOW,

@@ -81,6 +81,9 @@ void CE_Control_and_Feedback_Test::execute(ExtensibleCognitiveRadio *ECR) {
       sum_evm += pow(10.0, ECR->CE_metrics.stats.evm/10.0);
       sum_rssi += pow(10.0, ECR->CE_metrics.stats.rssi/10.0);
       break;
+    case ExtensibleCognitiveRadio::TX_COMPLETE:
+      // handle transmission complete events
+      break;
     case ExtensibleCognitiveRadio::UHD_OVERFLOW:
       // handle UHD overflow events
       break;

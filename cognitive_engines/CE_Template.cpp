@@ -17,6 +17,9 @@ void CE_Template::execute(ExtensibleCognitiveRadio *ECR) {
     case ExtensibleCognitiveRadio::PHY:
       // handle physical layer frame reception events
       break;
+    case ExtensibleCognitiveRadio::TX_COMPLETE:
+      // handle transmission complete events
+      break;
     case ExtensibleCognitiveRadio::UHD_OVERFLOW:
       // handle UHD overflow events
       break;

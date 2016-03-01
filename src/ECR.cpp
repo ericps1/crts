@@ -316,26 +316,26 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio() {
 void ExtensibleCognitiveRadio::set_ce(char *ce, int argc, char **argv) {
   ///@cond INTERNAL
   // EDIT SET CE START FLAG
-    if(!strcmp(ce, "CE_Template"))
-        CE = new CE_Template();
-    if(!strcmp(ce, "CE_Subcarrier_Alloc"))
-        CE = new CE_Subcarrier_Alloc();
-    if(!strcmp(ce, "CE_Mod_Adaptation"))
-        CE = new CE_Mod_Adaptation();
-    if(!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
-        CE = new CE_Two_Channel_DSA_Spectrum_Sensing();
-    if(!strcmp(ce, "CE_Two_Channel_DSA_PU"))
-        CE = new CE_Two_Channel_DSA_PU();
-    if(!strcmp(ce, "CE_FEC_Adaptation"))
-        CE = new CE_FEC_Adaptation();
-    if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
-        CE = new CE_Two_Channel_DSA_Link_Reliability();
-    if(!strcmp(ce, "CE_Control_and_Feedback_Test"))
-        CE = new CE_Control_and_Feedback_Test();
-    if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
-        CE = new CE_Simultaneous_RX_And_Sensing();
-    if(!strcmp(ce, "CE_Throughput_Test"))
-        CE = new CE_Throughput_Test();
+  if(!strcmp(ce, "CE_Template"))
+    CE = new CE_Template(argc, argv);
+  if(!strcmp(ce, "CE_Subcarrier_Alloc"))
+    CE = new CE_Subcarrier_Alloc(argc, argv);
+  if(!strcmp(ce, "CE_Mod_Adaptation"))
+    CE = new CE_Mod_Adaptation(argc, argv);
+  if(!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
+    CE = new CE_Two_Channel_DSA_Spectrum_Sensing(argc, argv);
+  if(!strcmp(ce, "CE_Two_Channel_DSA_PU"))
+    CE = new CE_Two_Channel_DSA_PU(argc, argv);
+  if(!strcmp(ce, "CE_FEC_Adaptation"))
+    CE = new CE_FEC_Adaptation(argc, argv);
+  if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
+    CE = new CE_Two_Channel_DSA_Link_Reliability(argc, argv);
+  if(!strcmp(ce, "CE_Control_and_Feedback_Test"))
+    CE = new CE_Control_and_Feedback_Test(argc, argv);
+  if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
+    CE = new CE_Simultaneous_RX_And_Sensing(argc, argv);
+  if(!strcmp(ce, "CE_Throughput_Test"))
+    CE = new CE_Throughput_Test(argc, argv);
   // EDIT SET CE END FLAG
   ///@endcond
 }
@@ -1343,10 +1343,9 @@ void *ECR_tx_worker(void *_arg) {
 
     // variables to keep track of number of frames if needeed
     tx_frame_counter = 0;
-    bool tx_frame_flag = 1;
-
+    
     // run transmitter
-    while ((ECR->tx_state != TX_STOPPED) && tx_frame_flag) {
+    while (ECR->tx_state != TX_STOPPED) {
 
       if (ECR->update_tx_flag) {
         ECR->update_tx_params();
@@ -1382,12 +1381,19 @@ void *ECR_tx_worker(void *_arg) {
       tx_frame_counter++;
       ECR->transmit_frame(ECR->tx_header, payload, payload_len);
 
-      // update frame flag
+      // change state to stopped once all frames have been transmitted
       if ((ECR->tx_state == TX_FOR_FRAMES) &&
           (tx_frame_counter >= ECR->num_tx_frames)) {
-        tx_frame_flag = 0;
+        ECR->tx_state = TX_STOPPED;
       }
     } // while tx_running
+    
+    // signal CE that transmission has finished
+    pthread_mutex_lock(&ECR->CE_mutex);
+    ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TX_COMPLETE;
+    pthread_cond_signal(&ECR->CE_execute_sig);
+    pthread_mutex_unlock(&ECR->CE_mutex);
+
     dprintf("tx_worker finished running\n");
   } // while tx_thread_running
   dprintf("tx_worker exiting thread\n");
