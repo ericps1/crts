@@ -1230,7 +1230,7 @@ void *ECR_tx_worker(void *_arg) {
       // change state to stopped once all frames have been transmitted
       if ((ECR->tx_state == TX_FOR_FRAMES) &&
           (tx_frame_counter >= ECR->num_tx_frames)) {
-        tx_state = TX_STOPPED;
+        ECR->tx_state = TX_STOPPED;
       }
     } // while tx_running
     
