@@ -415,37 +415,28 @@ void ExtensibleCognitiveRadio::reset_tx() { ofdmflexframegen_reset(fg); }
 
 // set transmitter frequency
 void ExtensibleCognitiveRadio::set_tx_freq(double _tx_freq) {
-  // pthread_mutex_lock(&tx_mutex);
   tx_params_updated.tx_freq = _tx_freq;
   tx_params_updated.tx_dsp_freq = 0.0;
   update_tx_flag = 1;
   update_usrp_tx = 1;
-  // usrp_tx->set_tx_freq(_tx_freq);
-  // pthread_mutex_unlock(&tx_mutex);
 }
 
 // set transmitter frequency
 void ExtensibleCognitiveRadio::set_tx_freq(double _tx_freq, double _dsp_freq) {
-  // pthread_mutex_lock(&tx_mutex);
   tx_params_updated.tx_freq = _tx_freq;
   tx_params_updated.tx_dsp_freq = _dsp_freq;
   update_tx_flag = 1;
   update_usrp_tx = 1;
+}
 
-  // uhd::tune_request_t tune;
-  // tune.rf_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
-  // tune.dsp_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
-  // tune.rf_freq = _tx_freq;
-  // tune.dsp_freq = _dsp_freq;
-
-  // usrp_tx->set_tx_freq(tune);
-  // pthread_mutex_unlock(&tx_mutex);
+// get transmitter state
+int ExtensibleCognitiveRadio::get_tx_state() {
+  return tx_state;
 }
 
 // get transmitter frequency
 double ExtensibleCognitiveRadio::get_tx_freq() {
   return tx_params.tx_freq + tx_params.tx_dsp_freq;
-  // return tx_params.tx_freq;
 }
 
 // set transmitter sample rate
@@ -453,9 +444,6 @@ void ExtensibleCognitiveRadio::set_tx_rate(double _tx_rate) {
   tx_params_updated.tx_rate = _tx_rate;
   update_tx_flag = 1;
   update_usrp_tx = 1;
-  // pthread_mutex_lock(&tx_mutex);
-  // usrp_tx->set_tx_rate(_tx_rate);
-  // pthread_mutex_unlock(&tx_mutex);
 }
 
 // get transmitter sample rate
@@ -1201,10 +1189,9 @@ void *ECR_tx_worker(void *_arg) {
 
     // variables to keep track of number of frames if needeed
     tx_frame_counter = 0;
-    bool tx_frame_flag = 1;
-
+    
     // run transmitter
-    while ((ECR->tx_state != TX_STOPPED) && tx_frame_flag) {
+    while (ECR->tx_state != TX_STOPPED) {
 
       if (ECR->update_tx_flag) {
         ECR->update_tx_params();
@@ -1240,12 +1227,19 @@ void *ECR_tx_worker(void *_arg) {
       tx_frame_counter++;
       ECR->transmit_frame(ECR->tx_header, payload, payload_len);
 
-      // update frame flag
+      // change state to stopped once all frames have been transmitted
       if ((ECR->tx_state == TX_FOR_FRAMES) &&
           (tx_frame_counter >= ECR->num_tx_frames)) {
-        tx_frame_flag = 0;
+        tx_state = TX_STOPPED;
       }
     } // while tx_running
+    
+    // signal CE that transmission has finished
+    pthread_mutex_lock(&ECR->CE_mutex);
+    ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TX_COMPLETE;
+    pthread_cond_signal(&ECR->CE_execute_sig);
+    pthread_mutex_unlock(&ECR->CE_mutex);
+        
     dprintf("tx_worker finished running\n");
   } // while tx_thread_running
   dprintf("tx_worker exiting thread\n");
