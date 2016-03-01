@@ -2,7 +2,8 @@
 #include "CE_Control_and_Feedback_Test.hpp"
 
 // constructor
-CE_Control_and_Feedback_Test::CE_Control_and_Feedback_Test() {
+CE_Control_and_Feedback_Test::CE_Control_and_Feedback_Test(
+    int argc, char **argv) {
   print_stats_timer = timer_create();
   timer_tic(print_stats_timer);
   tx_gain_timer = timer_create();

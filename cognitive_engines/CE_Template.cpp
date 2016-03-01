@@ -2,7 +2,7 @@
 #include "CE_Template.hpp"
 
 // constructor
-CE_Template::CE_Template() {}
+CE_Template::CE_Template(int argc, char **argv) {}
 
 // destructor
 CE_Template::~CE_Template() {}

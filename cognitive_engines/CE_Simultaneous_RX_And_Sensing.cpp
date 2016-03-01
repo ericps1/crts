@@ -6,7 +6,8 @@
 #include <complex>
 
 // constructor
-CE_Simultaneous_RX_And_Sensing::CE_Simultaneous_RX_And_Sensing() {
+CE_Simultaneous_RX_And_Sensing::CE_Simultaneous_RX_And_Sensing(
+    int argc, char **argv) {
   // initialize counter to 0
   fft_counter = 0;
 

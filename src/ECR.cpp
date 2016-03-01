@@ -315,7 +315,7 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio() {
 // Cognitive engine methods
 ///////////////////////////////////////////////////////////////////////
 
-void ExtensibleCognitiveRadio::set_ce(char *ce) {
+void ExtensibleCognitiveRadio::set_ce(char *ce, int argc, char **argv) {
   ///@cond INTERNAL
   // EDIT SET CE START FLAG
     if(!strcmp(ce, "CE_Template"))

@@ -504,7 +504,7 @@ public:
   // Cognitive Engine Methods
   //=================================================================================
 
-  void set_ce(char *ce); // method to set CE to custom defined subclass
+  void set_ce(char *ce, int argc, char **argv); // method to set CE to custom defined subclass
   void start_ce();
   void stop_ce();
 

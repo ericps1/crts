@@ -9,7 +9,7 @@ class CE_Throughput_Test : public Cognitive_Engine {
 private:
   int first_execution;
 public:
-  CE_Throughput_Test();
+  CE_Throughput_Test(int argc, char ** argv);
   ~CE_Throughput_Test();
   virtual void execute(ExtensibleCognitiveRadio *ECR);
 };

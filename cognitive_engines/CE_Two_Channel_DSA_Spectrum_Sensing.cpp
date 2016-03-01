@@ -15,7 +15,8 @@
 #endif
 
 // constructor
-CE_Two_Channel_DSA_Spectrum_Sensing::CE_Two_Channel_DSA_Spectrum_Sensing() {
+CE_Two_Channel_DSA_Spectrum_Sensing::CE_Two_Channel_DSA_Spectrum_Sensing(
+    int argc, char **argv) {
   t1 = timer_create();
   timer_tic(t1);
   tx_is_on = 1;

@@ -640,6 +640,17 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   if (config_setting_lookup_float(node_config, "tx_freq_resolution", &tmpD))
     np.tx_freq_resolution = tmpD;
 
+  // Read Custom Parameters String (A getopt style string for sending custom
+  //  paramters to the CE)
+  if (config_setting_lookup_string(node_config, "custom_param_str", &tmpS))
+  {
+    strcpy(np.custom_param_str, tmpS);
+  }
+  else
+  {
+    np.custom_param_str[0] = '\0';
+  }
+
   return np;
 }
 

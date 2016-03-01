@@ -5,7 +5,7 @@
 #include <sys/time.h>
 
 // constructor
-CE_Two_Channel_DSA_PU::CE_Two_Channel_DSA_PU() {
+CE_Two_Channel_DSA_PU::CE_Two_Channel_DSA_PU(int argc, char **argv) {
   first_execution = 1;
   period_s = 5;
 }
