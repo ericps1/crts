@@ -11,6 +11,7 @@
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd/types/tune_request.hpp>
 #include <fstream>
+#include "CRTS.hpp"
 #include "CE.hpp"
 
 // thread functions
@@ -501,6 +502,7 @@ public:
     float avg_evm;
     float avg_rssi;
     float avg_per;
+    float avg_ber;
     float avg_throughput;
   };
 
@@ -863,7 +865,8 @@ private:
   bool rx_stat_tracking;
   float rx_stat_tracking_period;
   void update_rx_stats();
-  
+  char known_net_payload[CRTS_CR_PACKET_LEN];
+
   //=================================================================================
   // Private Network Interface Objects
   //=================================================================================

@@ -11,6 +11,8 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <sched.h>
+#include <bitset>
+#include "CRTS.hpp"
 #include "ECR.hpp"
 #include "TUN.hpp"
 
@@ -71,6 +73,15 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
   // Initialize header to all zeros
   memset(tx_header, 0, sizeof(tx_header));
 
+  // store known payload for BER calculations
+  msequence ms = msequence_create_default(CRTS_CR_PACKET_SR_LEN);
+  // first several bytes are rewritten since they are used for the packet number
+  for (int i=0; i<CRTS_CR_PACKET_NUM_LEN; i++)
+    known_net_payload[i] = msequence_generate_symbol(ms,8);
+  for (int i=0; i<CRTS_CR_PACKET_LEN-CRTS_CR_PACKET_NUM_LEN; i++){
+    known_net_payload[i] = msequence_generate_symbol(ms,8);
+  }
+
   // enable physical layer events for ce
   ce_phy_events = true;
 
@@ -106,6 +117,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
   update_rx_flag = 0;
   update_usrp_rx = 0;
   recreate_fs = 0;
+  rx_stat_tracking = 0;
 
   // register UHD message handler
   uhd::msg::register_handler(&uhd_msg_handler);
@@ -1111,7 +1123,7 @@ int rxCallback(unsigned char *_header, int _header_valid,
     ECR->CE_metrics.stats = _stats;
     ECR->CE_metrics.time_spec = ECR->metadata_rx.time_spec;
     ECR->CE_metrics.payload_valid = _payload_valid;
-    if (_payload_valid) {
+    //if (_payload_valid) {
       ECR->CE_metrics.payload_len = _payload_len;
       if (ECR->CE_metrics.payload != NULL)
         ECR->CE_metrics.payload = (unsigned char *)realloc(
@@ -1123,10 +1135,10 @@ int rxCallback(unsigned char *_header, int _header_valid,
       memcpy(ECR->CE_metrics.payload, _payload,
              _payload_len * sizeof(unsigned char));
       ECR->CE_metrics.payload_len = _payload_len;
-    } else {
-      ECR->CE_metrics.payload_len = 0;
-      ECR->CE_metrics.payload = NULL;
-    }
+    //} else {
+    //  ECR->CE_metrics.payload_len = 0;
+    //  ECR->CE_metrics.payload = NULL;
+    //}
 
     // Signal CE thread
     pthread_mutex_lock(&ECR->CE_mutex);
@@ -1157,15 +1169,8 @@ int rxCallback(unsigned char *_header, int _header_valid,
       ECR->update_rx_stats();
   }
 
-  // print payload
-  /*dprintf("\nReceived Payload:\n");
-  for (unsigned int i=0; i<_payload_len; i++)
-      dprintf("%c", _payload[i]);
-  dprintf("\n");
-      */
-
-  char payload[_payload_len];
-  memcpy(payload, _payload, _payload_len * sizeof(unsigned char));
+  //char payload[_payload_len];
+  //memcpy(payload, _payload, _payload_len * sizeof(unsigned char));
 
   int nwrite = 0;
   if (_payload_valid) {
@@ -1173,7 +1178,7 @@ int rxCallback(unsigned char *_header, int _header_valid,
       // Pass payload to tun interface
       dprintf("Received payload length: %u\n", _payload_len);
       for (unsigned int i = 0; i < (_payload_len / 288); i++) {
-        nwrite = cwrite(ECR->tunfd, &payload[i * 288], 288);
+        nwrite = cwrite(ECR->tunfd, (char*)&_payload[i * 288], 288);
         if (nwrite != 288)
           printf("Number of bytes written to TUN interface not equal to the "
                  "expected amount\n");
@@ -1191,16 +1196,24 @@ void ExtensibleCognitiveRadio::update_rx_stats(){
   static std::vector<float> rssi;
   static std::vector<int> payload_valid;
   static std::vector<int> payload_len;
+  static std::vector<int> bit_errors;
   
   static float sum_evm = 0.0;
   static float sum_rssi = 0.0;
   static int sum_payload_valid = 0;
   static int sum_payload_len = 0;
+  static int sum_bit_errors = 0;
+  static int sum_valid_bytes = 0;
 
   static int N = 0; // number of valid data points (frames received)
   static int K = 0; // 
   static int ind_first = 0;
   static int ind_last;
+
+  // variables to keep track of known and unknown portions of packets
+  static const int total_frame_len = 32 + CRTS_CR_PACKET_LEN;
+  static const int unknown_len = 32 + CRTS_CR_PACKET_NUM_LEN;
+  static const float overhead = (float)unknown_len/(float)total_frame_len;
 
   // initial allocation of memory vectors
   if (K ==0){
@@ -1210,6 +1223,7 @@ void ExtensibleCognitiveRadio::update_rx_stats(){
     rssi.resize(K,0.0);
     payload_valid.resize(K,0);
     payload_len.resize(K,0);
+    bit_errors.resize(K,0);
   }
 
   // update tracking period since it can be modified
@@ -1228,7 +1242,9 @@ void ExtensibleCognitiveRadio::update_rx_stats(){
     sum_evm -= evm[ind_first];
     sum_rssi -= rssi[ind_first];
     sum_payload_valid -= payload_valid[ind_first];
-    sum_payload_len -= payload_valid[ind_first]*payload_len[ind_first]; 
+    sum_payload_len -= payload_len[ind_first]; 
+    sum_valid_bytes -= payload_valid[ind_first]*payload_len[ind_first]; 
+    sum_bit_errors -= bit_errors[ind_first];
     N--;
 
     if (ind_first == K-1)
@@ -1246,6 +1262,7 @@ void ExtensibleCognitiveRadio::update_rx_stats(){
     rssi.resize(K,0.0);
     payload_valid.resize(K,0);
     payload_len.resize(K,0);
+    bit_errors.resize(K,0);
   }
 
   // update the last data point index
@@ -1253,26 +1270,60 @@ void ExtensibleCognitiveRadio::update_rx_stats(){
   if(ind_last >= K)
     ind_last -= K;
 
+  // calculate number of bit errors if needed
+  unsigned int errors = 0;
+  printf("Header valid: %i\n", CE_metrics.control_valid);
+  printf("%i byte payload valid: %i\n", CE_metrics.payload_len, CE_metrics.payload_valid);
+  if(!CE_metrics.payload_valid) {
+    printf("Calculating errors of a payload length %i\n", CE_metrics.payload_len);
+    for(unsigned int i=0; i<CE_metrics.payload_len; i++) {
+      // only count errors in the known portion (not the IP header and packet number)
+      if(i%(total_frame_len) >= unknown_len) {
+        /*printf("\nRX: %c, known: %c, xor: %u, errs: %u", 
+          CE_metrics.payload[i], 
+          known_net_payload[(i%total_frame_len)-unknown_len],
+          (unsigned int) CE_metrics.payload[i]^known_net_payload[(i%total_frame_len)-unknown_len],
+          (unsigned int) std::bitset<8>((CE_metrics.payload[i]^known_net_payload[(i%total_frame_len)-unknown_len])).count()
+          );*/
+        errors += std::bitset<8>((CE_metrics.payload[i]^known_net_payload[(i%total_frame_len)-unknown_len])).count();
+      }
+    }
+  }
+
   // store latest values
   time_stamp[ind_last] = time_now;
   evm[ind_last] = pow(10.0,CE_metrics.stats.evm/10.0);
   rssi[ind_last] = pow(10.0,CE_metrics.stats.rssi/10.0);
   payload_valid[ind_last] = CE_metrics.payload_valid;
   payload_len[ind_last] = CE_metrics.payload_len;
+  bit_errors[ind_last] = errors;
 
   // update sums
   sum_evm += evm[ind_last];
   sum_rssi += rssi[ind_last];
   sum_payload_valid += payload_valid[ind_last];
-  sum_payload_len += payload_valid[ind_last]*payload_len[ind_last];
-    
+  sum_payload_len += payload_len[ind_last];
+  sum_valid_bytes += payload_valid[ind_last]*payload_len[ind_last];
+  sum_bit_errors += bit_errors[ind_last];
+
   // update average values
   rx_stats.frames_received = N;
   rx_stats.avg_evm = 10.0*log10(sum_evm/(float)N);
   rx_stats.avg_rssi = 10.0*log10(sum_rssi/(float)N);
   rx_stats.avg_per = (float)(N-sum_payload_valid)/(float)N;
-  rx_stats.avg_throughput = 8.0*(float)sum_payload_len/rx_stat_tracking_period;
+  rx_stats.avg_throughput = 8.0*(float)sum_valid_bytes/rx_stat_tracking_period;
+  rx_stats.avg_ber = (1.0+overhead)*(float)sum_bit_errors/(8.0*sum_payload_len);
 
+  //for(int i=offset; i< payload_len[ind_last]; i++)
+  //  printf("%c", CE_metrics.payload[i]);
+  //printf("\n");
+
+  printf("Payload valid: %i\n", CE_metrics.payload_valid);
+  printf("bit errors: %i\n", bit_errors[ind_last]);
+  printf("sum bit errors: %i\n", sum_bit_errors);
+  printf("sum payload_len: %i\n", sum_payload_len);
+  printf("BER: %f\n\n", rx_stats.avg_ber);
+  
   /*printf("\n");
   printf("N: %i\n", N);
   printf("K:, %i\n", K);

@@ -176,7 +176,7 @@ void apply_control_msg(char cont_type,
       break;
     case CRTS_NET_THROUGHPUT:
       np->net_mean_throughput = *(double*)_arg;
-      *t_step = 8.0 * (double)CRTS_CR_NET_PACKET_LEN / np->net_mean_throughput;
+      *t_step = 8.0 * (double)CRTS_CR_PACKET_LEN / np->net_mean_throughput;
       break;
     case CRTS_NET_MODEL:
       np->net_traffic_type = *(int*)_arg;
@@ -741,15 +741,21 @@ int main(int argc, char **argv) {
 
   // Define parameters and message for sending
   int packet_counter = 0;
-  const int packet_num_bytes = 4; // number of bytes used for the packet number
-  unsigned char packet_num_prs[packet_num_bytes]; // pseudo-random sequence used
+  unsigned char packet_num_prs[CRTS_CR_PACKET_NUM_LEN]; // pseudo-random sequence used
                                                   // to modify packet number
-  unsigned char message[CRTS_CR_NET_PACKET_LEN];
-  strcpy((char *)message, np.CRTS_IP);
+  unsigned char message[CRTS_CR_PACKET_LEN];
   srand(12);
-  for (int i = 0; i < packet_num_bytes; i++)
-    packet_num_prs[i] = rand() & 0xff;
+  msequence ms = msequence_create_default(CRTS_CR_PACKET_SR_LEN);
+  
+  // define bit mask applied to packet number
+  for (int i = 0; i < CRTS_CR_PACKET_NUM_LEN; i++)
+    packet_num_prs[i] = msequence_generate_symbol(ms,8); //rand() & 0xff;
 
+  // create a defined payload generated pseudo-randomly
+  for (int i = CRTS_CR_PACKET_NUM_LEN; i < CRTS_CR_PACKET_LEN; i++){
+    message[i] = msequence_generate_symbol(ms,8);//(rand() & 0xff);
+  }
+  
   // initialize sig_terminate flag and check return from socket call
   sig_terminate = 0;
   if (CRTS_client_sock < 0) {
@@ -761,7 +767,7 @@ int main(int argc, char **argv) {
     sig_terminate = 1;
   }
 
-  t_step = 8.0 * (float)CRTS_CR_NET_PACKET_LEN / np.net_mean_throughput;
+  t_step = 8.0 * (float)CRTS_CR_PACKET_LEN / np.net_mean_throughput;
   float send_time_delta = 0;
   struct timeval send_time;
   fd_set read_fds;
@@ -840,14 +846,10 @@ int main(int argc, char **argv) {
 
         // update packet number
         packet_counter++;
-        for (int i = 0; i < packet_num_bytes; i++)
-          message[i + 15] =
-              ((packet_counter >> (8 * (packet_num_bytes - i - 1))) & 0xff) ^
+        for (int i = 0; i < CRTS_CR_PACKET_NUM_LEN; i++)
+          message[i] =
+              ((packet_counter >> (8 * (CRTS_CR_PACKET_NUM_LEN - i - 1))) & 0xff) ^
               packet_num_prs[i];
-
-        // fill the rest with random data
-        for (int i = 15 + packet_num_bytes; i < CRTS_CR_NET_PACKET_LEN; i++)
-          message[i] = (rand() & 0xff);
 
         // send UDP packet via CR
         dprintf("CRTS sending packet %i\n", packet_counter);
@@ -873,10 +875,10 @@ int main(int argc, char **argv) {
 
       // determine packet number
       int rx_packet_num = 0;
-      for (int i = 0; i < packet_num_bytes; i++)
+      for (int i = 0; i < CRTS_CR_PACKET_NUM_LEN; i++)
         rx_packet_num +=
             (((unsigned char)recv_buffer[15 + i]) ^ packet_num_prs[i])
-            << 8 * (packet_num_bytes - i - 1);
+            << 8 * (CRTS_CR_PACKET_NUM_LEN - i - 1);
 
       // print out/log details of received messages
       if (recv_len > 0) {
