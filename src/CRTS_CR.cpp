@@ -333,7 +333,7 @@ void send_feedback_to_controller(int *TCP_controller,
       fb_args++;
     }
   }
-  if (fb_enables & CRTS_RX_STATS){
+  if (fb_enables & CRTS_RX_STATS_FB_EN){
     if(timer_toc(rx_stat_fb_timer) > rx_stats_fb_period){
       timer_tic(rx_stat_fb_timer);
       struct ExtensibleCognitiveRadio::rx_statistics rx_stats = ECR->get_rx_stats();
