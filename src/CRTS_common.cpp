@@ -32,6 +32,7 @@ int get_control_arg_len(int control_type){
     case CRTS_TX_FREQ_RES:
       len = sizeof(double);
       break;
+    case CRTS_RX_STATS_RESET:
     default:
       len = 0;
   }

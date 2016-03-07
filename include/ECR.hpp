@@ -793,7 +793,8 @@ public:
   void set_rx_stat_tracking(bool state, float sec);
   float get_rx_stat_tracking_period();
   struct rx_statistics get_rx_stats();
-
+  void reset_rx_stats();
+  
   //=================================================================================
   // Print/Log Methods and Variables
   //=================================================================================
@@ -863,6 +864,7 @@ private:
   // private members for tracking rx statistics
   struct rx_statistics rx_stats;
   bool rx_stat_tracking;
+  bool reset_rx_stats_flag;
   float rx_stat_tracking_period;
   void update_rx_stats();
   char known_net_payload[CRTS_CR_PACKET_LEN];

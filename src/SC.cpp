@@ -12,7 +12,8 @@ void Scenario_Controller::set_node_parameter(int node, char cont_type, void* _ar
 
   cont_msg[0] = CRTS_MSG_CONTROL;
   cont_msg[1] = cont_type;
-  memcpy((void*)&cont_msg[2], _arg, arg_len);
+  if(arg_len > 0)
+    memcpy((void*)&cont_msg[2], _arg, arg_len);
         
   if (node > sp.num_nodes) {
     printf("set_node_parameters() was called for a node which exceeds the number of nodes in this scenario\n");

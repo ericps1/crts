@@ -23,6 +23,7 @@
 #include "read_configs.hpp"
 
 // EDIT INCLUDE START FLAG
+#include "../scenario_controllers/SC_BER_Sweep.hpp"
 #include "../scenario_controllers/SC_Control_and_Feedback_Test.hpp"
 #include "../scenario_controllers/SC_CORNET_3D.hpp"
 #include "../scenario_controllers/SC_Template.hpp"
@@ -48,7 +49,6 @@ int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, Scenario_Controller *S
         printf(
             "Node %i has disconnected. Terminating the current scenario..\n\n",
             i + 1);
-        // sig_terminate = 1;
         // tell all nodes to terminate program
         for (int j = 0; j < num_nodes; j++) {
           write(TCP_nodes[j], &msg, 1);
@@ -245,6 +245,8 @@ int main(int argc, char **argv) {
       // create the scenario controller
       Scenario_Controller *SC;
       // EDIT SET SC START FLAG
+      if(!strcmp(sp.SC, "SC_BER_Sweep"))
+        SC = new SC_BER_Sweep();
       if(!strcmp(sp.SC, "SC_Control_and_Feedback_Test"))
         SC = new SC_Control_and_Feedback_Test();
       if(!strcmp(sp.SC, "SC_CORNET_3D"))
@@ -509,10 +511,13 @@ int main(int argc, char **argv) {
                    np[j].CORNET_IP);
         }
       }
+
+      delete SC;
+
       // don't continue to next scenario if there was a user issued termination
       if (sig_terminate)
         break;
-
+      
     } // scenario repition loop
 
     // don't continue to next scenario if there was a user issued termination

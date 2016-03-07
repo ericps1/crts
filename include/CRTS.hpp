@@ -32,6 +32,7 @@ enum crts_ctrl_and_fdbk_type {
   CRTS_RX_GAIN,
   CRTS_RX_STATS,
   CRTS_RX_STATS_FB,
+  CRTS_RX_STATS_RESET,
 
   CRTS_NET_THROUGHPUT,
   CRTS_NET_MODEL,

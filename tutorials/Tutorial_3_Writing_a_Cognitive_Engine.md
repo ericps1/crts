@@ -20,8 +20,10 @@ integrate the CE into CRTS, the header and source files should begin with 'CE_'
 This is done to identify the CE sources so that they can be integrated into
 the ECR code.
 
+\code{.sh}
   $ cp CE_Template.cpp CE_Tutorial_3.cpp
   $ cp CE_Template.hpp CE_Tutorial_3.hpp
+\endcode
 
 With these two files we will be defining a new class for our cognitive engine.
 Edit both files so that each instance of 'CE_Template' is replaced with 
@@ -145,15 +147,19 @@ Now that we've established the desired functionality for our CE, we need to
 configure CRTS so that we can use it, and recompile the code. This is 
 accomplished simply by running the following from the CRTS root directory.
 
+\code{.sh}
   $ ./config_CEs
   $ make
+\endcode
 
 Next, we'll need to define a scenario that uses this new CE. Since we'll just
 be using two CR's, move to the scenario directory and copy the 
 Two_Node_FDD_Network scenario.
 
+\code{.sh}
   $ cd scenarios
   $ cp Two_Node_FDD_Network.cfg Tutorial_3.cfg
+\endcode
 
 Open up Tutorial_3.cfg. At the very top let's change the run time to be a 
 bit longer.
@@ -187,10 +193,14 @@ Now we can run the scenario using the same procedure as in Tutorial_1. Login
 to three nodes on your testbed.
 
 On node 1:
+\code(.sh}
   $ ./CRTS_controller -m
+\endcode
 
 On nodes 2 and 3:
+\code{.sh}
   $ ./CRTS_CR -a <controller ip>
+\endcode
 
 You should see updated statistics being printed to the screen once every
 second on nodes 2 and 3. You should further observe decreasing EVM and

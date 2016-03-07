@@ -36,8 +36,9 @@ int sig_terminate;
 time_t stop_time_s;
 std::ofstream log_rx_fstream;
 std::ofstream log_tx_fstream;
-float rx_stats_fb_period = 1.0;
-
+float rx_stats_fb_period = 1e4;
+timer rx_stat_fb_timer;
+  
 void apply_control_msg(char cont_type, 
                        void* _arg, 
                        struct node_parameters *np,
@@ -111,7 +112,8 @@ void receive_command_from_controller(int *TCP_controller,
       case CRTS_MSG_CONTROL:
         rflag = recv(*TCP_controller, &command_buffer[1], 1, 0);
         int arg_len = get_control_arg_len(command_buffer[1]);
-        rflag = recv(*TCP_controller, &command_buffer[2], arg_len, 0);
+        if(arg_len > 0)
+          rflag = recv(*TCP_controller, &command_buffer[2], arg_len, 0);
         dprintf("Received a %i byte control message\n", rflag);
         apply_control_msg(command_buffer[1], (void*) &command_buffer[2], np, ECR, fb_enables, t_step); 
         break;
@@ -171,6 +173,10 @@ void apply_control_msg(char cont_type,
         ECR->set_rx_stat_tracking(false, 0.0);
       }
       break;
+    case CRTS_RX_STATS_RESET:
+      ECR->reset_rx_stats();
+      timer_tic(rx_stat_fb_timer);
+      break;
     case CRTS_RX_STATS_FB:
       rx_stats_fb_period = *(double*)_arg;
       break;
@@ -206,12 +212,10 @@ void send_feedback_to_controller(int *TCP_controller,
   static double last_rx_rate = ECR->get_rx_rate();
   static double last_rx_gain = ECR->get_rx_gain_uhd();
   
-  static timer rx_stat_fb_timer;
   static bool timer_init = 0;
 
   if(!timer_init){
     timer_init = 1;
-    rx_stat_fb_timer = timer_create();
     timer_tic(rx_stat_fb_timer);
   }
   
@@ -337,6 +341,11 @@ void send_feedback_to_controller(int *TCP_controller,
     if(timer_toc(rx_stat_fb_timer) > rx_stats_fb_period){
       timer_tic(rx_stat_fb_timer);
       struct ExtensibleCognitiveRadio::rx_statistics rx_stats = ECR->get_rx_stats();
+      printf("\nSending feedback:\n");
+      printf("PER: %f\n", rx_stats.avg_per);
+      printf("BER: %f\n", rx_stats.avg_ber);
+      printf("RSSI: %f\n", rx_stats.avg_rssi);
+      printf("EVM: %f\n", rx_stats.avg_evm);
       fb_msg[fb_msg_ind] = CRTS_RX_STATS;
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_stats, sizeof(rx_stats));
       fb_msg_ind += 1+sizeof(rx_stats);
@@ -664,6 +673,8 @@ int main(int argc, char **argv) {
     uhd::time_spec_t t0(0, 0, 1e6);
     ECR->usrp_rx->set_time_now(t0, 0);
 
+    rx_stat_fb_timer = timer_create();
+    
     int argc = 0;
     char ** argv = NULL;
     dprintf("Converting custom_param_str to argc argv format\n");
