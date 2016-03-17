@@ -23,6 +23,7 @@ enum crts_ctrl_and_fdbk_type {
   CRTS_TX_RATE,
   CRTS_TX_GAIN,
   CRTS_TX_MOD,
+  CRTS_TX_CRC,
   CRTS_TX_FEC0,
   CRTS_TX_FEC1,
 
@@ -55,6 +56,7 @@ enum crts_ctrl_and_fdbk_type {
 #define CRTS_TX_RATE_FB_EN        (1<<CRTS_TX_RATE)
 #define CRTS_TX_GAIN_FB_EN        (1<<CRTS_TX_GAIN)
 #define CRTS_TX_MOD_FB_EN         (1<<CRTS_TX_MOD)
+#define CRTS_TX_CRC_FB_EN         (1<<CRTS_TX_CRC)
 #define CRTS_TX_FEC0_FB_EN        (1<<CRTS_TX_FEC0)
 #define CRTS_TX_FEC1_FB_EN        (1<<CRTS_TX_FEC1)
 
