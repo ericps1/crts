@@ -37,6 +37,10 @@ void SC_Template::execute(int node, char fb_type, void *_arg) {
       printf("Node %i has updated it's transmit modulation to %s\n", node, 
              modulation_types[*(int*)_arg].name);
       break;
+    case CRTS_TX_CRC:
+      printf("Node %i has updated it's CRC scheme  to %s\n", node, 
+             crc_scheme_str[*(int*)_arg][0]);
+      break;
     case CRTS_TX_FEC0:
       printf("Node %i has updated it's inner FEC scheme  to %s\n", node, 
              fec_scheme_str[*(int*)_arg][0]);
