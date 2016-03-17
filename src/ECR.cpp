@@ -17,13 +17,11 @@
 // EDIT INCLUDE START FLAG
 #include "../cognitive_engines/CE_Template.hpp"
 #include "../cognitive_engines/CE_Subcarrier_Alloc.hpp"
-#include "../cognitive_engines/CE_CORNET3Drx.hpp"
 #include "../cognitive_engines/CE_Mod_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_PU.hpp"
 #include "../cognitive_engines/CE_FEC_Adaptation.hpp"
 #include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
-#include "../cognitive_engines/CE_CORNET3Dtx.hpp"
 #include "../cognitive_engines/CE_Control_and_Feedback_Test.hpp"
 #include "../cognitive_engines/CE_Simultaneous_RX_And_Sensing.hpp"
 #include "../cognitive_engines/CE_Throughput_Test.hpp"
@@ -318,30 +316,26 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio() {
 void ExtensibleCognitiveRadio::set_ce(char *ce, int argc, char **argv) {
   ///@cond INTERNAL
   // EDIT SET CE START FLAG
-    if(!strcmp(ce, "CE_Template"))
-        CE = new CE_Template();
-    if(!strcmp(ce, "CE_Subcarrier_Alloc"))
-        CE = new CE_Subcarrier_Alloc();
-    if(!strcmp(ce, "CE_CORNET3Drx"))
-        CE = new CE_CORNET3Drx();
-    if(!strcmp(ce, "CE_Mod_Adaptation"))
-        CE = new CE_Mod_Adaptation();
-    if(!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
-        CE = new CE_Two_Channel_DSA_Spectrum_Sensing();
-    if(!strcmp(ce, "CE_Two_Channel_DSA_PU"))
-        CE = new CE_Two_Channel_DSA_PU();
-    if(!strcmp(ce, "CE_FEC_Adaptation"))
-        CE = new CE_FEC_Adaptation();
-    if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
-        CE = new CE_Two_Channel_DSA_Link_Reliability();
-    if(!strcmp(ce, "CE_CORNET3Dtx"))
-        CE = new CE_CORNET3Dtx();
-    if(!strcmp(ce, "CE_Control_and_Feedback_Test"))
-        CE = new CE_Control_and_Feedback_Test();
-    if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
-        CE = new CE_Simultaneous_RX_And_Sensing();
-    if(!strcmp(ce, "CE_Throughput_Test"))
-        CE = new CE_Throughput_Test();
+  if(!strcmp(ce, "CE_Template"))
+    CE = new CE_Template(argc, argv);
+  if(!strcmp(ce, "CE_Subcarrier_Alloc"))
+    CE = new CE_Subcarrier_Alloc(argc, argv);
+  if(!strcmp(ce, "CE_Mod_Adaptation"))
+    CE = new CE_Mod_Adaptation(argc, argv);
+  if(!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
+    CE = new CE_Two_Channel_DSA_Spectrum_Sensing(argc, argv);
+  if(!strcmp(ce, "CE_Two_Channel_DSA_PU"))
+    CE = new CE_Two_Channel_DSA_PU(argc, argv);
+  if(!strcmp(ce, "CE_FEC_Adaptation"))
+    CE = new CE_FEC_Adaptation(argc, argv);
+  if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
+    CE = new CE_Two_Channel_DSA_Link_Reliability(argc, argv);
+  if(!strcmp(ce, "CE_Control_and_Feedback_Test"))
+    CE = new CE_Control_and_Feedback_Test(argc, argv);
+  if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
+    CE = new CE_Simultaneous_RX_And_Sensing(argc, argv);
+  if(!strcmp(ce, "CE_Throughput_Test"))
+    CE = new CE_Throughput_Test(argc, argv);
   // EDIT SET CE END FLAG
   ///@endcond
 }
