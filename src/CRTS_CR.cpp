@@ -143,6 +143,9 @@ void apply_control_msg(char cont_type,
     case CRTS_TX_MOD:
       ECR->set_tx_modulation(*(int*)_arg);
       break;
+    case CRTS_TX_CRC:
+      ECR->set_tx_crc(*(int*)_arg);
+      break;
     case CRTS_TX_FEC0:
       ECR->set_tx_fec0(*(int*)_arg);
       break;

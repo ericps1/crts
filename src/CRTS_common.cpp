@@ -7,6 +7,7 @@ int get_control_arg_len(int control_type){
   switch(control_type){
     case CRTS_TX_STATE:
     case CRTS_TX_MOD:
+    case CRTS_TX_CRC:
     case CRTS_TX_FEC0:
     case CRTS_TX_FEC1:
     case CRTS_RX_STATE:
@@ -45,6 +46,7 @@ int get_feedback_arg_len(int fb_type){
   switch(fb_type){
     case CRTS_TX_STATE:
     case CRTS_TX_MOD:
+    case CRTS_TX_CRC:
     case CRTS_TX_FEC0:
     case CRTS_TX_FEC1:
     case CRTS_RX_STATE:
