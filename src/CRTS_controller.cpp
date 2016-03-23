@@ -207,8 +207,8 @@ int main(int argc, char **argv) {
   struct node_parameters np[48];
 
   // read master scenario config file
-  char scenario_name[60];
-  char scenario_file[64];
+  char scenario_name[251];
+  char scenario_file[255];
   unsigned int scenario_reps;
   int num_scenarios = read_master_num_scenarios(nameMasterScenFile);
   printf("Number of scenarios: %i\n\n", num_scenarios);
