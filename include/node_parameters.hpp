@@ -62,6 +62,7 @@ struct node_parameters {
   // CE settings
   char CE[100];
   double ce_timeout_ms;
+  char ce_args[2048]; 
   
   // log/print settings
   int print_metrics;
@@ -123,8 +124,6 @@ struct node_parameters {
   double tx_freq_dwell_time; // seconds at a given freq
   double tx_freq_resolution; // granularity for SWEEP and RANDOM frequency behaviors
 
-  // A getopt style string that can contain custom parameters to be passed to the CE.
-  char custom_param_str[2048]; 
 };
 
 #endif

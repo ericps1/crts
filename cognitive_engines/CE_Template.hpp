@@ -7,6 +7,7 @@ class CE_Template : public Cognitive_Engine {
 
 private:
   // internal members used by this CE
+  int debugLevel;
 
 public:
   CE_Template(int argc, char **argv);

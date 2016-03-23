@@ -677,8 +677,8 @@ int main(int argc, char **argv) {
     
     int argc = 0;
     char ** argv = NULL;
-    dprintf("Converting custom_param_str to argc argv format\n");
-    str2argcargv(np.custom_param_str, np.CE, argc, argv);
+    dprintf("Converting ce_args to argc argv format\n");
+    str2argcargv(np.ce_args, np.CE, argc, argv);
     dprintf("Initializing CR\n");
     Initialize_CR(&np, (void *)ECR, argc, argv);
     freeargcargv(argc, argv);
