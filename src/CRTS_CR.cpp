@@ -369,12 +369,12 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
     ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *)ECR_p;
 
     // append relative locations for log files
-    char phy_rx_log_file_name[100];
+    char phy_rx_log_file_name[255];
     strcpy(phy_rx_log_file_name, "./logs/bin/");
     strcat(phy_rx_log_file_name, np->phy_rx_log_file);
     strcat(phy_rx_log_file_name, ".log");
 
-    char phy_tx_log_file_name[100];
+    char phy_tx_log_file_name[255];
     strcpy(phy_tx_log_file_name, "./logs/bin/");
     strcat(phy_tx_log_file_name, np->phy_tx_log_file);
     strcat(phy_tx_log_file_name, ".log");
@@ -468,7 +468,7 @@ void log_tx_data(struct scenario_parameters *sp, struct node_parameters *np,
 
 // Must call freeargcargv after calling this function to free memory
 void str2argcargv(char *string, char *progName, int &argc, char (**&argv))    {
-  char *stringCpy = (char *)malloc(sizeof(char)*strlen(string));
+  char *stringCpy = (char *)malloc(sizeof(char)*(strlen(string)+1));
   strcpy(stringCpy, string);
   char* token = strtok(stringCpy, " ");
   // Get number of arguments
@@ -481,7 +481,7 @@ void str2argcargv(char *string, char *progName, int &argc, char (**&argv))    {
   argv = (char **) malloc(sizeof(char*) * (argc+1));
   argv[argc] = 0;
   // Set the name of the program in the first element
-  *argv = (char *) malloc(sizeof(char) * strlen(progName));
+  *argv = (char *) malloc(sizeof(char) * (strlen(progName)+1));
   strcpy(*argv, progName); 
   
   if ((argc) > 1){

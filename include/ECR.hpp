@@ -805,8 +805,8 @@ public:
   void log_tx_parameters();
   int log_phy_rx_flag;
   int log_phy_tx_flag;
-  char phy_rx_log_file[100];
-  char phy_tx_log_file[100];
+  char phy_rx_log_file[255];
+  char phy_tx_log_file[255];
   void reset_log_files();
 
   std::ofstream log_rx_fstream;
