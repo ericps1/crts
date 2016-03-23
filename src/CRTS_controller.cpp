@@ -511,6 +511,11 @@ int main(int argc, char **argv) {
                    np[j].CORNET_IP);
         }
       }
+      
+      // Close TCP Connections
+      for (int j = 0; j < sp.num_nodes; j++) {
+        close(TCP_nodes[j]);
+      }
 
       delete SC;
 
