@@ -70,10 +70,10 @@ struct node_parameters {
   int log_phy_tx;
   int log_net_rx;
   int log_net_tx;
-  char phy_rx_log_file[100];
-  char phy_tx_log_file[100];
-  char net_rx_log_file[100];
-  char net_tx_log_file[100];
+  char phy_rx_log_file[260];
+  char phy_tx_log_file[260];
+  char net_rx_log_file[260];
+  char net_tx_log_file[260];
   int generate_octave_logs;
   int generate_python_logs;
 
