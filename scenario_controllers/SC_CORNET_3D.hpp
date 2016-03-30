@@ -19,6 +19,7 @@ private:
   int old_fec1;
   double old_freq;
   double old_bandwidth;
+  double old_gain;
 
 public:
   SC_CORNET_3D();
