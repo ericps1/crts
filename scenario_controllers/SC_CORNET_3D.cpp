@@ -9,6 +9,8 @@
 
 struct crts_params
 {
+    int guard; //not used, needed to make struct correct size
+    int type;
     int mod;
     int crc;
     int fec0;
@@ -108,68 +110,74 @@ void SC_CORNET_3D::execute(int node, char fb_type, void *_arg) {
     crts_params params;
     if(select(TCP_CORNET_3D+1, &fds, NULL, NULL, &timeout)) 
     {
-        int rlen = recv(TCP_CORNET_3D, &params, 40, 0);
+        int rlen = recv(TCP_CORNET_3D, &params, sizeof(params), 0);
         if(rlen > 0)
         {
-            std::cout << "node: " << node << std::endl;
-            printf("params.mod: %u\n", params.mod);
-            printf("params.crc: %u\n", params.crc);
-            printf("params.fec0: %u\n", params.fec0);
-            printf("params.fec1: %u\n", params.fec1);
-            printf("params.freq: %f\n", params.freq);
-            printf("params.bandwidth: %f\n", params.bandwidth);
-            printf("params.gain: %f\n", params.gain);
-
-            std::cout << "checking" << std::endl;
-            if(params.mod != old_mod)
+            //CORNET3D backend sends a 9 when client disconnects
+            //Call killall CRTS_Controller with in turn shuts
+            //down nodes
+            if(params.type == 9)
             {
-                std::cout << "updating mod" << std::endl;
-                set_node_parameter(0, CRTS_TX_MOD, &params.mod);  
-                old_mod = params.mod;
+                std::cout << "received shutdown" << std::endl;
+                system("killall CRTS_controller");
             }
-
-            if(params.crc != old_crc)
+            else
             {
-                std::cout << "updating crc" << std::endl;
-                set_node_parameter(0, CRTS_TX_CRC, &params.crc);
-                old_crc = params.crc;
-            }
+                /*
+                printf("read %u bytes\n", rlen);
+                printf("params size: %lu\n", sizeof(params)); 
+                printf("params.type: %u\n", params.type);
+                printf("params.mod: %u\n", params.mod);
+                printf("params.crc: %u\n", params.crc);
+                printf("params.fec0: %u\n", params.fec0);
+                printf("params.fec1: %u\n", params.fec1);
+                printf("params.freq: %f\n", params.freq);
+                printf("params.bandwidth: %f\n", params.bandwidth);
+                printf("params.gain: %f\n", params.gain);
+                */
+                if(params.mod != old_mod)
+                {
+                    set_node_parameter(0, CRTS_TX_MOD, &params.mod);  
+                    old_mod = params.mod;
+                }
 
-            if(params.fec0 != old_fec0)
-            {
-                std::cout << "updating fec0" << std::endl;
-                set_node_parameter(0, CRTS_TX_FEC0, &params.fec0);
-                old_fec0 = params.fec0;
-            }   
+                if(params.crc != old_crc)
+                {
+                    set_node_parameter(0, CRTS_TX_CRC, &params.crc);
+                    old_crc = params.crc;
+                }
 
-            if(params.fec1 != old_fec1)
-            {
-                std::cout << "updating fec1" << std::endl;
-                set_node_parameter(0, CRTS_TX_FEC1, &params.fec1);
-                old_fec1 = params.fec1;
-            }
+                if(params.fec0 != old_fec0)
+                {
+                    set_node_parameter(0, CRTS_TX_FEC0, &params.fec0);
+                    old_fec0 = params.fec0;
+                }   
 
-            if(params.freq != old_freq)
-            {
-                std::cout << "updating freq" << std::endl;
-                set_node_parameter(0, CRTS_TX_FREQ, &params.freq);
-                set_node_parameter(1, CRTS_RX_FREQ, &params.freq);
-                old_freq = params.freq;
-            }
+                if(params.fec1 != old_fec1)
+                {
+                    set_node_parameter(0, CRTS_TX_FEC1, &params.fec1);
+                    old_fec1 = params.fec1;
+                }
 
-            if(params.bandwidth != old_bandwidth)
-            {
-                std::cout << "updating bandwidth" << std::endl;
-                set_node_parameter(0, CRTS_TX_RATE, &params.bandwidth);
-                set_node_parameter(1, CRTS_RX_RATE, &params.bandwidth);
-                old_bandwidth = params.bandwidth;
-            }
+                if(params.freq != old_freq)
+                {
+                    set_node_parameter(0, CRTS_TX_FREQ, &params.freq);
+                    set_node_parameter(1, CRTS_RX_FREQ, &params.freq);
+                    old_freq = params.freq;
+                }
 
-            if(params.gain != old_gain)
-            {
-                std::cout << "updating gain" << std::endl;
-                set_node_parameter(0, CRTS_TX_GAIN, &params.gain);
-                old_gain = params.gain;
+                if(params.bandwidth != old_bandwidth)
+                {
+                    set_node_parameter(0, CRTS_TX_RATE, &params.bandwidth);
+                    set_node_parameter(1, CRTS_RX_RATE, &params.bandwidth);
+                    old_bandwidth = params.bandwidth;
+                }
+
+                if(params.gain != old_gain)
+                {
+                    set_node_parameter(0, CRTS_TX_GAIN, &params.gain);
+                    old_gain = params.gain;
+                }
             }
 
         }
