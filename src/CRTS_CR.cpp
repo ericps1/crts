@@ -101,9 +101,9 @@ void receive_command_from_controller(int *TCP_controller,
         break;
       case CRTS_MSG_MANUAL_START: // updated start time (used for manual mode)
         dprintf("Received manual start from controller");
-        rflag = recv(*TCP_controller, &command_buffer[1], sizeof(time_t), 0);
-        memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
-        stop_time_s = sp->start_time_s + sp->runTime;
+        rflag = recv(*TCP_controller, &command_buffer[1], sizeof(int64_t), 0);
+        memcpy(&sp->start_time_s, &command_buffer[1], sizeof(int64_t));
+        stop_time_s = (time_t) (sp->start_time_s + sp->runTime);
         break;
       case CRTS_MSG_TERMINATE: // terminate program
         dprintf("Received termination command from controller\n");
@@ -794,12 +794,12 @@ int main(int argc, char **argv) {
   // Wait for the start-time before beginning the scenario
   struct timeval tv;
   time_t time_s;
-  stop_time_s = sp.start_time_s + sp.runTime;
+  stop_time_s = (time_t) (sp.start_time_s + sp.runTime);
   while (1) {
     receive_command_from_controller(&TCP_controller, &sp, &np, ECR, &fb_enables, &t_step);
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;
-    if (time_s >= sp.start_time_s)
+    if (time_s >= (time_t) sp.start_time_s)
       break;
     if (sig_terminate)
       break;

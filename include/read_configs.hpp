@@ -10,10 +10,12 @@ struct scenario_parameters {
   int num_nodes;
 
   // The start time of the scenario
-  time_t start_time_s;
+  //time_t start_time_s;
+  int64_t start_time_s;
 
   // The length of time to run the scenario
-  time_t runTime;
+  //time_t runTime;
+  int64_t runTime;
 
   // Total number of times this scenario
   // will be run

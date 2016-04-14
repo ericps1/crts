@@ -107,7 +107,8 @@ struct scenario_parameters read_scenario_parameters(char *scenario_file) {
   config_lookup_int(&cfg, "num_nodes", &tmpI);
   sp.num_nodes = tmpI;
   config_lookup_float(&cfg, "run_time", &tmpD);
-  sp.runTime = (time_t)tmpD;
+  // FIXME: Only integer number of seconds are allowed
+  sp.runTime = (int64_t)tmpD;
   
   if (config_lookup_string(&cfg, "scenario_controller", &tmpS))
     strcpy(sp.SC, tmpS);

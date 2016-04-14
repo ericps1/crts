@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
   // variables for reading the system clock
   struct timeval tv;
   time_t time_s;
-  time_t start_time_s;
+  int64_t start_time_s;
 
   // loop through scenarios
   for (int i = 0; i < num_scenarios; i++) {
@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
       gettimeofday(&tv, NULL);
       time_s = tv.tv_sec;
       int pad_s = manual_execution ? 120 : 10;
-      sp.start_time_s = time_s + 1 * sp.num_nodes + pad_s;
+      sp.start_time_s = (int64_t) (time_s + 1 * sp.num_nodes + pad_s);
 
       // loop through nodes in scenario
       for (int j = 0; j < sp.num_nodes; j++) {
@@ -426,13 +426,13 @@ int main(int argc, char **argv) {
       if (manual_execution && !sig_terminate) {
 
         gettimeofday(&tv, NULL);
-        start_time_s = tv.tv_sec + sp.num_nodes + 3;
+        start_time_s = (int64_t) (tv.tv_sec + sp.num_nodes + 3);
 
         // send updated start time to all nodes
         char msg_type = CRTS_MSG_MANUAL_START;
         for (int j = 0; j < sp.num_nodes; j++) {
           send(TCP_nodes[j], (void *)&msg_type, sizeof(char), 0);
-          send(TCP_nodes[j], (void *)&start_time_s, sizeof(time_t), 0);
+          send(TCP_nodes[j], (void *)&start_time_s, sizeof(int64_t), 0);
         }
       } else {
         start_time_s = sp.start_time_s;
@@ -450,7 +450,7 @@ int main(int argc, char **argv) {
         // check if the scenario should be terminated based on the elapsed time
         gettimeofday(&tv, NULL);
         time_s = tv.tv_sec;
-        if (time_s > start_time_s + sp.runTime + 10)
+        if (time_s > (time_t) start_time_s + (time_t) sp.runTime + 10)
           time_terminate = 1;
       }
 
