@@ -13,6 +13,9 @@
 #include <fstream>
 #include "CRTS.hpp"
 #include "CE.hpp"
+#include "timer.h"
+
+#define ECR_CONTROL_INFO_BYTES 6
 
 // thread functions
 void *ECR_tx_worker(void *_arg);
@@ -30,12 +33,18 @@ int rxCallback(unsigned char *_header, int _header_valid,
 enum tx_states {
   TX_STOPPED = 0,
   TX_CONTINUOUS,
-  TX_FOR_FRAMES
+  TX_BURST
 };
-  
+
 enum rx_states {
   RX_STOPPED = 0,
   RX_CONTINUOUS
+};
+
+enum worker_states {
+  WORKER_HALTED = 0,
+  WORKER_READY,
+  WORKER_RUNNING
 };
 
 class ExtensibleCognitiveRadio {
@@ -549,6 +558,19 @@ public:
   /// UDP connection
   void set_tx_queue_len(int queue_len);
 
+  /// \brief Returns the number of bytes currently queued for transmission
+  int get_tx_queued_bytes();
+
+  /// \brief Decrements the count of bytes currently queued for transmission
+  /// This function is only used as a work around since tun interfaces don't
+  /// allow you to read the number of queued bytes.
+  void dec_tx_queued_bytes(int n);
+
+  /// \brief Increments the count of bytes currently queued for transmission
+  /// This function is only used as a work around since tun interfaces don't
+  /// allow you to read the number of queued bytes.
+  void inc_tx_queued_bytes(int n);
+
   //=================================================================================
   // Transmitter Methods
   //=================================================================================
@@ -612,12 +634,6 @@ public:
   /// provides a lower bound for the payload length in symbols.
   void set_tx_payload_sym_len(unsigned int len);
 
-  /// \brief Increases the modulation order if possible.
-  void increase_tx_mod_order();
-
-  /// \brief Decreases the modulation order if possible.
-  void decrease_tx_mod_order();
-
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_state.
   int get_tx_state();
@@ -625,6 +641,14 @@ public:
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
   double get_tx_freq();
+
+  /// \brief Return the value of
+  /// ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
+  double get_tx_lo_freq();
+
+  /// \brief Return the value of
+  /// ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
+  double get_tx_dsp_freq();
 
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_rate.
@@ -681,35 +705,23 @@ public:
   double get_tx_data_rate();
   
   void start_tx();
-  void start_tx_for_frames(int _num_tx_frames);
+  void start_tx_burst(unsigned int _num_tx_frames,
+                      float _max_tx_time_ms);
   void stop_tx();
   void reset_tx();
 
-  /// \brief Transmit a custom frame.
+  /// \brief Transmit a control frame.
   ///
   /// The cognitive engine (CE) can initiate transmission
-  /// of a custom frame by calling this function.
-  /// \p _header must be a pointer to an array
-  /// of exactly 8 elements of type
-  /// \c unsigned \c int.
-  /// The first byte of \p _header \b must be set to
-  /// ExtensibleCognitiveRadio::CONTROL.
-  /// For Example:
-  /// @code
-  /// ExtensibleCognitiveRadio ECR;
-  /// unsigned char myHeader[8];
-  /// unsigned char myPayload[20];
-  /// myHeader[0] = ExtensibleCognitiveRadio::CONTROL.
-  /// ECR.transmit_frame(myHeader, myPayload, 20);
-  /// @endcode
+  /// of a frame dedicated to control information by 
+  /// calling this function.
   /// \p _payload is an array of \c unsigned \c char
   /// and can be any length. It can contain any data
   /// as would be useful to the CE.
   ///
   /// \p _payload_len is the number of elements in
   /// \p _payload.
-  void transmit_frame(unsigned char *_header, unsigned char *_payload,
-                      unsigned int _payload_len);
+  void transmit_control_frame(unsigned char *_payload, unsigned int _payload_len);
 
   //=================================================================================
   // Receiver Methods
@@ -750,6 +762,14 @@ public:
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
   double get_rx_freq();
+
+  /// \brief Return the value of
+  /// ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
+  double get_rx_lo_freq();
+
+  /// \brief Return the value of
+  /// ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
+  double get_rx_dsp_freq();
 
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::rx_parameter_s::rx_rate.
@@ -876,6 +896,8 @@ private:
   int tunfd; // virtual network interface
   // String for TUN interface name
   char tun_name[IFNAMSIZ];
+  int tx_queued_bytes;
+  int tx_queue_len;
   // String for commands for TUN interface
   char systemCMD[200];
 
@@ -888,9 +910,10 @@ private:
 
   // receiver properties/objects
   struct rx_parameter_s rx_params;
-  int update_rx_flag;
-  int update_usrp_rx;
-  int recreate_fs;
+  bool update_rx_flag;
+  bool update_usrp_rx;
+  bool recreate_fs;
+  bool reset_fs;
   void update_rx_params();
   ofdmflexframesync fs; // frame synchronizer object
   unsigned int frame_num;
@@ -898,8 +921,10 @@ private:
   // receiver threading objects
   pthread_t rx_process;     // receive thread
   pthread_mutex_t rx_mutex; // receive mutex
+  pthread_mutex_t rx_params_mutex;
   pthread_cond_t rx_cond;   // receive condition
   int rx_state;             // is receiver running?
+  int rx_worker_state;
   bool rx_thread_running;   // is receiver thread running?
   friend void *ECR_rx_worker(void *);
 
@@ -912,12 +937,19 @@ private:
   //=================================================================================
 
   // transmitter properties/objects
+  unsigned int tx_frame_counter;
+  timer tx_timer;
+  float max_tx_time_ms;
   tx_parameter_s tx_params;
   tx_parameter_s tx_params_updated;
-  int update_tx_flag;
-  int update_usrp_tx;
-  int recreate_fg;
+  bool update_tx_flag;
+  bool update_usrp_tx;
+  bool recreate_fg;
+  bool reset_fg;
   void update_tx_params();
+  void transmit_frame(unsigned int frame_type,
+                      unsigned char *_payload, 
+                      unsigned int _payload_len);
   ofdmflexframegen fg;           // frame generator object
   unsigned int fgbuffer_len;     // length of frame generator buffer
   std::complex<float> *fgbuffer; // frame generator output buffer [size:
@@ -927,13 +959,16 @@ private:
   unsigned int numDataSubcarriers;	
   double tx_data_rate;
   int update_tx_data_rate;
-  int num_tx_frames;
+  unsigned int num_tx_frames;
 
   // transmitter threading objects
   pthread_t tx_process;
   pthread_mutex_t tx_mutex;
+  pthread_mutex_t tx_state_mutex;
+  pthread_mutex_t tx_params_mutex;
   pthread_cond_t tx_cond;
   bool tx_thread_running;
+  int tx_worker_state;
   int tx_state;
   friend void *ECR_tx_worker(void *);
 };

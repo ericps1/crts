@@ -33,7 +33,9 @@
 #endif
 
 int sig_terminate;
-time_t stop_time_s;
+bool start_msg_received = false;
+time_t start_time_s = 0;
+time_t stop_time_s = 0;
 std::ofstream log_rx_fstream;
 std::ofstream log_tx_fstream;
 float rx_stats_fb_period = 1e4;
@@ -65,8 +67,8 @@ void receive_command_from_controller(int *TCP_controller,
   FD_ZERO(&fds);
   FD_SET(*TCP_controller, &fds);
 
-  // if data is available, read it in
-  if (select(*TCP_controller + 1, &fds, NULL, NULL, &timeout)) {
+  // if data is available or the scenario has not been started, read in message from controller
+  if (select(*TCP_controller + 1, &fds, NULL, NULL, &timeout) || (start_time_s == 0)) {
     // read the first byte which designates the message type
     int rflag = recv(*TCP_controller, command_buffer, 1, 0);
 
@@ -99,11 +101,12 @@ void receive_command_from_controller(int *TCP_controller,
                sizeof(struct node_parameters));
         print_node_parameters(np);
         break;
-      case CRTS_MSG_MANUAL_START: // updated start time (used for manual mode)
-        dprintf("Received manual start from controller");
+      case CRTS_MSG_START: // updated start time (used for manual mode)
+        printf("Received manual start from controller");
         rflag = recv(*TCP_controller, &command_buffer[1], sizeof(time_t), 0);
-        memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
-        stop_time_s = sp->start_time_s + sp->runTime;
+        start_msg_received = true;
+        memcpy(&start_time_s, &command_buffer[1], sizeof(time_t));
+        stop_time_s = start_time_s + sp->runTime;
         break;
       case CRTS_MSG_TERMINATE: // terminate program
         dprintf("Received termination command from controller\n");
@@ -183,6 +186,7 @@ void apply_control_msg(char cont_type,
     case CRTS_NET_THROUGHPUT:
       np->net_mean_throughput = *(double*)_arg;
       *t_step = 8.0 * (double)CRTS_CR_PACKET_LEN / np->net_mean_throughput;
+      printf("\nUpdated network throughput: %e\n\n", np->net_mean_throughput);
       break;
     case CRTS_NET_MODEL:
       np->net_traffic_type = *(int*)_arg;
@@ -296,7 +300,6 @@ void send_feedback_to_controller(int *TCP_controller,
       fb_args++;
     }
   }
-
   if (fb_enables & CRTS_RX_STATE_FB_EN){
     int rx_state = ECR->get_rx_state();
     if(rx_state != last_rx_state){
@@ -341,11 +344,12 @@ void send_feedback_to_controller(int *TCP_controller,
     if(timer_toc(rx_stat_fb_timer) > rx_stats_fb_period){
       timer_tic(rx_stat_fb_timer);
       struct ExtensibleCognitiveRadio::rx_statistics rx_stats = ECR->get_rx_stats();
-      printf("\nSending feedback:\n");
+      /*printf("\nSending feedback:\n");
       printf("PER: %f\n", rx_stats.avg_per);
       printf("BER: %f\n", rx_stats.avg_ber);
       printf("RSSI: %f\n", rx_stats.avg_rssi);
       printf("EVM: %f\n", rx_stats.avg_evm);
+      */
       fb_msg[fb_msg_ind] = CRTS_RX_STATS;
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&rx_stats, sizeof(rx_stats));
       fb_msg_ind += 1+sizeof(rx_stats);
@@ -534,9 +538,6 @@ int main(int argc, char **argv) {
   signal(SIGQUIT, terminate);
   signal(SIGTERM, terminate);
 
-  // timing variables
-  // time_t runTime = 20;
-
   // Default IP address of controller
   char *controller_ipaddr = (char *)"192.168.1.56";
 
@@ -551,6 +552,7 @@ int main(int argc, char **argv) {
       break;
     }
   }
+  
   // Must reset getopt in case it is used later by the CE constructor
   optind = 0;
 
@@ -593,9 +595,7 @@ int main(int argc, char **argv) {
   float t_step;
   int fb_enables = 0;;
   receive_command_from_controller(&TCP_controller, &sp, &np, ECR, &fb_enables, &t_step);
-  // fcntl(TCP_controller, F_SETFL, O_NONBLOCK); // Set socket to non-blocking
-  // for future communication
-
+  
   // copy log file name for post processing later
   char net_rx_log_file_cpy[100];
   strcpy(net_rx_log_file_cpy, np.net_rx_log_file);
@@ -735,14 +735,6 @@ int main(int argc, char **argv) {
   CRTS_client_addr.sin_port = htons(port);
   int CRTS_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-  // Resize send buffer
-  /*int size;
-  socklen_t len;
-  size = 288*25;
-  buff_err = setsockopt(CRTS_client_sock, SOL_SOCKET, SO_SNDBUF, &size,
-  sizeof(int));
-  */
-
   // Bind CRTS server socket
   bind(CRTS_server_sock, (sockaddr *)&CRTS_server_addr, clientlen);
 
@@ -794,16 +786,15 @@ int main(int argc, char **argv) {
   // Wait for the start-time before beginning the scenario
   struct timeval tv;
   time_t time_s;
-  stop_time_s = sp.start_time_s + sp.runTime;
   while (1) {
     receive_command_from_controller(&TCP_controller, &sp, &np, ECR, &fb_enables, &t_step);
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;
-    if (time_s >= sp.start_time_s)
+    if ((time_s >= start_time_s) && start_msg_received)
       break;
     if (sig_terminate)
       break;
-    usleep(1e4);
+    usleep(5e2);
   }
 
   if (np.cr_type == ecr) {
@@ -815,9 +806,9 @@ int main(int argc, char **argv) {
   }
 
   bool send_flag = true;
-    
+  
   // main loop: receives control, sends feedback, and generates/receives network traffic
-  while (time_s < stop_time_s && !sig_terminate) {
+  while ((time_s < stop_time_s) && (!sig_terminate)) {
     // Listen for any updates from the controller
     receive_command_from_controller(&TCP_controller, &sp, &np, ECR, &fb_enables, &t_step);
 
@@ -841,7 +832,7 @@ int main(int argc, char **argv) {
         send_time_delta += t_step * (float)poisson_rv;
         break;
       }
-      send_time.tv_sec = sp.start_time_s + (long int)floorf(send_time_delta / 1e6);
+      send_time.tv_sec = start_time_s + (long int)floorf(send_time_delta / 1e6);
       send_time.tv_usec = (long int)fmod(send_time_delta, 1e6);
     }
 
@@ -870,6 +861,8 @@ int main(int argc, char **argv) {
         if (send_return < 0)
           printf("Failed to send message\n");
 
+        ECR->inc_tx_queued_bytes(send_return+32);
+        
         if (np.log_net_tx) {
           log_tx_data(&sp, &np, send_return, packet_counter);
         }
