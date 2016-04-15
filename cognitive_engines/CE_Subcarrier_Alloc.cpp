@@ -6,7 +6,7 @@
 #include "CE_Subcarrier_Alloc.hpp"
 
 // constructor
-CE_Subcarrier_Alloc::CE_Subcarrier_Alloc() {
+CE_Subcarrier_Alloc::CE_Subcarrier_Alloc(int argc, char **argv) {
   period_s = 1;
   first_execution = 1;
   alloc = 0;

@@ -7,9 +7,10 @@ class CE_Template : public Cognitive_Engine {
 
 private:
   // internal members used by this CE
+  int debugLevel;
 
 public:
-  CE_Template();
+  CE_Template(int argc, char **argv);
   ~CE_Template();
   virtual void execute(ExtensibleCognitiveRadio *ECR);
 };

@@ -26,10 +26,10 @@
 
 #define DAC_RATE 64e6
 
-enum tx_states {
-  TX_STOPPED = 0,
-  TX_DUTY_CYCLE_ON,
-  TX_DUTY_CYCLE_OFF
+enum int_tx_states {
+  INT_TX_STOPPED = 0,
+  INT_TX_DUTY_CYCLE_ON,
+  INT_TX_DUTY_CYCLE_OFF
 };
 
 void *Interferer_tx_worker(void *_arg);

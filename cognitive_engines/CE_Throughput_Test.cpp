@@ -6,7 +6,7 @@
 #include "CE_Throughput_Test.hpp"
 
 // constructor
-CE_Throughput_Test::CE_Throughput_Test() {
+CE_Throughput_Test::CE_Throughput_Test(int argc, char ** argv) {
   first_execution = 1;
 }
 

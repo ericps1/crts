@@ -8,7 +8,7 @@
 #endif
 
 // constructor
-CE_FEC_Adaptation::CE_FEC_Adaptation() : EVM_avg(0.0), ind(0) {
+CE_FEC_Adaptation::CE_FEC_Adaptation(int argc, char ** argv) : EVM_avg(0.0), ind(0) {
   memset(EVM_buff, 0, EVM_buff_len * sizeof(float));
 }
 

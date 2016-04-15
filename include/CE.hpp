@@ -1,8 +1,6 @@
 #ifndef _CE_HPP_
 #define _CE_HPP_
 
-//#include "ECR.hpp"
-
 // forward declare ECR class
 class ExtensibleCognitiveRadio;
 

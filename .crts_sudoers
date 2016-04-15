@@ -19,4 +19,5 @@ ALL             ALL = NOPASSWD: /sbin/route add -net 10.0.0.0 netmask 255.255.25
 ALL             ALL = NOPASSWD: /sbin/route del -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS
 # Delete the special tunCRTS TUN interface
 ALL             ALL = NOPASSWD: /sbin/ip tuntap del dev tunCRTS mode tun
-
+# Set the tx queue length for tunCRTS
+ALL             ALL = NOPASSWD: /sbin/ifconfig tunCRTS txqueuelen [0-9.]*

@@ -3,10 +3,38 @@
 #include <vector>
 #include <fstream>
 #include <dirent.h>
+#include <unistd.h>
+#include <iostream>
 #include "node_parameters.hpp"
 #include "read_configs.hpp"
 
-int main() {
+void help_config_CEs() {
+  printf("config_CEs -- Configure CRTS to use cusotm cognitive engines\n");
+  printf("              (located in the cognitive_engines/ directory).\n");
+  printf(" -h : Help.\n");
+  printf(" -c : Customize the selection of cognitive engines.\n");
+}
+
+int main(int argc, char **argv) {
+
+  // Default options
+  bool customize = false;
+
+  // Process options
+  int opt;
+  while ((opt = getopt(argc, argv, "hc")) != EOF ) {
+    switch(opt) {
+      case 'c':
+        customize = true;
+        break;
+      case 'h':
+        help_config_CEs();
+        exit(EXIT_SUCCESS);
+      default:
+        help_config_CEs();
+        exit(EXIT_FAILURE);
+    }
+  }
 
   // Read in all file names in cognitive_engines directory.
   // Count number of CEs and truncate '.cpp' from file name.
@@ -27,25 +55,59 @@ int main() {
             epdf->d_name[strlen(epdf->d_name) - 3] == 'c' &&
             epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
             epdf->d_name[strlen(epdf->d_name) - 1] == 'p') {
-          // Copy filename into list of CE names
-          ce_list[num_ces].assign(epdf->d_name);
-          // Strip the extension from the name
-          std::size_t dot_pos = ce_list[num_ces].find(".");
-          ce_list[num_ces].resize(dot_pos);
-          num_ces++;
+
+          bool useThisCE = true;
+          if (customize)
+          {
+            char input;
+            do {
+              std::cout << "Use " << epdf->d_name <<"? [y/n]" << std::endl;
+              std::cin >> input;
+            } while (!std::cin.fail() && input!='y' && input!='n');
+            if (input == 'n')
+              useThisCE = false;
+            
+            
+          }
+
+          if (useThisCE) {
+            // Copy filename into list of CE names
+            ce_list[num_ces].assign(epdf->d_name);
+            // Strip the extension from the name
+            std::size_t dot_pos = ce_list[num_ces].find(".");
+            ce_list[num_ces].resize(dot_pos);
+            num_ces++;
+          }
         } else if (epdf->d_name[strlen(epdf->d_name) - 3] == 'c' &&
                    epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
                    epdf->d_name[strlen(epdf->d_name) - 1] == 'p') {
-          // Copy filename into list of CE names
-          src_list[num_srcs].assign(epdf->d_name);
-          // Strip the extension from the name
-          // std::size_t dot_pos = src_list[num_srcs].find(".");
-          // ce_list[num_ces].resize(dot_pos);
-          num_srcs++;
+
+          bool useThisSrc = true;
+          if (customize)
+          {
+            char input;
+            do {
+              std::cout << "Use " << epdf->d_name <<"? [y/n]" << std::endl;
+              std::cin >> input;
+            } while (!std::cin.fail() && input!='y' && input!='n');
+            if (input == 'n')
+              useThisSrc = false;
+            
+          }
+          if (useThisSrc) {
+            // Copy filename into list of src names
+            src_list[num_srcs].assign(epdf->d_name);
+            // Strip the extension from the name
+            // std::size_t dot_pos = src_list[num_srcs].find(".");
+            // ce_list[num_ces].resize(dot_pos);
+            num_srcs++;
+          }
         }
       }
     }
   }
+
+
 
   printf("Configuring CRTS to use the following cognitive engines:\n\n");
   for (int i = 0; i < num_ces; i++)
@@ -66,8 +128,8 @@ int main() {
   //////////////////////////////////////////////////////////////////////////////////
   // Edit ECR.cpp
 
-  flag_beg = "EDIT SET_CE START FLAG";
-  flag_end = "EDIT SET_CE END FLAG";
+  flag_beg = "EDIT SET CE START FLAG";
+  flag_end = "EDIT SET CE END FLAG";
 
   // open read file
   std::ifstream file_in("src/ECR.cpp", std::ifstream::in);
@@ -84,9 +146,9 @@ int main() {
 
         // push all lines to map subclass
         for (int i = 0; i < num_ces; i++) {
-          line = "    if(!strcmp(ce, \"" + ce_list[i] + "\"))";
+          line = "  if(!strcmp(ce, \"" + ce_list[i] + "\"))";
           file_lines.push_back(line);
-          line = "        CE = new " + ce_list[i] + "();";
+          line = "    CE = new " + ce_list[i] + "(argc, argv);";
           file_lines.push_back(line);
         }
       }
@@ -188,8 +250,8 @@ file_lines.push_back(line_new);*/
 
   file_lines.clear();
 
-  flag_beg = "EDIT START FLAG";
-  flag_end = "EDIT END FLAG";
+  flag_beg = "EDIT CE OBJECT LIST START FLAG";
+  flag_end = "EDIT CE OBJECT LIST END FLAG";
 
   // open header file
   file_in.open("makefile", std::ifstream::in);
@@ -217,7 +279,6 @@ file_lines.push_back(line_new);*/
           line_new += " cognitive_engines/";
           line_new += src_list[i];
         }
-        // line_new += "\r";
         file_lines.push_back(line_new);
       }
     }

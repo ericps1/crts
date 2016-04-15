@@ -30,7 +30,7 @@ private:
   fftplan fft;
 
 public:
-  CE_Simultaneous_RX_And_Sensing();
+  CE_Simultaneous_RX_And_Sensing(int argc, char ** argv);
   ~CE_Simultaneous_RX_And_Sensing();
   virtual void execute(ExtensibleCognitiveRadio *ECR);
 };

@@ -12,7 +12,7 @@ private:
   int ind;
 
 public:
-  CE_FEC_Adaptation();
+  CE_FEC_Adaptation(int argc, char ** argv);
   ~CE_FEC_Adaptation();
   virtual void execute(ExtensibleCognitiveRadio *ECR);
 };

@@ -11,7 +11,7 @@ private:
   int ind;
 
 public:
-  CE_Mod_Adaptation();
+  CE_Mod_Adaptation(int argc, char **argv);
   ~CE_Mod_Adaptation();
   virtual void execute(ExtensibleCognitiveRadio *ECR);
 };
