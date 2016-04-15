@@ -1697,11 +1697,10 @@ void *ECR_tx_worker(void *_arg) {
     } // while tx_running
    
     // signal CE that transmission has finished
-    /*pthread_mutex_lock(&ECR->CE_mutex);
+    pthread_mutex_lock(&ECR->CE_mutex);
     ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TX_COMPLETE;
     pthread_cond_signal(&ECR->CE_execute_sig);
     pthread_mutex_unlock(&ECR->CE_mutex);
-    */
 
     dprintf("tx_worker finished running\n");
   } // while tx_thread_running
