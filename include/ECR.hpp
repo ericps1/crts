@@ -879,6 +879,12 @@ private:
   pthread_cond_t CE_execute_sig;
   bool ce_thread_running;
   bool ce_running;
+  /*
+   * If this flag is set to true, the execute() method is active and executes.
+   * It is used to avoid a deadlock that can occur if start_tx() and stop_tx()
+   * are called at the same execute() invocation.
+   */
+  bool in_execute_ctx;
   friend void *ECR_ce_worker(void *);
 
   // private members for tracking rx statistics
