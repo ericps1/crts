@@ -1696,11 +1696,18 @@ void *ECR_tx_worker(void *_arg) {
     
     } // while tx_running
 
-    // signal CE that transmission has finished
-    pthread_mutex_lock(&ECR->CE_mutex);
-    ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TX_COMPLETE;
-    pthread_cond_signal(&ECR->CE_execute_sig);
-    pthread_mutex_unlock(&ECR->CE_mutex);
+    /*
+     * If the execute() still executes do not lock the mutex or deadlock will
+     * occur. The TX_COMPLETE event can not be delivered anyhow whilte the
+     * execute() still running, so just drop it.
+     */
+    if(!ECR->in_execute_ctx){
+      // signal CE that transmission has finished
+      pthread_mutex_lock(&ECR->CE_mutex);
+      ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TX_COMPLETE;
+      pthread_cond_signal(&ECR->CE_execute_sig);
+      pthread_mutex_unlock(&ECR->CE_mutex);
+    }
     dprintf("tx_worker finished running\n");
   } // while tx_thread_running
   dprintf("tx_worker exiting thread\n");
@@ -1745,7 +1752,9 @@ void *ECR_ce_worker(void *_arg) {
         ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TIMEOUT;
 
       // execute CE
+      ECR->in_execute_ctx = true;
       ECR->CE->execute(ECR);
+      ECR->in_execute_ctx = false;
       pthread_mutex_unlock(&ECR->CE_mutex);
     }
   }
