@@ -47,3 +47,10 @@ This CE makes no adaptations but serves as a template for creating new CE's.
 
 This CE illustrates how a CE can change the subcarrier allocation of its transmitter.
 The method for setting the receiver subcarrier allocation is identical.
+
+## 8. CE\_Network\_Loading
+
+When a pair of these CEs are communicating they will negotiate to adapt their occupied 
+bandwidths based on the network loads they detect. Note that this example simply
+shows bandwidth adaptation based on network load, the bands actually being used by the
+radios do not overlap so they aren't really sharing spectrum.

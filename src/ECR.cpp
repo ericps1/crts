@@ -166,6 +166,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
   // create and start tx thread
   frame_num = 0;
   tx_state = TX_STOPPED;    // transmitter is not running initially
+  tx_complete = false;
   tx_thread_running = true; // transmitter thread IS running initially
   tx_worker_state = WORKER_HALTED;  // transmitter worker is not yet ready for signal
   pthread_mutex_init(&tx_mutex, NULL); // transmitter mutex
@@ -1697,9 +1698,13 @@ void *ECR_tx_worker(void *_arg) {
     } // while tx_running
 
     // signal CE that transmission has finished
-    pthread_mutex_lock(&ECR->CE_mutex);
-    ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TX_COMPLETE;
-    pthread_cond_signal(&ECR->CE_execute_sig);
+    int lock_failed = pthread_mutex_trylock(&ECR->CE_mutex);
+    if(!lock_failed){
+      ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TX_COMPLETE;
+      pthread_cond_signal(&ECR->CE_execute_sig);
+    } else {
+      ECR->tx_complete = true;
+    }
     pthread_mutex_unlock(&ECR->CE_mutex);
     dprintf("tx_worker finished running\n");
   } // while tx_thread_running
@@ -1740,9 +1745,13 @@ void *ECR_ce_worker(void *_arg) {
 
       // Wait for signal from receiver
       pthread_mutex_lock(&ECR->CE_mutex);
-      if (ETIMEDOUT == pthread_cond_timedwait(&ECR->CE_execute_sig,
-                                              &ECR->CE_mutex, &timeout))
+      if (ECR->tx_complete){
+        ECR->tx_complete = false;
+        ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TX_COMPLETE;
+      } else if (ETIMEDOUT == pthread_cond_timedwait(&ECR->CE_execute_sig,
+                                              &ECR->CE_mutex, &timeout)) {
         ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::TIMEOUT;
+      }
 
       // execute CE
       ECR->CE->execute(ECR);

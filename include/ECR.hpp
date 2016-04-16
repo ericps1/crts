@@ -967,6 +967,7 @@ private:
   pthread_mutex_t tx_state_mutex;
   pthread_mutex_t tx_params_mutex;
   pthread_cond_t tx_cond;
+  bool tx_complete;
   bool tx_thread_running;
   int tx_worker_state;
   int tx_state;
