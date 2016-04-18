@@ -1188,6 +1188,8 @@ void ExtensibleCognitiveRadio::start_rx() {
       pthread_cond_signal(&rx_cond);
       break;
     case (WORKER_RUNNING):
+      // we still need to restart UHD streaming even though the worker continues
+      usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
       break;
   }
   pthread_mutex_unlock(&rx_mutex);
