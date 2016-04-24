@@ -1168,7 +1168,7 @@ void ExtensibleCognitiveRadio::start_rx() {
  
   // Ensure that the rx_worker ends up in the correct state.
   // There are three possible states it may be in initially.
-  pthread_mutex_lock(&rx_mutex);
+  pthread_mutex_lock(&rx_params_mutex);
   rx_state = RX_CONTINUOUS; 
   bool wait = false;
   switch (rx_worker_state){
@@ -1176,33 +1176,29 @@ void ExtensibleCognitiveRadio::start_rx() {
       dprintf("Waiting for rx worker thread to be ready\n");
       wait = true;
       while (wait) {
-        pthread_mutex_unlock(&rx_mutex);
+        pthread_mutex_unlock(&rx_params_mutex);
         usleep(5e2);
-        pthread_mutex_lock(&rx_mutex);
+        pthread_mutex_lock(&rx_params_mutex);
         wait = (rx_worker_state == WORKER_HALTED);
       }
       // fall through to signal
     case (WORKER_READY):
       dprintf("Signaling rx worker thread\n");
-      usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
       pthread_cond_signal(&rx_cond);
       break;
     case (WORKER_RUNNING):
-      // we still need to restart UHD streaming even though the worker continues
-      usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
       break;
   }
-  pthread_mutex_unlock(&rx_mutex);
+  pthread_mutex_unlock(&rx_params_mutex);
 
 }
 
 // stop receiver
 void ExtensibleCognitiveRadio::stop_rx() {
   // set rx state to stopped and tell USRP to stop streaming samples
-  pthread_mutex_lock(&rx_mutex);
+  pthread_mutex_lock(&rx_params_mutex);
   rx_state = RX_STOPPED;
-  usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
-  pthread_mutex_unlock(&rx_mutex);
+  pthread_mutex_unlock(&rx_params_mutex);
 }
 
 // update the actual parameters being used by the receiver
@@ -1263,11 +1259,11 @@ void *ECR_rx_worker(void *_arg) {
 
   while (ECR->rx_thread_running) {
     // wait for signal to start
-    pthread_mutex_lock(&(ECR->rx_mutex));
+    pthread_mutex_lock(&(ECR->rx_params_mutex));
     ECR->rx_worker_state = WORKER_READY;
-    pthread_cond_wait(&(ECR->rx_cond), &(ECR->rx_mutex));
+    pthread_cond_wait(&(ECR->rx_cond), &(ECR->rx_params_mutex));
     ECR->rx_worker_state = WORKER_RUNNING;  
-    pthread_mutex_unlock(&(ECR->rx_mutex));
+    pthread_mutex_unlock(&(ECR->rx_params_mutex));
     
     // condition given; check state: run or exit
     if (!ECR->rx_thread_running) {
@@ -1275,18 +1271,21 @@ void *ECR_rx_worker(void *_arg) {
       break;
     }
 
+    // start the rx stream from the USRP
+    pthread_mutex_lock(&ECR->rx_mutex);
+    ECR->usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
+    pthread_mutex_unlock(&ECR->rx_mutex);  
+
     bool rx_continue = true;
     // run receiver
     while (rx_continue) {
 
-      // grab data from device
+      // grab data from USRP and push through the frame synchronizer
       size_t num_rx_samps = 0;
+      pthread_mutex_lock(&(ECR->rx_mutex));
       num_rx_samps = ECR->usrp_rx->get_device()->recv(
           buffer, max_samps_per_packet, ECR->metadata_rx,
           uhd::io_type_t::COMPLEX_FLOAT32, uhd::device::RECV_MODE_ONE_PACKET);
-
-      // push resulting samples through synchronizer
-      pthread_mutex_lock(&(ECR->rx_mutex));
       ofdmflexframesync_execute(ECR->fs, buffer, num_rx_samps);
       pthread_mutex_unlock(&(ECR->rx_mutex));
 
@@ -1338,19 +1337,22 @@ void *ECR_rx_worker(void *_arg) {
       
       // we need to tightly control the state of the worker thread
       // to protect against issues with abrupt starts and stops
-      pthread_mutex_lock(&ECR->rx_mutex);
+      pthread_mutex_lock(&ECR->rx_params_mutex);
       if (ECR->rx_state == RX_STOPPED){
         dprintf("rx worker halting\n");
         rx_continue = false;
         ECR->rx_worker_state = WORKER_HALTED;
       }
-      pthread_mutex_unlock(&ECR->rx_mutex);
-    
+      pthread_mutex_unlock(&ECR->rx_params_mutex); 
 
-    } // while rx_running
+    } // while rx running
     dprintf("rx_worker finished running\n");
 
-  } // while true
+    pthread_mutex_lock(&ECR->rx_mutex);
+    ECR->usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
+    pthread_mutex_unlock(&ECR->rx_mutex);
+    
+  } // while rx thread is running
 
   free(buffer);
   free(ECR->ce_usrp_rx_buffer);
