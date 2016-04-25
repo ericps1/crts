@@ -3,13 +3,13 @@
 
 #define CRTS_TCP_CONTROL_PORT 4444
 #define CRTS_CR_PORT 4444
-#define CRTS_CR_PACKET_LEN 256        // total length of network packets
+#define CRTS_CR_PACKET_LEN 256        // length of network packet data
 #define CRTS_CR_PACKET_NUM_LEN 4      // number of bytes used for packet numbering
 #define CRTS_CR_PACKET_SR_LEN 12      // shift register length for pseudo-random packet generation
 
 enum crts_msg_type {
   CRTS_MSG_SCENARIO_PARAMETERS = 0,
-  CRTS_MSG_MANUAL_START,
+  CRTS_MSG_START,
   CRTS_MSG_TERMINATE,
   CRTS_MSG_CONTROL,
   CRTS_MSG_FEEDBACK

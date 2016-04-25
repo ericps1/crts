@@ -250,8 +250,8 @@ file_lines.push_back(line_new);*/
 
   file_lines.clear();
 
-  flag_beg = "EDIT CE START FLAG";
-  flag_end = "EDIT CE END FLAG";
+  flag_beg = "EDIT CE OBJECT LIST START FLAG";
+  flag_end = "EDIT CE OBJECT LIST END FLAG";
 
   // open header file
   file_in.open("makefile", std::ifstream::in);
@@ -279,7 +279,6 @@ file_lines.push_back(line_new);*/
           line_new += " cognitive_engines/";
           line_new += src_list[i];
         }
-        // line_new += "\r";
         file_lines.push_back(line_new);
       }
     }

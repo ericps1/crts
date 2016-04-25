@@ -11,7 +11,7 @@ private:
 public:
   SC_Template();
   ~SC_Template();
-  virtual void execute(int node, char fb_type, void *_arg);
+  virtual void execute();
   virtual void initialize_node_fb();
 };
 

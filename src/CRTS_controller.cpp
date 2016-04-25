@@ -26,6 +26,7 @@
 #include "../scenario_controllers/SC_BER_Sweep.hpp"
 #include "../scenario_controllers/SC_Control_and_Feedback_Test.hpp"
 #include "../scenario_controllers/SC_CORNET_3D.hpp"
+#include "../scenario_controllers/SC_Network_Loading.hpp"
 #include "../scenario_controllers/SC_Template.hpp"
 // EDIT INCLUDE END FLAG
 
@@ -78,7 +79,7 @@ int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, Scenario_Controller *S
             fb_msg_ind++;
             
             rflag = recv(TCP_nodes[i], &msg[fb_msg_ind], fb_arg_len, 0);
-            SC->execute(i, msg[fb_msg_ind-1], (void *) &msg[fb_msg_ind]);
+            SC->receive_feedback(i, msg[fb_msg_ind-1], (void *) &msg[fb_msg_ind]);
             fb_msg_ind += fb_arg_len;
           }
           break;
@@ -251,10 +252,12 @@ int main(int argc, char **argv) {
         SC = new SC_Control_and_Feedback_Test();
       if(!strcmp(sp.SC, "SC_CORNET_3D"))
         SC = new SC_CORNET_3D();
+      if(!strcmp(sp.SC, "SC_Network_Loading"))
+        SC = new SC_Network_Loading();
       if(!strcmp(sp.SC, "SC_Template"))
         SC = new SC_Template();
       // EDIT SET SC END FLAG
-    
+      
       // determine the start time for the scenario based
       // on the current time and the number of nodes
       gettimeofday(&tv, NULL);
@@ -420,34 +423,43 @@ int main(int argc, char **argv) {
       SC->sp = sp;
       SC->initialize_node_fb();
 
-      //sleep(5);
-      
       // if in manual mode update the start time for all nodes
-      if (manual_execution && !sig_terminate) {
+      if (!sig_terminate) {
 
         gettimeofday(&tv, NULL);
-        start_time_s = (int64_t) (tv.tv_sec + sp.num_nodes + 3);
+        start_time_s = (int64_t) (tv.tv_sec + 3);
 
         // send updated start time to all nodes
-        char msg_type = CRTS_MSG_MANUAL_START;
+        char msg_type = CRTS_MSG_START;
         for (int j = 0; j < sp.num_nodes; j++) {
           send(TCP_nodes[j], (void *)&msg_type, sizeof(char), 0);
           send(TCP_nodes[j], (void *)&start_time_s, sizeof(int64_t), 0);
         }
-      } else {
-        start_time_s = sp.start_time_s;
       }
 
-      printf("Listening for scenario termination message from nodes\n");
+      // wait until start time
+      while (1) {
+        gettimeofday(&tv, NULL);
+        time_s = tv.tv_sec;
+        if (time_s >= start_time_s)
+          break;
+        if (sig_terminate)
+          break;
+        usleep(1e4);
+      }
 
-      // main loop: wait for termination condition
+      SC->start_sc();
+      
+      // main loop: wait for any of three possible termination conditions
       int time_terminate = 0;
       int msg_terminate = 0;
       num_nodes_terminated = 0;
-      while ((!sig_terminate) && (!msg_terminate) && (!time_terminate)) {
+      while ((!sig_terminate) && (!msg_terminate) && (!time_terminate)) { 
         msg_terminate = receive_msg_from_nodes(&TCP_nodes[0], sp.num_nodes, SC);
 
-        // check if the scenario should be terminated based on the elapsed time
+        // Check if the scenario should be terminated based on the elapsed time.
+        // Note that by default the nodes should terminate on their own. This is
+        // just to handle the case where a node or nodes do not terminate properly.
         gettimeofday(&tv, NULL);
         time_s = tv.tv_sec;
         if (time_s > (time_t) start_time_s + (time_t) sp.runTime + 10)
@@ -517,6 +529,7 @@ int main(int argc, char **argv) {
         close(TCP_nodes[j]);
       }
 
+      SC->stop_sc();
       delete SC;
 
       // don't continue to next scenario if there was a user issued termination
