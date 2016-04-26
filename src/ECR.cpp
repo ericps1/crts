@@ -983,7 +983,7 @@ void ExtensibleCognitiveRadio::set_rx_freq(double _rx_freq, double _dsp_freq) {
   rx_params.rx_dsp_freq = _dsp_freq;
   update_rx_flag = true;
   update_usrp_rx = true;
-  pthread_mutex_lock(&rx_params_mutex);
+  pthread_mutex_unlock(&rx_params_mutex);
 }
 
 // get receiver state
