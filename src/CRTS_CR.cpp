@@ -386,8 +386,6 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
     strcat(phy_tx_log_file_name, np->phy_tx_log_file);
     strcat(phy_tx_log_file_name, ".log");
 
-
-
     // set cognitive radio parameters
     ECR->set_ip(np->CRTS_IP);
     ECR->print_metrics_flag = np->print_metrics;
@@ -416,8 +414,6 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
     ECR->set_ce(np->CE, argc, argv);
     ECR->reset_log_files();
     ECR->set_rx_stat_tracking(false, 0.0);
-
-
 
     // copy subcarrier allocations if other than liquid-dsp default
     if (np->tx_subcarrier_alloc_method == CUSTOM_SUBCARRIER_ALLOC ||
@@ -672,8 +668,6 @@ int main(int argc, char **argv) {
 
     // this is used to create a child process for python radios which can be killed later
     pid_t python_pid;
-    // pointer to ECR which may or may not be used
-    ExtensibleCognitiveRadio *ECR = NULL;
     
     // Create and start the ECR or python CR so that they are in a ready
     // state when the experiment begins
@@ -686,8 +680,16 @@ int main(int argc, char **argv) {
         uhd::time_spec_t t0(0, 0, 1e6);
         ECR->usrp_rx->set_time_now(t0, 0);
 
-        Initialize_CR(&np, (void*) ECR);
-        
+        rx_stat_fb_timer = timer_create();
+
+        int argc = 0;
+        char ** argv = NULL;
+        dprintf("Converting ce_args to argc argv format\n");
+        str2argcargv(np.ce_args, np.CE, argc, argv);
+        dprintf("Initializing CR\n");
+        Initialize_CR(&np, (void *)ECR, argc, argv);
+        freeargcargv(argc, argv);
+
     }
     else if(np.cr_type == python)
     {
@@ -751,75 +753,11 @@ int main(int argc, char **argv) {
         {
             sleep(5);
             printf("CRTS Child: Initializing python CR\n");
-            Initialize_CR(&np, NULL);
+            Initialize_CR(&np, NULL, 0, NULL);
         }
         
     } 
-    // Define address structure for CRTS socket server used to receive network traffic
-    struct sockaddr_in CRTS_server_addr;
-    memset(&CRTS_server_addr, 0, sizeof(CRTS_server_addr));
-    CRTS_server_addr.sin_family = AF_INET;
-    // Only receive packets addressed to the CRTS_IP
-    CRTS_server_addr.sin_addr.s_addr = inet_addr(np.CRTS_IP);
-    CRTS_server_addr.sin_port = htons(port);
-    socklen_t clientlen = sizeof(CRTS_server_addr);
-    int CRTS_server_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-    // Define address structure for CRTS socket client used to send network traffic
-    struct sockaddr_in CRTS_client_addr;
-    memset(&CRTS_client_addr, 0, sizeof(CRTS_client_addr));
-    CRTS_client_addr.sin_family = AF_INET;
-    CRTS_client_addr.sin_addr.s_addr = inet_addr(np.TARGET_IP);
-    CRTS_client_addr.sin_port = htons(port);
-    int CRTS_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-    // Bind CRTS server socket
-    bind(CRTS_server_sock, (sockaddr*)&CRTS_server_addr, clientlen);
-
-    // set CRTS sockets to non-blocking
-    fcntl(CRTS_client_sock, F_SETFL, O_NONBLOCK);
-    fcntl(CRTS_server_sock, F_SETFL, O_NONBLOCK);
-    
-    int argc = 0;
-    char ** argv = NULL;
-    dprintf("Converting ce_args to argc argv format\n");
-    str2argcargv(np.ce_args, np.CE, argc, argv);
-    dprintf("Initializing CR\n");
-    Initialize_CR(&np, (void *)ECR, argc, argv);
-    freeargcargv(argc, argv);
-
-  } else if (np.cr_type == python) {
-    dprintf("CRTS: Forking child process\n");
-    pid_t pid = fork();
-
-    // define child's process
-    if (pid == 0) {
-      char command[2000] = "sudo python cognitive_radios/";
-      strcat(command, np.python_file);
-      for (int i = 0; i < np.num_arguments; i++) {
-        strcat(command, " ");
-        strcat(command, np.arguments[i]);
-      }
-      strcat(command, " &");
-      int ret_value = system(command);
-      if (ret_value != 0)
-        std::cout << "error starting python radio" << std::endl;
-
-      sleep(5);
-      dprintf("CRTS Child: Initializing python CR\n");
-      Initialize_CR(&np, NULL, 0, NULL);
-
-      while (true) {
-        if (sig_terminate)
-          break;
-      };
-
-      dprintf("CRTS Child: Closing sockets\n");
-      close(TCP_controller);
-      exit(1);
-    }
-  }
-
+  
   // Define address structure for CRTS socket server used to receive network
   // traffic
   struct sockaddr_in CRTS_server_addr;
@@ -1078,7 +1016,7 @@ int main(int argc, char **argv) {
   if (np.cr_type == ecr) {
     delete ECR;
   } else if (np.cr_type == python) {
-    kill(pid, SIGTERM);
+    kill(python_pid, SIGTERM);
   }
 
   printf(
