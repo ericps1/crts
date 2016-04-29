@@ -24,7 +24,7 @@ private:
 public:
   SC_CORNET_3D();
   ~SC_CORNET_3D();
-  virtual void execute(int node, char fb_type, void *_arg);
+  virtual void execute();
   virtual void initialize_node_fb();
 };
 

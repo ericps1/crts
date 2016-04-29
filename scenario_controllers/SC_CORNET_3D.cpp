@@ -81,24 +81,28 @@ void SC_CORNET_3D::initialize_node_fb() {
 }
 
 // execute function
-void SC_CORNET_3D::execute(int node, char fb_type, void *_arg) {
-    char msg[100];
-
-    msg[0] = CRTS_MSG_FEEDBACK;
-    msg[1] = node;
-    msg[2] = fb_type;
-
-    int arg_len = get_feedback_arg_len(fb_type);
-
-    struct ExtensibleCognitiveRadio::rx_statistics* stats = (struct ExtensibleCognitiveRadio::rx_statistics*)_arg;
-    float per = stats->avg_per;
-    memcpy((void*) &msg[3], _arg, arg_len);
-
-    std::string s_per = std::to_string(per);
-    if(node == 0)
+void SC_CORNET_3D::execute() {
+    //Only send feedback to CORNET3D when feedback is received from a node,
+    //not when execute is called due to a timeout
+    if(sc_event == FEEDBACK)
     {
-        // forward feedback to CORNET 3D web server
-        send(TCP_CORNET_3D, s_per.c_str(), sizeof(s_per), 0);
+        char msg[100];
+        msg[0] = CRTS_MSG_FEEDBACK;
+        msg[1] = fb.node;
+        msg[2] = fb.fb_type;
+
+        int arg_len = get_feedback_arg_len(fb.fb_type);
+
+        struct ExtensibleCognitiveRadio::rx_statistics* stats = (struct ExtensibleCognitiveRadio::rx_statistics*)fb.arg;
+        float per = stats->avg_per;
+        memcpy((void*) &msg[3], fb.arg, arg_len);
+
+        std::string s_per = std::to_string(per);
+        if(fb.node == 0)
+        {
+            // forward feedback to CORNET 3D web server
+            send(TCP_CORNET_3D, s_per.c_str(), sizeof(s_per), 0);
+        }
     }
     // forward commands from CORNET 3D webserver to node
     fd_set fds;
@@ -110,10 +114,11 @@ void SC_CORNET_3D::execute(int node, char fb_type, void *_arg) {
     crts_params params;
     if(select(TCP_CORNET_3D+1, &fds, NULL, NULL, &timeout)) 
     {
-        int rlen = recv(TCP_CORNET_3D, &params, 40, 0);
+        int rlen = recv(TCP_CORNET_3D, &params, sizeof(params), 0);
         if(rlen > 0)
         {
-            std::cout << "node: " << node << std::endl;
+            /*
+            std::cout << "node: " << fb.node << std::endl;
             printf("params.mod: %u\n", params.mod);
             printf("params.crc: %u\n", params.crc);
             printf("params.fec0: %u\n", params.fec0);
@@ -121,39 +126,34 @@ void SC_CORNET_3D::execute(int node, char fb_type, void *_arg) {
             printf("params.freq: %f\n", params.freq);
             printf("params.bandwidth: %f\n", params.bandwidth);
             printf("params.gain: %f\n", params.gain);
+            */
 
-            std::cout << "checking" << std::endl;
             if(params.mod != old_mod)
             {
-                std::cout << "updating mod" << std::endl;
                 set_node_parameter(0, CRTS_TX_MOD, &params.mod);  
                 old_mod = params.mod;
             }
 
             if(params.crc != old_crc)
             {
-                std::cout << "updating crc" << std::endl;
                 set_node_parameter(0, CRTS_TX_CRC, &params.crc);
                 old_crc = params.crc;
             }
 
             if(params.fec0 != old_fec0)
             {
-                std::cout << "updating fec0" << std::endl;
                 set_node_parameter(0, CRTS_TX_FEC0, &params.fec0);
                 old_fec0 = params.fec0;
             }   
 
             if(params.fec1 != old_fec1)
             {
-                std::cout << "updating fec1" << std::endl;
                 set_node_parameter(0, CRTS_TX_FEC1, &params.fec1);
                 old_fec1 = params.fec1;
             }
 
             if(params.freq != old_freq)
             {
-                std::cout << "updating freq" << std::endl;
                 set_node_parameter(0, CRTS_TX_FREQ, &params.freq);
                 set_node_parameter(1, CRTS_RX_FREQ, &params.freq);
                 old_freq = params.freq;
@@ -161,7 +161,6 @@ void SC_CORNET_3D::execute(int node, char fb_type, void *_arg) {
 
             if(params.bandwidth != old_bandwidth)
             {
-                std::cout << "updating bandwidth" << std::endl;
                 set_node_parameter(0, CRTS_TX_RATE, &params.bandwidth);
                 set_node_parameter(1, CRTS_RX_RATE, &params.bandwidth);
                 old_bandwidth = params.bandwidth;
@@ -169,7 +168,6 @@ void SC_CORNET_3D::execute(int node, char fb_type, void *_arg) {
 
             if(params.gain != old_gain)
             {
-                std::cout << "updating gain" << std::endl;
                 set_node_parameter(0, CRTS_TX_GAIN, &params.gain);
                 old_gain = params.gain;
             }
