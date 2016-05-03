@@ -127,6 +127,14 @@ void SC_CORNET_3D::execute() {
             printf("params.bandwidth: %f\n", params.bandwidth);
             printf("params.gain: %f\n", params.gain);
             */
+            //CORNET3D backend sends a 9 when client disconnects
+                        //Call killall CRTS_Controller with in turn shuts
+                                    //down nodes
+            if(params.type == 9)
+            {
+                printf("calling killall\n");
+                system("killall CRTS_controller");
+            }
 
             if(params.mod != old_mod)
             {
