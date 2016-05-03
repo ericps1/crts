@@ -4,7 +4,7 @@ import sys
 from subprocess import call
 
 # Replace text for setting transmitter and receiver addresses in the scenario file
-def replaceTextInScenarioFile(txIPAddress,rxIPAddress):
+def replaceTextInScenarioFile(txIPAddress,rxIPAddress, scenarioFile='CORNET_3D.cfg'):
         parsedFirstNode = False
         parsedSecondNode = False
 
@@ -12,7 +12,9 @@ def replaceTextInScenarioFile(txIPAddress,rxIPAddress):
         strNode2 = "node2: {"
 
         strCORNETIP = '    CORNET_IP = '
-        for line in fileinput.input("scenarios/CORNET_3D.cfg", inplace=True):
+        pathToScenario = 'scenarios/' + scenarioFile
+        print 'path:', pathToScenario
+        for line in fileinput.input(pathToScenario, inplace=True):
                 # First parse until "node1: {" is found
                 if line.startswith("node1: {"):
                         parsedFirstNode = True
@@ -30,5 +32,29 @@ def replaceTextInScenarioFile(txIPAddress,rxIPAddress):
                 else:
                         print line,
 
-replaceTextInScenarioFile(sys.argv[1], sys.argv[2])
+def replaceIPs(scenarioFile, IPs):
+    pathToScenario = 'scenarios/' + scenarioFile
+    strCORNETIP = 'CORNET_IP = '
+    changed = 0
+    foundNode = False
+    for i in range(len(IPs)):
+        node = 'node' + str(i + 1)
+        for line in fileinput.input(pathToScenario, inplace=True):
+            if line.startswith(node):
+                foundNode = True
+            if strCORNETIP in line and foundNode == True:
+                replacedText = '    ' + strCORNETIP + '"' + IPs[i] + '";'
+                print replacedText
+                foundNode = False
+                changed = changed + 1
+            else:
+                print line,
+    print 'changed', changed, 'lines'
+
+i = 2
+ips = []
+while i < len(sys.argv):
+    ips.append(sys.argv[i])
+    i = i + 1
+replaceIPs(sys.argv[1], ips)
 call(["./CRTS_controller"])
