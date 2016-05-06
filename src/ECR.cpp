@@ -1037,7 +1037,7 @@ double ExtensibleCognitiveRadio::get_rx_rate() {
 
 // set receiver hardware (UHD) gain
 void ExtensibleCognitiveRadio::set_rx_gain_uhd(double _rx_gain_uhd) {
-  pthread_mutex_unlock(&rx_params_mutex);
+  pthread_mutex_lock(&rx_params_mutex);
   rx_params.rx_gain_uhd = _rx_gain_uhd;
   update_rx_flag = true;
   update_usrp_rx = true;
