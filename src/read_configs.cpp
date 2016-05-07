@@ -607,6 +607,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
       np.interference_type = RRC;
     if (!strcmp(tmpS, "OFDM"))
       np.interference_type = OFDM;
+    if (!strcmp(tmpS, "AWGN"))
+      np.interference_type = AWGN; 
   }
 
   if (config_setting_lookup_float(node_config, "period", &tmpD))
@@ -767,7 +769,7 @@ void print_node_parameters(struct node_parameters *np) {
       strcpy(interference_type, "CW");
       break;
     case (NOISE):
-      strcpy(interference_type, "AWGN");
+      strcpy(interference_type, "NOISE");
       break;
     case (GMSK):
       strcpy(interference_type, "GMSK");
@@ -777,6 +779,9 @@ void print_node_parameters(struct node_parameters *np) {
       break;
     case (OFDM):
       strcpy(interference_type, "OFDM");
+      break;
+    case (AWGN):
+      strcpy(interference_type, "AWGN");
       break;
     }
     switch (np->tx_freq_behavior) {

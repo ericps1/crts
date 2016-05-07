@@ -31,7 +31,8 @@ enum interference_type {
   NOISE,  // random noise interference
   GMSK,   // gaussian minimum-shift keying inteference
   RRC,    // root-raised cosine interference (as in WCDMA)
-  OFDM    // orthogonal frequency division multiplexing interference
+  OFDM,    // orthogonal frequency division multiplexing interference
+  AWGN    //AWGN noise for tutorials
 };
 
 enum tx_freq_behavior { FIXED = 0, SWEEP, RANDOM };

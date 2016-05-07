@@ -65,6 +65,12 @@ public:
   bool log_tx_flag;
   std::ofstream tx_log_file;
   char tx_log_file_name[100];
+  
+  //log file for samples
+  std::ofstream sample_file;
+  
+  std::default_random_engine generator;
+  std::normal_distribution<double> dist;
 
   // liquid-dsp objects
   resamp2_crcf interp;
@@ -104,6 +110,7 @@ public:
   void BuildGMSKTransmission();
   void BuildRRCTransmission();
   void BuildOFDMTransmission();
+  void BuildAWGNTransmission();
   
 private:
 };
