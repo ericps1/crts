@@ -19,6 +19,13 @@ struct crts_params
     double bandwidth;
     double gain;
 };
+
+struct feedback_struct
+{
+    int type;
+    int node;
+    float value;
+};
 // constructor
 SC_CORNET_3D::SC_CORNET_3D() 
 {
@@ -68,12 +75,12 @@ SC_CORNET_3D::~SC_CORNET_3D() {}
 void SC_CORNET_3D::initialize_node_fb() {
 
     // enable all feedback types
-    int fb_enables = CRTS_RX_STATS_FB_EN;
+    int fb_enables = INT_MAX;
     //int fb_enables = INT_MAX;
     for(int i=0; i<sp.num_nodes; i++)
         set_node_parameter(i, CRTS_FB_EN, (void*) &fb_enables);
 
-    double rx_stats_period = .1;
+    double rx_stats_period = 1.0;
     for(int i=0; i<sp.num_nodes; i++){
         set_node_parameter(i, CRTS_RX_STATS, (void*) &rx_stats_period);
         set_node_parameter(i, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
@@ -86,22 +93,42 @@ void SC_CORNET_3D::execute() {
     //not when execute is called due to a timeout
     if(sc_event == FEEDBACK)
     {
-        char msg[100];
-        msg[0] = CRTS_MSG_FEEDBACK;
-        msg[1] = fb.node;
-        msg[2] = fb.fb_type;
+        feedback_struct fs;
+        switch (fb.fb_type) {
+            case CRTS_TX_FREQ:
+                fs.type = 1;
+                fs.node = fb.node;
+                fs.value = *(double*)fb.arg;
+                fs.node = fb.node;
+                send(TCP_CORNET_3D, (char*)&fs, sizeof(fs), 0);
+                printf("Node %i has updated it's transmit frequency to %.1e\n", fb.node, *(double*)fb.arg);
+                break;
+            case CRTS_TX_RATE:
+                fs.type = 2;
+                fs.node = fb.node;
+                fs.value = *(double*)fb.arg;
+                send(TCP_CORNET_3D, (char*)&fs, sizeof(fs), 0);
+                printf("Node %i has updated it's transmit rate to %.3e\n", fb.node, *(double*)fb.arg);
+                break;
+            case CRTS_TX_GAIN:
+                printf("Node %i has updated it's transmit gain to %.3f\n", fb.node, *(double*)fb.arg);
+                break;
 
-        int arg_len = get_feedback_arg_len(fb.fb_type);
+            case CRTS_RX_STATS:
+                struct ExtensibleCognitiveRadio::rx_statistics rx_stats = 
+                    *(struct ExtensibleCognitiveRadio::rx_statistics*) fb.arg;
+                float per = rx_stats.avg_per;
 
-        struct ExtensibleCognitiveRadio::rx_statistics* stats = (struct ExtensibleCognitiveRadio::rx_statistics*)fb.arg;
-        float per = stats->avg_per;
-        memcpy((void*) &msg[3], fb.arg, arg_len);
-
-        std::string s_per = std::to_string(per);
-        if(fb.node == 0)
-        {
-            // forward feedback to CORNET 3D web server
-            send(TCP_CORNET_3D, s_per.c_str(), sizeof(s_per), 0);
+                std::string s_per = std::to_string(per);
+                if(fb.node == 0)
+                {
+                    // forward feedback to CORNET 3D web server
+                    fs.type = 0;
+                    fs.node = fb.node;
+                    fs.value = per;
+                    send(TCP_CORNET_3D, (char*)&fs, sizeof(fs), 0);
+                }
+                break;
         }
     }
     // forward commands from CORNET 3D webserver to node
@@ -117,7 +144,8 @@ void SC_CORNET_3D::execute() {
         int rlen = recv(TCP_CORNET_3D, &params, sizeof(params), 0);
         if(rlen > 0)
         {
-            /*
+            printf("sizeof crts_params: %lu\n", sizeof(params));
+            
             std::cout << "node: " << fb.node << std::endl;
             printf("params.mod: %u\n", params.mod);
             printf("params.crc: %u\n", params.crc);
@@ -126,7 +154,7 @@ void SC_CORNET_3D::execute() {
             printf("params.freq: %f\n", params.freq);
             printf("params.bandwidth: %f\n", params.bandwidth);
             printf("params.gain: %f\n", params.gain);
-            */
+            
             //CORNET3D backend sends a 9 when client disconnects
                         //Call killall CRTS_Controller with in turn shuts
                                     //down nodes
@@ -182,11 +210,6 @@ void SC_CORNET_3D::execute() {
         }
     }
 }
-
-
-
-
-
 
 
 
