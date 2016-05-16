@@ -8,8 +8,13 @@ config_SCs
 # Ignore VIM swap files
 *.swp
 *.swo
+*.swn
 
 # Ignore system output files
 *.SYSOUT
 
+# Ignore archives
+*.tar.gz
 
+# Ignore data files
+*.dat
