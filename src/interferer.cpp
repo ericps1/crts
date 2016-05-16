@@ -21,7 +21,7 @@
 #endif
 
 Interferer::Interferer()
-    :generator(), dist(0.0, 1.0)
+    :generator(), dist(0.0, 1.0)     // Gaussian parameter set up
 {
   // set default parameters
   interference_type = RRC;
@@ -145,12 +145,7 @@ void Interferer::BuildNOISETransmission() {
   
   void Interferer::BuildAWGNTransmission() {
   for (unsigned int i = 0; i < tx_buffer.size(); i++) {
-   
-   //if(sample_file.is_open())
-   //{
-     // sample_file << "Normal: " << normal(generator) << std::endl;
-   //}
-    tx_buffer[i].real (dist(generator));
+       tx_buffer[i].real (dist(generator));
     tx_buffer[i].imag (dist(generator));
     if(sample_file.is_open())
     {
