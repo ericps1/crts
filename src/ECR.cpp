@@ -1037,7 +1037,7 @@ double ExtensibleCognitiveRadio::get_rx_rate() {
 
 // set receiver hardware (UHD) gain
 void ExtensibleCognitiveRadio::set_rx_gain_uhd(double _rx_gain_uhd) {
-  pthread_mutex_unlock(&rx_params_mutex);
+  pthread_mutex_lock(&rx_params_mutex);
   rx_params.rx_gain_uhd = _rx_gain_uhd;
   update_rx_flag = true;
   update_usrp_rx = true;
@@ -1687,7 +1687,7 @@ void *ECR_tx_worker(void *_arg) {
       pthread_mutex_lock(&ECR->tx_params_mutex);
       if ((ECR->tx_state == TX_BURST) &&
           ((ECR->tx_frame_counter >= ECR->num_tx_frames) ||
-           (timer_toc(ECR->tx_timer) > 1e3*ECR->max_tx_time_ms))) {
+           (timer_toc(ECR->tx_timer) * 1.0e3 > ECR->max_tx_time_ms))) {
         ECR->tx_state = TX_STOPPED;
       }
 
