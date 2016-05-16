@@ -1,9 +1,9 @@
 FLAGS = -I include -Wall -fPIC -std=c++11 -g
 LIBS = lib/TUN.o lib/ECR.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
-#EDIT CE START FLAG
+#EDIT CE OBJECT LIST START FLAG
 CEs = src/CE.cpp cognitive_engines/CE_Template.cpp cognitive_engines/CE_Subcarrier_Alloc.cpp cognitive_engines/CE_Mod_Adaptation.cpp cognitive_engines/CE_Network_Loading.cpp cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.cpp cognitive_engines/CE_Two_Channel_DSA_PU.cpp cognitive_engines/CE_FEC_Adaptation.cpp cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.cpp cognitive_engines/CE_Control_and_Feedback_Test.cpp cognitive_engines/CE_Simultaneous_RX_And_Sensing.cpp cognitive_engines/CE_Throughput_Test.cpp
-#EDIT CE END FLAG
+#EDIT CE OBJECT LIST END FLAG
 
 #EDIT SC START FLAG
 SCs = src/SC.cpp scenario_controllers/SC_BER_Sweep.cpp scenario_controllers/SC_Control_and_Feedback_Test.cpp scenario_controllers/SC_CORNET_3D.cpp scenario_controllers/SC_Network_Loading.cpp scenario_controllers/SC_Template.cpp
