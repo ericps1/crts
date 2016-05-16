@@ -52,10 +52,10 @@ private:
   float fc;     // RF center frequency of USRP
   float fshift; // DSP shift applied to reduce interference from transmitter
                 // during sensing
-  static constexpr float freq_a = 770e6; // Channel center frequencies
-  static constexpr float freq_b = 769e6;
-  static constexpr float freq_x = 765e6;
-  static constexpr float freq_y = 764e6;
+  static constexpr float freq_a = 774e6; // Channel center frequencies
+  static constexpr float freq_b = 766e6;
+  static constexpr float freq_x = 768e6;
+  static constexpr float freq_y = 772e6;
 
   // DSP shift applied to reach the target channel's center frequency
   float rx_foff;

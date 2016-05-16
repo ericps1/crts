@@ -99,7 +99,6 @@ void SC_CORNET_3D::execute() {
                 fs.type = 1;
                 fs.node = fb.node;
                 fs.value = *(double*)fb.arg;
-                fs.node = fb.node;
                 send(TCP_CORNET_3D, (char*)&fs, sizeof(fs), 0);
                 printf("Node %i has updated it's transmit frequency to %.1e\n", fb.node, *(double*)fb.arg);
                 break;
