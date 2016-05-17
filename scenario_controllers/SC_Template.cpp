@@ -10,25 +10,17 @@ SC_Template::~SC_Template() {}
 
 // setup feedback enables for each fb.node
 void SC_Template::initialize_node_fb() {
-  // initialize node feedback settings
-  int fb_enables = INT_MAX; //CRTS_RX_STATS_FB_EN; 
-  set_node_parameter(0, CRTS_FB_EN, (void*) &fb_enables);
-  set_node_parameter(1, CRTS_FB_EN, (void*) &fb_enables);
-  
-  double rx_stats_tracking_period = 10.0;
-  set_node_parameter(0, CRTS_RX_STATS, (void*) &rx_stats_tracking_period);
-  set_node_parameter(1, CRTS_RX_STATS, (void*) &rx_stats_tracking_period);
-  
-  double rx_stats_fb_period = 10.0;
-  set_node_parameter(0, CRTS_RX_STATS_FB, (void*) &rx_stats_fb_period);
-  set_node_parameter(1, CRTS_RX_STATS_FB, (void*) &rx_stats_fb_period);
+  // Initialize node feedback settings here. Since this template
+  // is the default scenario controller, we don't define any feedback.
+  // Examples of how to enable feedback can be seen in the other
+  // example scenario controllers.
 }
 
 // execute function
 void SC_Template::execute() {
 
   if (sc_event == TIMEOUT) {
-    //printf("Scenario Controller was triggered by a timeout\n");
+    // handle scenario controller timeout event
   }
 
   if (sc_event == FEEDBACK) {

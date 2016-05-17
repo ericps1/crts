@@ -635,10 +635,6 @@ public:
   void set_tx_payload_sym_len(unsigned int len);
 
   /// \brief Return the value of
-  /// ExtensibleCognitiveRadio::tx_parameter_s::tx_state.
-  int get_tx_state();
-  
-  /// \brief Return the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
   double get_tx_freq();
 
@@ -646,6 +642,10 @@ public:
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
   double get_tx_lo_freq();
 
+  /// \brief Return the value of
+  /// ExtensibleCognitiveRadio::tx_state.
+  int get_tx_state();
+  
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::tx_parameter_s::tx_freq.
   double get_tx_dsp_freq();
@@ -967,6 +967,7 @@ private:
   pthread_mutex_t tx_state_mutex;
   pthread_mutex_t tx_params_mutex;
   pthread_cond_t tx_cond;
+  bool tx_complete;
   bool tx_thread_running;
   int tx_worker_state;
   int tx_state;

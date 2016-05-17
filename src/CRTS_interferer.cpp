@@ -32,6 +32,8 @@
 #endif
 
 // global variables
+bool start_msg_received = false;
+time_t start_time_s;
 time_t stop_time_s;
 struct timeval tv;
 time_t time_s;
@@ -59,7 +61,7 @@ receive_command_from_controller(Interferer *Int, struct node_parameters *np,
   FD_SET(TCP_controller, &fds);
 
   // Listen to socket for message from controller
-  if (select(TCP_controller + 1, &fds, NULL, NULL, &timeout)) {
+  if (select(TCP_controller + 1, &fds, NULL, NULL, &timeout) || (!start_msg_received)) {
     char command_buffer[1 + sizeof(struct scenario_parameters) +
                         sizeof(struct node_parameters)];
     int rflag = recv(TCP_controller, command_buffer, 1, 0);
@@ -140,11 +142,12 @@ receive_command_from_controller(Interferer *Int, struct node_parameters *np,
       break;
     }
 
-    case CRTS_MSG_MANUAL_START: // updated start time (used for manual mode)
-      dprintf("Received an updated start time\n");
+    case CRTS_MSG_START: // updated start time (used for manual mode)
+      dprintf("Received scenario start time\n");
       rflag = recv(TCP_controller, &command_buffer[1], sizeof(time_t), 0);
-      memcpy(&sp->start_time_s, &command_buffer[1], sizeof(time_t));
-      stop_time_s = sp->start_time_s + sp->runTime;
+      start_msg_received = true;
+      memcpy(&start_time_s, &command_buffer[1], sizeof(time_t));
+      stop_time_s = start_time_s + sp->runTime;
       break;
     case CRTS_MSG_TERMINATE: // terminate program
       dprintf("Received termination command from controller\n");
@@ -381,11 +384,12 @@ int main(int argc, char **argv) {
     receive_command_from_controller(Int, &np, &sp, &fb_enables);
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;
-    if (time_s >= sp.start_time_s)
+    if ((time_s >= start_time_s) && start_msg_received)
+      break;
+    if (sig_terminate)
       break;
   }
 
-  sleep(2);
   dprintf("Starting interferer\n");
   Int->start_tx();
 

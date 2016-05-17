@@ -60,3 +60,10 @@ allocation can be changed on the fly by the CE. If you run uhd\_fft on a
 nearby node before running this scenario you can observe the initial
 subcarrier allocation defined in the scenario configuration file followed
 by switching between a custom allocation and the default liquid-dsp allocation.
+
+## 9. Network\_Loading
+
+This example scenario sets up two CR nodes which have asymmetric network loads.
+The network loads are then periodically swapped by the scenario controller. The
+cognitive engines used in this scenario will adapt their bandwidths based on the
+network loads that they detect.

@@ -68,7 +68,7 @@ void receive_command_from_controller(int *TCP_controller,
   FD_SET(*TCP_controller, &fds);
 
   // if data is available or the scenario has not been started, read in message from controller
-  if (select(*TCP_controller + 1, &fds, NULL, NULL, &timeout) || (start_time_s == 0)) {
+  if (select(*TCP_controller + 1, &fds, NULL, NULL, &timeout) || (!start_msg_received)) {
     // read the first byte which designates the message type
     int rflag = recv(*TCP_controller, command_buffer, 1, 0);
 

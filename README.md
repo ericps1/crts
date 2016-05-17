@@ -59,6 +59,7 @@ CRTS also relies on each node having network synchronized clocks. On CORNET this
 with Network Time Protocol (NTP). Precision Time Protocol (PTP) would work as well.
 
 Note to CORNET users: These dependencies are already installed for you on all CORNET nodes.
+You will still need to download the CRTS source repository and compile it however.
 
 ###Downloading and Configuring CRTS 
 Official releases of CRTS can be downloaded from the
@@ -70,10 +71,14 @@ Note that because using CRTS involves actively writing and compiling
 cognitive engine code, it is not installed like traditional software.
 
 #### Official Releases
-1. Download the Version 1.0 tar.gz from the [Official Releases Page](https://github.com/ericps1/crts/releases):
+
+In the following commands 'v1.0' should be replaced with the release version you
+wish to download.
+
+1. Download the latest released version of CRTS from the [Official Releases Page](https://github.com/ericps1/crts/releases):
 
         $ wget -O crts-v1.0.tar.gz https://github.com/ericps1/crts/archive/v1.0.tar.gz
-
+ 
 2. Unzip the archive and move into the main source tree:
 
         $ tar xzf crts-v1.0.tar.gz
@@ -84,14 +89,14 @@ cognitive engine code, it is not installed like traditional software.
         $ make
 
 4. Then configure the system to allow certain networking commands without a password 
-    (CORNET users should skip this step):
+    (CORNET users can skip this step):
 
         $ sudo make install
 
 The last step should only ever need to be run once. 
 It configures the system to allow all users to run
-certain very specific networking commands which are necessary for CRTS.
-They are required because CRTS creates and 
+certain specific networking commands which are necessary for CRTS.
+They are required because CRTS creates, manipulates, and 
 tears down a virtual network interface upon each run. 
 The commands may be found in the .crts\_sudoers file.
 
@@ -142,6 +147,9 @@ or
     generating particular noise or interference patterns against which the 
     CR nodes must operate.
 
+In the next sections we provide an overview of the high level components
+used by CRTS to enable flexible, scalable testing of CR's.
+
 ### Scenarios
 
 The `master_scenario_file.cfg` specifies which scenario(s) should be run for a
@@ -174,6 +182,27 @@ configuration file and the default setting will be used.
 
 Examples of scenario files are provided in the `scenarios/` directory of the
 source tree.
+
+### Scenario Controllers
+
+Scenario controllers provide a centralized and customizable way to receive 
+feedback and exert control over a scenario's operation in real time. A
+simple API can be used to enable or disable specific types of feedback from
+each node involved in the scenario, receive said feedback, and even directly
+control the scenario test parameters e.g. the network throughput as well as
+the operating parameters of the radio e.g. its transmit power.
+
+The behavior of the scenario controller is defined by two functions. The
+initialize node feedback function is called at the beginning of the scenario
+so that feedback can be setup once since this will often be a static setting.
+The execute function implements the behavior of the scenario controller. It 
+is triggered whenever feedback is received or after a certain period of time 
+has passed.
+
+To make a new scenario controller a user needs to define a new scenario controller
+subclass. The SC\_Template.cpp and SC\_Template.hpp can be used as a guide in terms
+of the structure and API. Once the SC has been defined it can be integrated into CRTS
+by running $ ./config\_SCs and $ make in the top directory.
 
 ### The Extensible Cognitive Radio
 
@@ -208,7 +237,7 @@ To make a new cognitive engine a user needs to define a new cognitive engine
 subclass. The CE\_Template.cpp and CE\_Template.hpp can be used as a guide in terms
 of the structure, and some of the other examples show how the CE can interact
 with the ECR. Once the CE has been defined it can be integrated into CRTS
-by running $ ./config\_CEs in the top directory.
+by running $ ./config\_CEs and $ make in the top directory.
 
 Other source files in the cognitive\_engine directory will be automatically
 linked into the build process. This way you can define other classes that your
