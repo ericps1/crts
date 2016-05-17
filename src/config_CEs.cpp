@@ -307,9 +307,14 @@ int main(int argc, char **argv) {
         std::string line_new;
         line_new = "CEs = src/CE.cpp ";
         for (int i = 0; i < num_ces; i++) {
-          line_new += (ces[i].ce_dir + "/" + ces[i].ce_name);
-          line_new += ".cpp ";
+          line_new += ("lib/"+ces[i].ce_name+".o ");
+          //line_new += (ces[i].ce_dir + "/" + ces[i].ce_name);
+          //line_new += ".cpp ";
         }
+        file_lines.push_back(line_new);
+        line_new = "";
+        file_lines.push_back(line_new);
+        line_new = "CE_srcs = ";
         for (int i = 0; i < num_srcs; i++) {
           //line_new += " cognitive_engines/";
           line_new += (" "+src_list[i]);
@@ -341,5 +346,77 @@ int main(int argc, char **argv) {
   }
   file_out.close();
   
+  /////////////////////////////////////////////////////////////////////////////
+  // Edit makfile CE compilation
+  /////////////////////////////////////////////////////////////////////////////
+
+  file_lines.clear();
+
+  flag_beg = "EDIT CE COMPILATION START FLAG";
+  flag_end = "EDIT CE COMPILATION END FLAG";
+
+  // open header file
+  file_in.open("makefile", std::ifstream::in);
+
+  // read file until the end
+  while (!(file_in.eof())) {
+
+    std::getline(file_in, line);
+    if (!edit_content) {
+      file_lines.push_back(line); // push all lines on vector
+      std::size_t found = line.find(flag_beg);
+      // start to edit content once start flag is found
+      if (found != std::string::npos) {
+        edit_content = true;
+
+        // push all lines to map subclass
+        std::string line_new; 
+        for (int i = 0; i < num_ces; i++) {
+          line_new = "lib/"+ces[i].ce_name+".o: ";
+          line_new += (ces[i].ce_dir+"/"+ces[i].ce_name+".cpp ");
+          line_new += (ces[i].ce_dir+"/"+ces[i].ce_name+".hpp ");
+          for (int i = 0; i < num_srcs; i++) {
+            //line_new += " cognitive_engines/";
+            line_new += (src_list[i]+" ");
+          }
+          file_lines.push_back(line_new);
+
+          line_new = "\tg++ $(FLAGS) -c -o lib/"+ces[i].ce_name+".o ";
+          line_new += (ces[i].ce_dir+"/"+ces[i].ce_name+".cpp ");
+          /*line_new += (ces[i].ce_dir+"/"+ces[i].ce_name+".hpp ");
+          for (int i = 0; i < num_srcs; i++) {
+            //line_new += " cognitive_engines/";
+            line_new += (src_list[i]+" ");
+          }*/
+          file_lines.push_back(line_new);
+          line_new = "";
+          file_lines.push_back(line_new);
+        }      
+      }
+    }
+    // else delete all lines until end flag is found
+    else {
+      // if end flag is found push it onto the vector and go back to standard
+      // mode
+      std::size_t found = line.find(flag_end);
+      if (found != std::string::npos) {
+        file_lines.push_back(line);
+        edit_content = false;
+      }
+    }
+  }
+  // close read file
+  file_in.close();
+
+  // write file
+  file_out.open("makefile", std::ofstream::out);
+  for (std::vector<std::string>::iterator i = file_lines.begin();
+       i != file_lines.end(); i++) {
+    file_out << (*i);
+    if (i != file_lines.end() - 1)
+      file_out << '\n';
+  }
+  file_out.close();
+ 
   return 0;
 }
