@@ -20,8 +20,6 @@
 #include <fstream>
 #include "CRTS.hpp"
 #include "interferer.hpp"
-#include "node_parameters.hpp"
-#include "read_configs.hpp"
 #include "timer.h"
 
 #define DEBUG 0

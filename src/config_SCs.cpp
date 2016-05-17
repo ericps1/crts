@@ -3,8 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <dirent.h>
-#include "node_parameters.hpp"
-#include "read_configs.hpp"
+#include "CRTS.hpp"
 
 int main() {
 

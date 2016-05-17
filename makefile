@@ -9,40 +9,43 @@ CEs = src/CE.cpp cognitive_engines/CE_Template.cpp cognitive_engines/CE_Subcarri
 SCs = src/SC.cpp scenario_controllers/SC_BER_Sweep.cpp scenario_controllers/SC_Control_and_Feedback_Test.cpp scenario_controllers/SC_CORNET_3D.cpp scenario_controllers/SC_Network_Loading.cpp scenario_controllers/SC_Template.cpp
 #EDIT SC END FLAG
 
-all: lib/TUN.o lib/read_configs.o config_CEs config_SCs lib/ECR.o logs/logs2python logs/logs2octave CRTS_CR lib/interferer.o CRTS_interferer CRTS_controller
+all: lib/CRTS.o config_CEs config_SCs lib/TUN.o lib/timer.o lib/ECR.o lib/interferer.o logs/logs2python logs/logs2octave CRTS_interferer CRTS_CR CRTS_controller
 
-lib/TUN.o: src/TUN.cpp
-	g++ $(FLAGS) -c -o lib/TUN.o src/TUN.cpp
-
-lib/read_configs.o: src/read_configs.cpp
-	g++ $(FLAGS) -c -o lib/read_configs.o src/read_configs.cpp
+lib/CRTS.o: include/CRTS.hpp src/CRTS.cpp
+	g++ $(FLAGS) -c -o lib/CRTS.o src/CRTS.cpp
 
 config_CEs: src/config_CEs.cpp
-	g++ $(FLAGS) -o config_CEs src/config_CEs.cpp lib/read_configs.o -lconfig -lliquid
+	g++ $(FLAGS) -o config_CEs src/config_CEs.cpp lib/CRTS.o -lconfig -lliquid
 
 config_SCs: src/config_SCs.cpp
-	g++ $(FLAGS) -o config_SCs src/config_SCs.cpp lib/read_configs.o -lconfig -lliquid
+	g++ $(FLAGS) -o config_SCs src/config_SCs.cpp lib/CRTS.o -lconfig -lliquid
+
+lib/TUN.o: include/TUN.hpp src/TUN.cpp
+	g++ $(FLAGS) -c -o lib/TUN.o src/TUN.cpp
+
+lib/timer.o: include/timer.h src/timer.cc
+	g++ $(FLAGS) -c -o lib/timer.o src/timer.cc
 
 lib/ECR.o: include/ECR.hpp src/ECR.cpp 
 	g++ $(FLAGS) -c -o lib/ECR.o src/ECR.cpp
 
-CRTS_CR: include/ECR.hpp src/TUN.cpp src/ECR.cpp src/CRTS_CR.cpp  $(CEs)
-	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp src/CRTS_common.cpp src/read_configs.cpp src/timer.cc $(CEs) $(LIBS)
-
-lib/interferer.o: src/interferer.cpp include/interferer.hpp
+lib/interferer.o: include/interferer.hpp src/interferer.cpp 
 	g++ $(FLAGS) -c -o lib/interferer.o src/interferer.cpp
-
-CRTS_interferer: src/CRTS_interferer.cpp src/interferer.cpp src/CRTS_common.cpp 
-	g++ $(FLAGS) -o CRTS_interferer src/CRTS_interferer.cpp src/CRTS_common.cpp src/timer.cc lib/interferer.o lib/read_configs.o -luhd -lc -lconfig -lliquid -lpthread
-
-CRTS_controller: include/node_parameters.hpp src/CRTS_controller.cpp src/read_configs.cpp $(SCs)
-	g++ $(FLAGS) -o CRTS_controller src/CRTS_controller.cpp src/CRTS_common.cpp src/timer.cc lib/read_configs.o -lconfig -lliquid -lpthread $(SCs)
 
 logs/logs2octave: src/logs2octave.cpp
 	g++ $(FLAGS) -o logs/logs2octave src/logs2octave.cpp -luhd
 
 logs/logs2python: src/logs2python.cpp
 	g++ $(FLAGS) -o logs/logs2python src/logs2python.cpp -luhd
+
+CRTS_interferer: include/interferer.hpp include/CRTS.hpp src/CRTS_interferer.cpp src/interferer.cpp src/CRTS.cpp 
+	g++ $(FLAGS) -o CRTS_interferer src/CRTS_interferer.cpp lib/CRTS.o lib/interferer.o lib/timer.o -luhd -lc -lconfig -lliquid -lpthread
+
+CRTS_CR: include/ECR.hpp src/TUN.cpp src/ECR.cpp src/CRTS_CR.cpp  $(CEs)
+	g++ $(FLAGS) -o CRTS_CR src/CRTS_CR.cpp lib/CRTS.o lib/timer.o $(CEs) $(LIBS)
+
+CRTS_controller: include/CRTS.hpp src/CRTS.cpp src/CRTS_controller.cpp $(SCs)
+	g++ $(FLAGS) -o CRTS_controller src/CRTS_controller.cpp lib/CRTS.o lib/timer.o -lconfig -lliquid -lpthread $(SCs)
 
 install:
 	cp ./.crts_sudoers /etc/sudoers.d/crts # Filename must not have '_' or '.' in name.

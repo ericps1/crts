@@ -21,8 +21,6 @@
 #include "timer.h"
 #include "CRTS.hpp"
 #include "ECR.hpp"
-#include "node_parameters.hpp"
-#include "read_configs.hpp"
 #include "TUN.hpp"
 
 #define DEBUG 0

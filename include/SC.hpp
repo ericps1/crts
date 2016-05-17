@@ -9,8 +9,6 @@
 #include "CRTS.hpp"
 #include "ECR.hpp"
 #include "interferer.hpp"
-#include "read_configs.hpp"
-#include "node_parameters.hpp"
 
 void *sc_worker(void *_arg);
 

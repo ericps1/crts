@@ -19,8 +19,6 @@
 #include <errno.h>
 #include "CRTS.hpp"
 #include "ECR.hpp"
-#include "node_parameters.hpp"
-#include "read_configs.hpp"
 
 // EDIT INCLUDE START FLAG
 #include "../scenario_controllers/SC_BER_Sweep.hpp"
