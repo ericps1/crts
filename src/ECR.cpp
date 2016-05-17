@@ -18,17 +18,17 @@
 #include "TUN.hpp"
 
 // EDIT INCLUDE START FLAG
-#include "../cognitive_engines/CE_Template.hpp"
-#include "../cognitive_engines/CE_Subcarrier_Alloc.hpp"
-#include "../cognitive_engines/CE_Mod_Adaptation.hpp"
-#include "../cognitive_engines/CE_Network_Loading.hpp"
-#include "../cognitive_engines/CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
-#include "../cognitive_engines/CE_Two_Channel_DSA_PU.hpp"
-#include "../cognitive_engines/CE_FEC_Adaptation.hpp"
-#include "../cognitive_engines/CE_Two_Channel_DSA_Link_Reliability.hpp"
-#include "../cognitive_engines/CE_Control_and_Feedback_Test.hpp"
-#include "../cognitive_engines/CE_Simultaneous_RX_And_Sensing.hpp"
-#include "../cognitive_engines/CE_Throughput_Test.hpp"
+#include "../cognitive_engines/CE_Template/CE_Template.hpp"
+#include "../cognitive_engines/test_engines/CE_Subcarrier_Alloc/CE_Subcarrier_Alloc.hpp"
+#include "../cognitive_engines/test_engines/CE_Throughput_Test/CE_Throughput_Test.hpp"
+#include "../cognitive_engines/test_engines/CE_Control_and_Feedback_Test/CE_Control_and_Feedback_Test.hpp"
+#include "../cognitive_engines/test_engines/CE_Simultaneous_RX_And_Sensing/CE_Simultaneous_RX_And_Sensing.hpp"
+#include "../cognitive_engines/example_engines/CE_Two_Channel_DSA_Spectrum_Sensing/CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
+#include "../cognitive_engines/example_engines/CE_Mod_Adaptation/CE_Mod_Adaptation.hpp"
+#include "../cognitive_engines/example_engines/CE_Network_Loading/CE_Network_Loading.hpp"
+#include "../cognitive_engines/example_engines/CE_FEC_Adaptation/CE_FEC_Adaptation.hpp"
+#include "../cognitive_engines/example_engines/CE_Two_Channel_DSA_Link_Reliability/CE_Two_Channel_DSA_Link_Reliability.hpp"
+#include "../cognitive_engines/primary_user_engines/CE_Two_Channel_DSA_PU/CE_Two_Channel_DSA_PU.hpp"
 // EDIT INCLUDE END FLAG
 
 #define DEBUG 0
@@ -352,27 +352,27 @@ void ExtensibleCognitiveRadio::set_ce(char *ce, int argc, char **argv) {
   ///@cond INTERNAL
   // EDIT SET CE START FLAG
   if(!strcmp(ce, "CE_Template"))
-    CE = new CE_Template(argc, argv);
+    CE = new CE_Template(argc, argv, this);
   if(!strcmp(ce, "CE_Subcarrier_Alloc"))
-    CE = new CE_Subcarrier_Alloc(argc, argv);
-  if(!strcmp(ce, "CE_Mod_Adaptation"))
-    CE = new CE_Mod_Adaptation(argc, argv);
-  if(!strcmp(ce, "CE_Network_Loading"))
-    CE = new CE_Network_Loading(argc, argv);
-  if(!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
-    CE = new CE_Two_Channel_DSA_Spectrum_Sensing(argc, argv);
-  if(!strcmp(ce, "CE_Two_Channel_DSA_PU"))
-    CE = new CE_Two_Channel_DSA_PU(argc, argv);
-  if(!strcmp(ce, "CE_FEC_Adaptation"))
-    CE = new CE_FEC_Adaptation(argc, argv);
-  if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
-    CE = new CE_Two_Channel_DSA_Link_Reliability(argc, argv);
-  if(!strcmp(ce, "CE_Control_and_Feedback_Test"))
-    CE = new CE_Control_and_Feedback_Test(argc, argv);
-  if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
-    CE = new CE_Simultaneous_RX_And_Sensing(argc, argv);
+    CE = new CE_Subcarrier_Alloc(argc, argv, this);
   if(!strcmp(ce, "CE_Throughput_Test"))
-    CE = new CE_Throughput_Test(argc, argv);
+    CE = new CE_Throughput_Test(argc, argv, this);
+  if(!strcmp(ce, "CE_Control_and_Feedback_Test"))
+    CE = new CE_Control_and_Feedback_Test(argc, argv, this);
+  if(!strcmp(ce, "CE_Simultaneous_RX_And_Sensing"))
+    CE = new CE_Simultaneous_RX_And_Sensing(argc, argv, this);
+  if(!strcmp(ce, "CE_Two_Channel_DSA_Spectrum_Sensing"))
+    CE = new CE_Two_Channel_DSA_Spectrum_Sensing(argc, argv, this);
+  if(!strcmp(ce, "CE_Mod_Adaptation"))
+    CE = new CE_Mod_Adaptation(argc, argv, this);
+  if(!strcmp(ce, "CE_Network_Loading"))
+    CE = new CE_Network_Loading(argc, argv, this);
+  if(!strcmp(ce, "CE_FEC_Adaptation"))
+    CE = new CE_FEC_Adaptation(argc, argv, this);
+  if(!strcmp(ce, "CE_Two_Channel_DSA_Link_Reliability"))
+    CE = new CE_Two_Channel_DSA_Link_Reliability(argc, argv, this);
+  if(!strcmp(ce, "CE_Two_Channel_DSA_PU"))
+    CE = new CE_Two_Channel_DSA_PU(argc, argv, this);
   // EDIT SET CE END FLAG
   ///@endcond
 }
@@ -1583,19 +1583,19 @@ void ExtensibleCognitiveRadio::update_rx_stats(){
   pthread_mutex_lock(&rx_params_mutex);    
   rx_stats.frames_received = N;
   if (N > 0) {
-    rx_stats.avg_evm = 10.0*log10(sum_evm/(float)N);
-    rx_stats.avg_rssi = 10.0*log10(sum_rssi/(float)N);
-    rx_stats.avg_per = (float)(N-sum_payload_valid)/(float)N;
+    rx_stats.evm_dB = 10.0*log10(sum_evm/(float)N);
+    rx_stats.rssi_dB = 10.0*log10(sum_rssi/(float)N);
+    rx_stats.per = (float)(N-sum_payload_valid)/(float)N;
   } else {
-    rx_stats.avg_evm = 0.0;
-    rx_stats.avg_rssi = -100.0;
-    rx_stats.avg_per = 1.0;
+    rx_stats.evm_dB = 0.0;
+    rx_stats.rssi_dB = -100.0;
+    rx_stats.per = 1.0;
   }
-  rx_stats.avg_throughput = 8.0*(float)sum_valid_bytes/rx_stat_tracking_period;
+  rx_stats.throughput = 8.0*(float)sum_valid_bytes/rx_stat_tracking_period;
   if (sum_payload_len > 0)
-    rx_stats.avg_ber = (1.0+overhead)*(float)sum_bit_errors/(8.0*sum_payload_len);
+    rx_stats.ber = (1.0+overhead)*(float)sum_bit_errors/(8.0*sum_payload_len);
   else
-    rx_stats.avg_ber = 0.5; 
+    rx_stats.ber = 0.5; 
   pthread_mutex_unlock(&rx_params_mutex);
 }
 
@@ -1758,7 +1758,7 @@ void *ECR_ce_worker(void *_arg) {
       }
 
       // execute CE
-      ECR->CE->execute(ECR);
+      ECR->CE->execute();
       pthread_mutex_unlock(&ECR->CE_mutex);
     }
   }

@@ -74,10 +74,10 @@ void SC_Template::execute() {
           *(struct ExtensibleCognitiveRadio::rx_statistics*) fb.arg;
         printf("Node %i has sent updated receive statistics:\n", fb.node);
         printf("  Number of frames received: %i\n", rx_stats.frames_received);
-        printf("  Average EVM:               %.3f\n", rx_stats.avg_evm);
-        printf("  Average RSSI:              %.3f\n", rx_stats.avg_rssi);
-        printf("  Average PER:               %.3f\n", rx_stats.avg_per);
-        printf("  Average throughput:        %.3e\n", rx_stats.avg_throughput);
+        printf("  Average EVM:               %.3f\n", rx_stats.evm_dB);
+        printf("  Average RSSI:              %.3f\n", rx_stats.rssi_dB);
+        printf("  Average PER:               %.3f\n", rx_stats.per);
+        printf("  Average throughput:        %.3e\n", rx_stats.throughput);
         break;
      }
    }

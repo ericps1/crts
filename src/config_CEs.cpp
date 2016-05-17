@@ -7,15 +7,131 @@
 #include <iostream>
 #include "CRTS.hpp"
 
+struct ce_info{
+  std::string ce_name;
+  std::string ce_dir;
+  std::string src_list[100];
+  int num_srcs;
+};
+
+int num_ces = 0;
+int num_srcs = 0;
+struct ce_info ces[100];
+std::string src_list[100];
+
+void process_directory(std::string directory, bool customize, bool ce_dir){
+
+  printf("Processing directory: %s\n", directory.c_str());
+  DIR *dpdf;
+  struct dirent *epdf;
+  bool useThisCE;
+  bool ce_src_found = false;
+  int ce_ind = (num_ces>0) ? num_ces-1 : 0; // store the current ce count so it can be used later
+
+  std::string src_file_name = "";
+          
+  // read directory contents
+  dpdf = opendir(directory.c_str());
+  if (dpdf != NULL) {
+    while ((epdf = readdir(dpdf)) != NULL) {
+      
+      // handle subdirectories
+      if ((epdf->d_type == DT_DIR) && strcmp(epdf->d_name,".") && strcmp(epdf->d_name,"..")){ 
+        // verify length
+        if (strlen(epdf->d_name) >= 3) {
+          // subdirectory defines a CE
+          if (epdf->d_name[0] == 'C' && epdf->d_name[1] == 'E' &&
+              epdf->d_name[2] == '_') {
+
+            useThisCE = true;
+            if (customize){
+              char input;
+              do {
+                std::cout << "Use " << (directory+"/"+epdf->d_name) <<"? [y/n]" << std::endl;
+                std::cin >> input;
+              } while (!std::cin.fail() && input!='y' && input!='n');
+              if (input == 'n')
+                useThisCE = false;
+            }
+            if (useThisCE) {
+              // Copy filename and path into list of CEs
+              ces[num_ces].ce_name.assign(epdf->d_name);
+              ces[num_ces].ce_dir.assign(directory+"/"+epdf->d_name);
+              num_ces++;
+            } 
+          
+            process_directory(directory+"/"+epdf->d_name, customize, true);
+          } else /* non-CE subdirectory (doesn't start with 'CE_')*/{
+            process_directory(directory+"/"+epdf->d_name, customize, false);
+          }
+        } else /* non-CE subdirectory (short name)*/{
+          process_directory(directory+"/"+epdf->d_name, customize, false);
+        }
+      }
+
+      // handle standard file
+      if (epdf->d_type == DT_REG){
+        // verify length
+        if (strlen(epdf->d_name) >= 3) {
+          // file is the CE source file
+          std::string ce_src = ces[ce_ind].ce_name + ".cpp";
+          if (ce_dir && (!strcmp(epdf->d_name, ce_src.c_str()))) {
+            ce_src_found = true;
+          }
+          // file is non-CE source file 
+          else if ((epdf->d_name[strlen(epdf->d_name) - 2] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'c') || 
+                   (epdf->d_name[strlen(epdf->d_name) - 3] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 2] == 'c' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'c') ||
+                   (epdf->d_name[strlen(epdf->d_name) - 4] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 3] == 'c' &&
+                    epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'p')) {
+            bool useThisSrc = true;
+            if (customize)
+            {
+              char input;
+              do {
+                std::cout << "Use " << (directory+"/"+epdf->d_name) <<"? [y/n]" << std::endl;
+                std::cin >> input;
+              } while (!std::cin.fail() && input!='y' && input!='n');
+              if (input == 'n')
+                useThisSrc = false;
+            }
+            if (useThisSrc && ce_dir) {
+              // Copy filename into list of src names for specific ce
+              ces[num_ces].src_list[ces[num_ces].num_srcs].assign(directory+"/"+epdf->d_name);
+              ces[num_ces].num_srcs++;
+            } else if (useThisSrc && (!ce_dir)) {
+              // Copy filename into list of common src names
+              src_list[num_srcs].assign(directory+"/"+epdf->d_name);
+              num_srcs++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // make sure we've found the ce source file if in a ce directory
+  if ( ce_dir && (!ce_src_found)) {
+    printf("The source file was not found for the CE: %s%s%s\n", ces[ce_ind].ce_dir.c_str(), "/", ces[ce_ind].ce_name.c_str());
+    exit(EXIT_FAILURE);
+  }
+}
+
 void help_config_CEs() {
   printf("config_CEs -- Configure CRTS to use cusotm cognitive engines\n");
   printf("              (located in the cognitive_engines/ directory).\n");
   printf(" -h : Help.\n");
-  printf(" -c : Customize the selection of cognitive engines.\n");
+  printf(" -c : Customize the selection of cognitive engines and source files.\n");
 }
 
 int main(int argc, char **argv) {
 
+  printf("Consult the CRTS-Manual.pdf if you experience trouble configuring your CE's\n\n");
+  
   // Default options
   bool customize = false;
 
@@ -35,82 +151,14 @@ int main(int argc, char **argv) {
     }
   }
 
-  // Read in all file names in cognitive_engines directory.
-  // Count number of CEs and truncate '.cpp' from file name.
-  int num_ces = 0;
-  int num_srcs = 0;
-  std::string ce_list[100];
-  std::string src_list[100];
-  DIR *dpdf;
-  struct dirent *epdf;
+  // Launch recursive process which reads in info for all CE's in
+  // base directory and any subdirectories
+  std::string base_directory = "cognitive_engines";
+  process_directory(base_directory, customize, false);
 
-  dpdf = opendir("./cognitive_engines");
-  if (dpdf != NULL) {
-    while ((epdf = readdir(dpdf))) {
-      // find all CE files
-      if (strlen(epdf->d_name) >= 3) {
-        if (epdf->d_name[0] == 'C' && epdf->d_name[1] == 'E' &&
-            epdf->d_name[2] == '_' &&
-            epdf->d_name[strlen(epdf->d_name) - 3] == 'c' &&
-            epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
-            epdf->d_name[strlen(epdf->d_name) - 1] == 'p') {
-
-          bool useThisCE = true;
-          if (customize)
-          {
-            char input;
-            do {
-              std::cout << "Use " << epdf->d_name <<"? [y/n]" << std::endl;
-              std::cin >> input;
-            } while (!std::cin.fail() && input!='y' && input!='n');
-            if (input == 'n')
-              useThisCE = false;
-            
-            
-          }
-
-          if (useThisCE) {
-            // Copy filename into list of CE names
-            ce_list[num_ces].assign(epdf->d_name);
-            // Strip the extension from the name
-            std::size_t dot_pos = ce_list[num_ces].find(".");
-            ce_list[num_ces].resize(dot_pos);
-            num_ces++;
-          }
-        } else if (epdf->d_name[strlen(epdf->d_name) - 3] == 'c' &&
-                   epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
-                   epdf->d_name[strlen(epdf->d_name) - 1] == 'p') {
-
-          bool useThisSrc = true;
-          if (customize)
-          {
-            char input;
-            do {
-              std::cout << "Use " << epdf->d_name <<"? [y/n]" << std::endl;
-              std::cin >> input;
-            } while (!std::cin.fail() && input!='y' && input!='n');
-            if (input == 'n')
-              useThisSrc = false;
-            
-          }
-          if (useThisSrc) {
-            // Copy filename into list of src names
-            src_list[num_srcs].assign(epdf->d_name);
-            // Strip the extension from the name
-            // std::size_t dot_pos = src_list[num_srcs].find(".");
-            // ce_list[num_ces].resize(dot_pos);
-            num_srcs++;
-          }
-        }
-      }
-    }
-  }
-
-
-
-  printf("Configuring CRTS to use the following cognitive engines:\n\n");
+  printf("\nConfiguring CRTS to use the following cognitive engines:\n\n");
   for (int i = 0; i < num_ces; i++)
-    printf("%s\n", ce_list[i].c_str());
+    printf("%s\n", ces[i].ce_name.c_str());
 
   printf("\nThe following files will be included as additional sources:\n\n");
   for (int i = 0; i < num_srcs; i++)
@@ -146,9 +194,9 @@ int main(int argc, char **argv) {
 
         // push all lines to map subclass
         for (int i = 0; i < num_ces; i++) {
-          line = "  if(!strcmp(ce, \"" + ce_list[i] + "\"))";
+          line = "  if(!strcmp(ce, \"" + ces[i].ce_name + "\"))";
           file_lines.push_back(line);
-          line = "    CE = new " + ce_list[i] + "(argc, argv);";
+          line = "    CE = new " + ces[i].ce_name + "(argc, argv, this);";
           file_lines.push_back(line);
         }
       }
@@ -203,22 +251,8 @@ int main(int argc, char **argv) {
         // push all lines to map subclass
         std::string line_new;
         for (int i = 0; i < num_ces; i++) {
-          line_new = "#include \"../cognitive_engines/" + ce_list[i] + ".hpp\"";
+          line_new = "#include \"../"+ces[i].ce_dir+"/"+ces[i].ce_name+".hpp\"";
           file_lines.push_back(line_new);
-          /*line_new = "class " + ce_list[i] + " : public Cognitive_Engine {\r";
-file_lines.push_back(line_new);
-line_new  = "public:\r";
-file_lines.push_back(line_new);
-line_new = "    " + ce_list[i] +"();\r";
-file_lines.push_back(line_new);
-line_new = "    ~" + ce_list[i] + "();\r";
-file_lines.push_back(line_new);
-line_new = "    virtual void execute(void * _args);\r";
-file_lines.push_back(line_new);
-line_new = "    void * custom_members;\r";
-file_lines.push_back(line_new);
-line_new = "};\r";
-file_lines.push_back(line_new);*/
         }
       }
     }
@@ -271,15 +305,14 @@ file_lines.push_back(line_new);*/
 
         // push all lines to map subclass
         std::string line_new;
-        line_new = "CEs = src/CE.cpp";
+        line_new = "CEs = src/CE.cpp ";
         for (int i = 0; i < num_ces; i++) {
-          line_new += " cognitive_engines/";
-          line_new += ce_list[i];
-          line_new += ".cpp";
+          line_new += (ces[i].ce_dir + "/" + ces[i].ce_name);
+          line_new += ".cpp ";
         }
         for (int i = 0; i < num_srcs; i++) {
-          line_new += " cognitive_engines/";
-          line_new += src_list[i];
+          //line_new += " cognitive_engines/";
+          line_new += (" "+src_list[i]);
         }
         file_lines.push_back(line_new);
       }
@@ -307,6 +340,6 @@ file_lines.push_back(line_new);*/
       file_out << '\n';
   }
   file_out.close();
-
+  
   return 0;
 }

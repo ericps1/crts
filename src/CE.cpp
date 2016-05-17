@@ -3,4 +3,4 @@
 
 Cognitive_Engine::Cognitive_Engine() {}
 Cognitive_Engine::~Cognitive_Engine() {}
-void Cognitive_Engine::execute(ExtensibleCognitiveRadio *ECR) {}
+void Cognitive_Engine::execute() {}

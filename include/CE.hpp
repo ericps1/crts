@@ -22,6 +22,7 @@ class Cognitive_Engine {
 public:
   Cognitive_Engine();
   ~Cognitive_Engine();
+  ExtensibleCognitiveRadio *ECR;
   /// \brief Executes the custom cognitive engine
   /// as defined by the user.
   ///
@@ -40,7 +41,7 @@ public:
   /// Or, for direct examples, refer to the source code of
   /// the reimplementations listed below
   /// (in the cognitive_engines/ directory of the source tree).
-  virtual void execute(ExtensibleCognitiveRadio *ECR);
+  virtual void execute();
 };
 
 #endif

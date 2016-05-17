@@ -508,11 +508,11 @@ public:
   // struct for receive statistics
   struct rx_statistics{
     int frames_received;
-    float avg_evm;
-    float avg_rssi;
-    float avg_per;
-    float avg_ber;
-    float avg_throughput;
+    float evm_dB;
+    float rssi_dB;
+    float per;
+    float ber;
+    float throughput;
   };
 
   //=================================================================================
