@@ -8,7 +8,7 @@
 #include "SC_CORNET_3D.hpp"
 
 // constructor
-SC_CORNET_3D::SC_CORNET_3D() {
+SC_CORNET_3D::SC_CORNET_3D(int argc, char **argv) {
   // Create TCP client to CORNET3D
   TCP_CORNET_3D = socket(AF_INET, SOCK_STREAM, 0);
   if (TCP_CORNET_3D < 0) {

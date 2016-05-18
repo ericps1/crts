@@ -15,7 +15,7 @@ private:
   double throughput_2;
 
 public:
-  SC_Network_Loading();
+  SC_Network_Loading(int argc, char **argv);
   ~SC_Network_Loading();
   virtual void execute();
   virtual void initialize_node_fb();

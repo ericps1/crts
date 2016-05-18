@@ -3,7 +3,7 @@
 #include "SC_BER_Sweep.hpp"
 
 // constructor
-SC_BER_Sweep::SC_BER_Sweep() {
+SC_BER_Sweep::SC_BER_Sweep(int argc, char **argv) {
   tx_gain = BER_SWEEP_TX_GAIN_MIN;
   rx_gain = BER_SWEEP_RX_GAIN_MIN;
   feedback_count = 0;

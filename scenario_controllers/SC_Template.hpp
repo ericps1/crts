@@ -6,10 +6,9 @@
 class SC_Template : public Scenario_Controller {
 
 private:
-  // internal members used by this CE
-
+  unsigned int debugLevel;
 public:
-  SC_Template();
+  SC_Template(int argc, char **argv);
   ~SC_Template();
   virtual void execute();
   virtual void initialize_node_fb();

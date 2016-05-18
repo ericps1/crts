@@ -85,7 +85,7 @@ int main() {
         for (int i = 0; i < num_scs; i++) {
           line = "      if(!strcmp(sp.SC, \"" + sc_list[i] + "\"))";
           file_lines.push_back(line);
-          line = "        SC = new " + sc_list[i] + "();";
+          line = "        SC = new " + sc_list[i] + "(argc, argv);";
           file_lines.push_back(line);
         }
       }

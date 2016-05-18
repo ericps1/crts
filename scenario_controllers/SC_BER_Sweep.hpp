@@ -28,7 +28,7 @@ private:
   struct ExtensibleCognitiveRadio::rx_statistics rx_stats;
   int data_ind;
 public:
-  SC_BER_Sweep();
+  SC_BER_Sweep(int argc, char **argv);
   ~SC_BER_Sweep();
   virtual void execute(int node, char fb_type, void *_arg);
   virtual void initialize_node_fb();

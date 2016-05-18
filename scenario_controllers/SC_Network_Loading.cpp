@@ -3,7 +3,7 @@
 #include "SC_Network_Loading.hpp"
 
 // constructor
-SC_Network_Loading::SC_Network_Loading() {
+SC_Network_Loading::SC_Network_Loading(int argc, char **argv) {
   state = 0;
   throughput_1 = 4e6;
   throughput_2 = 1e4;

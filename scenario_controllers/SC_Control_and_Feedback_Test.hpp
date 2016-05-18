@@ -9,7 +9,7 @@ private:
   // internal members used by this CE
 
 public:
-  SC_Control_and_Feedback_Test();
+  SC_Control_and_Feedback_Test(int argc, char **argv);
   ~SC_Control_and_Feedback_Test();
   virtual void execute(int node, char fb_type, void *_arg);
   virtual void initialize_node_fb();

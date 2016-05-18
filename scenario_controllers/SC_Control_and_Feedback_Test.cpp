@@ -3,7 +3,7 @@
 #include "SC_Control_and_Feedback_Test.hpp"
 
 // constructor
-SC_Control_and_Feedback_Test::SC_Control_and_Feedback_Test() {}
+SC_Control_and_Feedback_Test::SC_Control_and_Feedback_Test(int argc, char **argv) {}
 
 // destructor
 SC_Control_and_Feedback_Test::~SC_Control_and_Feedback_Test() {}

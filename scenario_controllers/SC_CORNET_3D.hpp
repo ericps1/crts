@@ -13,7 +13,7 @@ private:
   int TCP_CORNET_3D;
 
 public:
-  SC_CORNET_3D();
+  SC_CORNET_3D(int argc, char **argv);
   ~SC_CORNET_3D();
   virtual void execute(int node, char fb_type, void *_arg);
   virtual void initialize_node_fb();
