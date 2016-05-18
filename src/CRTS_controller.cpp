@@ -352,7 +352,7 @@ int main(int argc, char **argv) {
           strcat(command, " 2>&1 &'");
           strcat(command, " > ");
           strcat(command, crts_dir);
-          strcat(command, "/node");
+          strcat(command, "/logs/sysout/node");
           strcat(command, node_id);
           strcat(command, ".SYSOUT &");
           ssh_return = system(command);
