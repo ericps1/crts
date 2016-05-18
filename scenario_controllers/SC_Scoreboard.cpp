@@ -7,25 +7,13 @@
 #include <arpa/inet.h>
 #include "SC_Scoreboard.hpp"
 
-struct crts_params
-{
-    int guard; //not used, needed to make struct correct size
-    int type;
-    int mod;
-    int crc;
-    int fec0;
-    int fec1;
-    double freq;
-    double bandwidth;
-    double gain;
-};
-
 struct feedback_struct
 {
     int type;
     int node;
     float value;
 };
+
 // constructor
 SC_Scoreboard::SC_Scoreboard() 
 {
@@ -59,13 +47,6 @@ SC_Scoreboard::SC_Scoreboard()
         printf("Failed to Connect to server.\n");
         exit(EXIT_FAILURE);
     }
-    old_mod = 40;
-    old_crc = 6;
-    old_fec0 = 12;
-    old_fec1 = 1;
-    old_freq = 770e6;
-    old_bandwidth = 1e6;
-    old_gain = 20.0;
 }
 
 // destructor
