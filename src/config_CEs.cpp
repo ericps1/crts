@@ -10,8 +10,6 @@
 struct ce_info{
   std::string ce_name;
   std::string ce_dir;
-  std::string src_list[100];
-  int num_srcs;
 };
 
 int num_ces = 0;
@@ -99,12 +97,8 @@ void process_directory(std::string directory, bool customize, bool ce_dir){
               if (input == 'n')
                 useThisSrc = false;
             }
-            if (useThisSrc && ce_dir) {
+            if (useThisSrc) {
               // Copy filename into list of src names for specific ce
-              ces[num_ces].src_list[ces[num_ces].num_srcs].assign(directory+"/"+epdf->d_name);
-              ces[num_ces].num_srcs++;
-            } else if (useThisSrc && (!ce_dir)) {
-              // Copy filename into list of common src names
               src_list[num_srcs].assign(directory+"/"+epdf->d_name);
               num_srcs++;
             }
@@ -308,15 +302,12 @@ int main(int argc, char **argv) {
         line_new = "CEs = src/CE.cpp ";
         for (int i = 0; i < num_ces; i++) {
           line_new += ("lib/"+ces[i].ce_name+".o ");
-          //line_new += (ces[i].ce_dir + "/" + ces[i].ce_name);
-          //line_new += ".cpp ";
         }
         file_lines.push_back(line_new);
         line_new = "";
         file_lines.push_back(line_new);
         line_new = "CE_srcs = ";
         for (int i = 0; i < num_srcs; i++) {
-          //line_new += " cognitive_engines/";
           line_new += (" "+src_list[i]);
         }
         file_lines.push_back(line_new);
@@ -383,11 +374,6 @@ int main(int argc, char **argv) {
 
           line_new = "\tg++ $(FLAGS) -c -o lib/"+ces[i].ce_name+".o ";
           line_new += (ces[i].ce_dir+"/"+ces[i].ce_name+".cpp ");
-          /*line_new += (ces[i].ce_dir+"/"+ces[i].ce_name+".hpp ");
-          for (int i = 0; i < num_srcs; i++) {
-            //line_new += " cognitive_engines/";
-            line_new += (src_list[i]+" ");
-          }*/
           file_lines.push_back(line_new);
           line_new = "";
           file_lines.push_back(line_new);
