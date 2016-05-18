@@ -1,0 +1,21 @@
+#ifndef _AMC_H_
+#define _AMC_H_
+
+struct MCS {
+  unsigned int mod;
+  unsigned int fec;
+}
+
+struct MCS MCS_set[7] = {
+  {LIQUID_MODEM_BPSK, LIQUID_FEC_CONV_V27},
+  {LIQUID_MODEM_QPSK, LIQUID_FEC_CONV_V27},
+  {LIQUID_MODEM_QPSK, LIQUID_FEC_CONV_V27P34},
+  {LIQUID_MODEM_QAM16, LIQUID_FEC_CONV_V27},
+  {LIQUID_MODEM_QAM16, LIQUID_FEC_CONV_V27P34},
+  {LIQUID_MODEM_QAM64, LIQUID_FEC_CONV_V27},
+  {LIQUID_MODEM_QAM64, LIQUID_FEC_CONV_V27P34}, 
+}
+
+int select_mcs(float SNR_dB);
+
+#endif

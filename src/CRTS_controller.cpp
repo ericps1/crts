@@ -96,7 +96,7 @@ void help_CRTS_controller() {
   printf(" -h : Help.\n");
   printf(" -m : Manual Mode - Start each node manually rather than have "
          "CRTS_controller do it automatically.\n");
-  printf(" -f : Master scenario file (default: master_scenario_file.cfg).\n");
+  printf(" -f : Master scenario file (default: scenario_master_template.cfg).\n");
   printf(" -a : IP Address - IP address of this computer as seen by remote "
          "nodes.\n");
   printf("      Autodetected by default.\n");
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
   getcwd(crts_dir, 1000);
 
   // Default name of master scenario file
-  char *nameMasterScenFile = (char *)"master_scenario_file.cfg";
+  char *nameMasterScenFile = (char *)"scenario_master_template.cfg";
 
   // Default IP address of server as seen by other nodes
   char *serv_ip_addr;

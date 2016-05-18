@@ -69,12 +69,6 @@ enum net_traffic_type {
   NET_TRAFFIC_POISSON
 };
 
-enum duplex {
-  FDD = 0, // frequency division duplexing
-  TDD,     // time division duplexing (not implemented)
-  HD       // half-duplex
-};
-
 enum interference_type {
   CW = 0, // continuous-wave interference
   NOISE,  // random noise interference
@@ -135,7 +129,6 @@ struct node_parameters {
   double tx_gain;
 
   // liquid OFDM settings
-  int duplex;
   int rx_subcarriers;
   int rx_cp_len;
   int rx_taper_len;
