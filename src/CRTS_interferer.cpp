@@ -70,7 +70,7 @@ receive_command_from_controller(Interferer *Int, struct node_parameters *np,
       } else {
         close(TCP_controller);
         printf("Socket failure\n");
-        exit(1);
+        exit(EXIT_FAILURE);
       }
     }
 

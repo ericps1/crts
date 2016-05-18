@@ -6,6 +6,10 @@ void Scenario_Controller::execute() {}
 
 void Scenario_Controller::initialize_node_fb() {}
 
+void Scenario_Controller::set_sc_timeout_ms(float t){
+  sc_timeout_ms = t;
+}
+
 void Scenario_Controller::set_node_parameter(int node, char cont_type, void* _arg){
   char cont_msg[16];
   int arg_len = get_control_arg_len(cont_type);

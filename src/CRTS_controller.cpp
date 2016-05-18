@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
   int yes = 1;
   if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
     printf("setsockopt() failed\n");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
   // Construct local (server) address structure
   struct sockaddr_in serv_addr;
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
   // Bind to the local address to a port
   if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
     printf("ERROR: bind() error\n");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   // objects needs for TCP links to cognitive radio nodes
@@ -446,6 +446,7 @@ int main(int argc, char **argv) {
         usleep(1e4);
       }
 
+      SC->set_sc_timeout_ms(sp.sc_timeout_ms);
       SC->start_sc();
       
       // main loop: wait for any of three possible termination conditions

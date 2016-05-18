@@ -1662,7 +1662,7 @@ void *ECR_tx_worker(void *_arg) {
           if (nread < 0) {
             printf("Error reading from TUN interface");
             close(ECR->tunfd);
-            exit(1);
+            exit(EXIT_FAILURE);
           }
         }
 
@@ -1829,7 +1829,7 @@ void ExtensibleCognitiveRadio::reset_log_files() {
                         std::ofstream::out | std::ofstream::trunc);
     if (!log_rx_fstream.is_open()) {
       printf("Error opening rx log file: %s\n", phy_rx_log_file);
-      exit(1);
+      exit(EXIT_FAILURE);
     }
   }
 
@@ -1838,7 +1838,7 @@ void ExtensibleCognitiveRadio::reset_log_files() {
                         std::ofstream::out | std::ofstream::trunc);
     if (!log_tx_fstream.is_open()) {
       printf("Error opening tx log file: %s\n", phy_tx_log_file);
-      exit(1);
+      exit(EXIT_FAILURE);
     }
   }
 }

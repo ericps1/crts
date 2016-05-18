@@ -47,6 +47,8 @@ struct scenario_parameters {
 
   // Scenario controller
   char SC[100];
+  float sc_timeout_ms;
+  char sc_args[100];
 };
 
 //////////////////////////////////////////////////////////////////

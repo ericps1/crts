@@ -29,10 +29,11 @@ public:
   virtual ~Scenario_Controller();
   virtual void execute();
   virtual void initialize_node_fb();
+  void set_sc_timeout_ms(float t);
   void set_node_parameter(int node, char cont_type, void* _arg);
   void receive_feedback(int node, char fb_type, void* _arg);
 
-  static float constexpr sc_timeout_ms = 1.0;
+  float sc_timeout_ms = 1.0;
   int * TCP_nodes;
   struct scenario_parameters sp;
   struct node_parameters np[48];

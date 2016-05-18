@@ -709,7 +709,7 @@ int main(int argc, char **argv) {
 
       dprintf("CRTS Child: Closing sockets\n");
       close(TCP_controller);
-      exit(1);
+      exit(EXIT_SUCCESS);
     }
   }
 

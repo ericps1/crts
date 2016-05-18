@@ -18,7 +18,7 @@ int read_master_num_scenarios(char *nameMasterScenFile) {
   if (!config_read_file(&cfg, nameMasterScenFile)) {
     printf("Error reading master scenario file (%s) on line %i\n",
            nameMasterScenFile, config_error_line(&cfg));
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   // Read the number of scenarios for this execution
@@ -30,7 +30,7 @@ int read_master_num_scenarios(char *nameMasterScenFile) {
     sprintf(config_str, "scenario_%d", i + 1);
     if (!config_lookup_string(&cfg, config_str, &tmpS)) {
       printf("Scenario %i is not specified!\n", i);
-      exit(1);
+      exit(EXIT_FAILURE);
     }
   }
 
@@ -50,7 +50,7 @@ int read_master_scenario(char *nameMasterScenFile, int scenario_num,
   if (!config_read_file(&cfg, nameMasterScenFile)) {
     printf("Error reading master scenario file (%s) on line %i\n",
            nameMasterScenFile, config_error_line(&cfg));
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   // Read the scenario name
@@ -90,7 +90,7 @@ struct scenario_parameters read_scenario_parameters(char *scenario_file) {
     printf("Error reading %s on line %i\n", scenario, config_error_line(&cfg));
     printf("%s\n", config_error_text(&cfg));
     config_destroy(&cfg);
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   // Read scenario parameters
@@ -110,6 +110,16 @@ struct scenario_parameters read_scenario_parameters(char *scenario_file) {
   else
     strcpy(sp.SC, "SC_Template");
   
+  if (config_lookup_float(&cfg, "sc_timeout_ms", &tmpD))
+    sp.sc_timeout_ms = tmpD;
+  else
+    sp.sc_timeout_ms = 1.0;
+
+  if (config_lookup_string(&cfg, "sc_args", &tmpS))
+    strcpy(sp.sc_args, tmpS);
+  else
+    sp.sc_args[0] = '\0';
+
   config_destroy(&cfg);
 
   return sp;
@@ -128,7 +138,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   if (!config_read_file(&cfg, scenario)) {
     printf("Error reading config file on line %i\n", config_error_line(&cfg));
     config_destroy(&cfg);
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   int tmpI;
@@ -203,7 +213,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
           else {
             printf(
                 "Configuration of a node did not specify a cognitive engine");
-            exit(1);
+            exit(EXIT_FAILURE);
           }
         }
       }
@@ -378,7 +388,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
         }
         if (j > 2048) {
           printf("The number of subcarriers specified was too high!\n");
-          exit(1);
+          exit(EXIT_FAILURE);
         }
         i++;
         sprintf(sc_type, "%s%d", type_str, i);
@@ -506,7 +516,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
         }
         if (j > 2048) {
           printf("The number of subcarriers specified was too high!\n");
-          exit(1);
+          exit(EXIT_FAILURE);
         }
         i++;
         sprintf(sc_type, "%s%d", type_str, i);
@@ -627,13 +637,9 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
 
   // Read CE arguments (A getopt style string for sending custom paramters to the CE)
   if (config_setting_lookup_string(node_config, "ce_args", &tmpS))
-  {
     strcpy(np.ce_args, tmpS);
-  }
   else
-  {
     np.ce_args[0] = '\0';
-  }
 
   return np;
 }
