@@ -3,52 +3,156 @@
 #include <vector>
 #include <fstream>
 #include <dirent.h>
+#include <unistd.h>
+#include <iostream>
 #include "CRTS.hpp"
 
-int main() {
+struct sc_info{
+  std::string sc_name;
+  std::string sc_dir;
+};
 
-  // Read in all file names in scenario_controllers directory.
-  // Count number of SCs and truncate '.cpp' from file name.
-  int num_scs = 0;
-  int num_srcs = 0;
-  std::string sc_list[100];
-  std::string src_list[100];
+int num_scs = 0;
+int num_srcs = 0;
+struct sc_info scs[100];
+std::string src_list[100];
+
+void process_directory(std::string directory, bool customize, bool sc_dir){
+
+  printf("Processing directory: %s\n", directory.c_str());
   DIR *dpdf;
   struct dirent *epdf;
+  bool useThisSC;
+  bool sc_src_found = false;
+  int sc_ind = (num_scs>0) ? num_scs-1 : 0; // store the current ce count so it can be used later
 
-  dpdf = opendir("./scenario_controllers");
+  std::string src_file_name = "";
+          
+  // read directory contents
+  dpdf = opendir(directory.c_str());
   if (dpdf != NULL) {
-    while ((epdf = readdir(dpdf))) {
-      // find all CE files
-      if (strlen(epdf->d_name) >= 3) {
-        if (epdf->d_name[0] == 'S' && epdf->d_name[1] == 'C' &&
-            epdf->d_name[2] == '_' &&
-            epdf->d_name[strlen(epdf->d_name) - 3] == 'c' &&
-            epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
-            epdf->d_name[strlen(epdf->d_name) - 1] == 'p') {
-          // Copy filename into list of CE names
-          sc_list[num_scs].assign(epdf->d_name);
-          // Strip the extension from the name
-          std::size_t dot_pos = sc_list[num_scs].find(".");
-          sc_list[num_scs].resize(dot_pos);
-          num_scs++;
-        } else if (epdf->d_name[strlen(epdf->d_name) - 3] == 'c' &&
-                   epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
-                   epdf->d_name[strlen(epdf->d_name) - 1] == 'p') {
-          // Copy filename into list of CE names
-          src_list[num_srcs].assign(epdf->d_name);
-          // Strip the extension from the name
-          // std::size_t dot_pos = src_list[num_srcs].find(".");
-          // ce_list[num_ces].resize(dot_pos);
-          num_srcs++;
+    while ((epdf = readdir(dpdf)) != NULL) {
+      
+      // handle subdirectories
+      if ((epdf->d_type == DT_DIR) && strcmp(epdf->d_name,".") && strcmp(epdf->d_name,"..")){ 
+        // verify length
+        if (strlen(epdf->d_name) >= 3) {
+          // subdirectory defines a SC
+          if (epdf->d_name[0] == 'S' && epdf->d_name[1] == 'C' &&
+              epdf->d_name[2] == '_') {
+
+            useThisSC = true;
+            if (customize){
+              char input;
+              do {
+                std::cout << "Use " << (directory+"/"+epdf->d_name) <<"? [y/n]" << std::endl;
+                std::cin >> input;
+              } while (!std::cin.fail() && input!='y' && input!='n');
+              if (input == 'n')
+                useThisSC = false;
+            }
+            if (useThisSC) {
+              // Copy filename and path into list of CEs
+              scs[num_scs].sc_name.assign(epdf->d_name);
+              scs[num_scs].sc_dir.assign(directory+"/"+epdf->d_name);
+              num_scs++;
+            } 
+          
+            process_directory(directory+"/"+epdf->d_name, customize, true);
+          } else /* non-CE subdirectory (doesn't start with 'CE_')*/{
+            process_directory(directory+"/"+epdf->d_name, customize, false);
+          }
+        } else /* non-CE subdirectory (short name)*/{
+          process_directory(directory+"/"+epdf->d_name, customize, false);
+        }
+      }
+
+      // handle standard file
+      if (epdf->d_type == DT_REG){
+        // verify length
+        if (strlen(epdf->d_name) >= 3) {
+          // file is the SC source file
+          std::string sc_src = scs[sc_ind].sc_name + ".cpp";
+          if (sc_dir && (!strcmp(epdf->d_name, sc_src.c_str()))) {
+            sc_src_found = true;
+          }
+          // file is non-CE source file 
+          else if ((epdf->d_name[strlen(epdf->d_name) - 2] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'c') || 
+                   (epdf->d_name[strlen(epdf->d_name) - 3] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 2] == 'c' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'c') ||
+                   (epdf->d_name[strlen(epdf->d_name) - 4] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 3] == 'c' &&
+                    epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'p')) {
+            bool useThisSrc = true;
+            if (customize)
+            {
+              char input;
+              do {
+                std::cout << "Use " << (directory+"/"+epdf->d_name) <<"? [y/n]" << std::endl;
+                std::cin >> input;
+              } while (!std::cin.fail() && input!='y' && input!='n');
+              if (input == 'n')
+                useThisSrc = false;
+            }
+            if (useThisSrc) {
+              // Copy filename into list of src names for specific ce
+              src_list[num_srcs].assign(directory+"/"+epdf->d_name);
+              num_srcs++;
+            }
+          }
         }
       }
     }
   }
 
+  // make sure we've found the ce source file if in a ce directory
+  if ( sc_dir && (!sc_src_found)) {
+    printf("The source file was not found for the SC: %s%s%s\n", scs[sc_ind].sc_dir.c_str(), "/", scs[sc_ind].sc_name.c_str());
+    exit(EXIT_FAILURE);
+  }
+}
+
+void help_config_SCs() {
+  printf("config_SCs -- Configure CRTS to use custom scenario controllers\n");
+  printf("              (located in the scenario_controllers/ directory).\n");
+  printf(" -h : Help.\n");
+  printf(" -c : Customize the selection of scenario controllers and source files.\n");
+}
+
+int main(int argc, char **argv) {
+
+  printf("Consult the CRTS-Manual.pdf if you experience trouble configuring your SC's\n\n");
+  
+  // Default options
+  bool customize = false;
+
+  // Process options
+  int opt;
+  while ((opt = getopt(argc, argv, "hc")) != EOF ) {
+    switch(opt) {
+      case 'c':
+        customize = true;
+        break;
+      case 'h':
+        help_config_SCs();
+        exit(EXIT_SUCCESS);
+      default:
+        help_config_SCs();
+        exit(EXIT_FAILURE);
+    }
+  }
+
+  // Launch recursive process which reads in info for all CE's in
+  // base directory and any subdirectories
+  std::string base_directory = "scenario_controllers";
+  process_directory(base_directory, customize, false);
+
   printf("Configuring CRTS to use the following scenario controllers:\n\n");
   for (int i = 0; i < num_scs; i++)
-    printf("%s\n", sc_list[i].c_str());
+    printf("%s\n", scs[i].sc_name.c_str());
 
   printf("\nThe following files will be included as additional sources:\n\n");
   for (int i = 0; i < num_srcs; i++)
@@ -83,9 +187,9 @@ int main() {
 
         // push all lines to map subclass
         for (int i = 0; i < num_scs; i++) {
-          line = "      if(!strcmp(sp.SC, \"" + sc_list[i] + "\"))";
+          line = "      if(!strcmp(sp.SC, \"" + scs[i].sc_name + "\"))";
           file_lines.push_back(line);
-          line = "        SC = new " + sc_list[i] + "(argc, argv);";
+          line = "        SC = new " + scs[i].sc_name + "(argc, argv);";
           file_lines.push_back(line);
         }
       }
@@ -139,22 +243,8 @@ int main() {
         // push all lines to map subclass
         std::string line_new;
         for (int i = 0; i < num_scs; i++) {
-          line_new = "#include \"../scenario_controllers/" + sc_list[i] + ".hpp\"";
+          line_new = "#include \"../"+scs[i].sc_dir+"/"+scs[i].sc_name+".hpp\"";
           file_lines.push_back(line_new);
-          /*line_new = "class " + ce_list[i] + " : public Cognitive_Engine {\r";
-file_lines.push_back(line_new);
-line_new  = "public:\r";
-file_lines.push_back(line_new);
-line_new = "    " + ce_list[i] +"();\r";
-file_lines.push_back(line_new);
-line_new = "    ~" + ce_list[i] + "();\r";
-file_lines.push_back(line_new);
-line_new = "    virtual void execute(void * _args);\r";
-file_lines.push_back(line_new);
-line_new = "    void * custom_members;\r";
-file_lines.push_back(line_new);
-line_new = "};\r";
-file_lines.push_back(line_new);*/
         }
       }
     }
@@ -206,14 +296,12 @@ file_lines.push_back(line_new);*/
 
         // push all lines to map subclass
         std::string line_new;
-        line_new = "SCs = src/SC.cpp";
+        line_new = "SCs = src/SC.cpp ";
         for (int i = 0; i < num_scs; i++) {
-          line_new += " scenario_controllers/";
-          line_new += sc_list[i];
-          line_new += ".cpp";
+          line_new += scs[i].sc_dir+"/"+scs[i].sc_name;
+          line_new += ".cpp ";
         }
         for (int i = 0; i < num_srcs; i++) {
-          line_new += " scenario_controllers/";
           line_new += src_list[i];
         }
         // line_new += "\r";

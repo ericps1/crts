@@ -8,7 +8,7 @@ CE_srcs =  cognitive_engines/src/AMC.cpp cognitive_engines/example_engines/CE_Mo
 #EDIT CE OBJECT LIST END FLAG
 
 #EDIT SC START FLAG
-SCs = src/SC.cpp scenario_controllers/SC_BER_Sweep.cpp scenario_controllers/SC_Control_and_Feedback_Test.cpp scenario_controllers/SC_CORNET_3D.cpp scenario_controllers/SC_Network_Loading.cpp scenario_controllers/SC_Template.cpp
+SCs = src/SC.cpp scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.cpp scenario_controllers/SC_Template/SC_Template.cpp scenario_controllers/SC_Network_Loading/SC_Network_Loading.cpp scenario_controllers/SC_Control_and_Feedback_Test/SC_Control_and_Feedback_Test.cpp scenario_controllers/SC_CORNET_3D/SC_CORNET_3D.cpp 
 #EDIT SC END FLAG
 
 all: lib/CRTS.o config_CEs config_SCs lib/TUN.o lib/timer.o lib/ECR.o lib/interferer.o logs/logs2python logs/logs2octave $(CEs) CRTS_interferer CRTS_CR CRTS_controller
