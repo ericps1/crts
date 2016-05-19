@@ -12,11 +12,21 @@ public:
   virtual void execute(ExtensibleCognitiveRadio *ECR);
 
 private:
+
+  /*
+  //Jason
   static constexpr float freq_a = 774e6;
   static constexpr float freq_b = 766e6;
   static constexpr float freq_x = 768e6;
   static constexpr float freq_y = 772e6;
+  */
 
+  //Eric
+  static constexpr float freq_a = 770e6;
+  static constexpr float freq_b = 769e6;
+  static constexpr float freq_x = 765e6;
+  static constexpr float freq_y = 764e6;
+  
   struct timeval tv;
   time_t switch_time_s;
   int period_s;

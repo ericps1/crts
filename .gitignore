@@ -18,3 +18,6 @@ config_SCs
 
 # Ignore data files
 *.dat
+
+# Master scenario file used by cornet 3d. It will be created if necessary so it doesnt need to be in the repo
+cornet_master_scenario_file.cfg
