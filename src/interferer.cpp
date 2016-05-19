@@ -21,7 +21,7 @@
 #endif
 
 Interferer::Interferer()
-    :generator(), dist(0.0, 1.0)     // Gaussian parameter set up
+    :generator(), dist(5.0, 5.0)     // Gaussian parameter set up
 {
   // set default parameters
   interference_type = RRC;
