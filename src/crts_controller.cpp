@@ -91,6 +91,31 @@ int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, ScenarioController *SC
   return 0;
 }
 
+ScenarioController* create_sc(struct scenario_parameters *sp){
+  int argc = 0;
+  char ** argv = NULL;
+  str2argcargv(sp->sc_args, sp->SC, argc, argv);
+
+  ScenarioController *SC;
+
+  // EDIT SET SC START FLAG
+      if(!strcmp(sp->SC, "SC_BER_Sweep"))
+        SC = new SC_BER_Sweep(argc, argv);
+      if(!strcmp(sp->SC, "SC_Template"))
+        SC = new SC_Template(argc, argv);
+      if(!strcmp(sp->SC, "SC_Network_Loading"))
+        SC = new SC_Network_Loading(argc, argv);
+      if(!strcmp(sp->SC, "SC_Control_and_Feedback_Test"))
+        SC = new SC_Control_and_Feedback_Test(argc, argv);
+      if(!strcmp(sp->SC, "SC_CORNET_3D"))
+        SC = new SC_CORNET_3D(argc, argv);
+  // EDIT SET SC END FLAG
+    
+  freeargcargv(argc, argv);
+  
+  return SC;
+}
+
 void help_CRTS_controller() {
   printf("CRTS_controller -- Initiate cognitive radio testing.\n");
   printf(" -h : Help.\n");
@@ -165,6 +190,8 @@ int main(int argc, char **argv) {
       break;
     }
   }
+
+  optind = 0;
 
   // Message about IP Address Detection
   printf("IP address of CRTS_controller autodetected as %s\n",
@@ -241,29 +268,9 @@ int main(int argc, char **argv) {
       printf("Run time: %lld\n", (long long)sp.runTime);
       printf("Scenario controller: %s\n", sp.SC);
 
-      int argc = 0;
-      char ** argv = NULL;
-      printf("Converting ce_args to argc argv format\n");
-      str2argcargv(sp.sc_args, sp.SC, argc, argv);
-      printf("Initializing SC\n");
-
       // create the scenario controller
-      ScenarioController *SC;
-      // EDIT SET SC START FLAG
-      if(!strcmp(sp.SC, "SC_BER_Sweep"))
-        SC = new SC_BER_Sweep(argc, argv);
-      if(!strcmp(sp.SC, "SC_Template"))
-        SC = new SC_Template(argc, argv);
-      if(!strcmp(sp.SC, "SC_Network_Loading"))
-        SC = new SC_Network_Loading(argc, argv);
-      if(!strcmp(sp.SC, "SC_Control_and_Feedback_Test"))
-        SC = new SC_Control_and_Feedback_Test(argc, argv);
-      if(!strcmp(sp.SC, "SC_CORNET_3D"))
-        SC = new SC_CORNET_3D(argc, argv);
-      // EDIT SET SC END FLAG
-     
-      freeargcargv(argc, argv);
-
+      ScenarioController *SC = create_sc(&sp);
+          
       // determine the start time for the scenario based
       // on the current time and the number of nodes
       gettimeofday(&tv, NULL);

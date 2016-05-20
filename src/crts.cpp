@@ -25,7 +25,7 @@ void str2argcargv(char *string, char *progName, int &argc, char (**&argv))    {
   // Get number of arguments
   argc = 1;
   while(token != NULL){
-    argc++;
+    (argc)++;
     token = strtok(NULL, " ");
   }
   
@@ -183,7 +183,7 @@ struct scenario_parameters read_scenario_parameters(char *scenario_file) {
     strcpy(sp.sc_args, tmpS);
   else
     sp.sc_args[0] = '\0';
-
+  
   config_destroy(&cfg);
 
   return sp;

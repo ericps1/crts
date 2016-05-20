@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
 
         // push all lines to map subclass
         for (int i = 0; i < num_scs; i++) {
-          line = "      if(!strcmp(sp.SC, \"" + scs[i].sc_name + "\"))";
+          line = "      if(!strcmp(sp->SC, \"" + scs[i].sc_name + "\"))";
           file_lines.push_back(line);
           line = "        SC = new " + scs[i].sc_name + "(argc, argv);";
           file_lines.push_back(line);

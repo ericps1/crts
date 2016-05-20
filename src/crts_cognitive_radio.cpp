@@ -868,25 +868,25 @@ int main(int argc, char **argv) {
   char command[1000];
   if (np.generate_octave_logs) {
     if (np.log_net_rx) {
-      sprintf(command, "./logs/logs2octave -c -l %s -N %d -n %d",
+      sprintf(command, "./logs/convert_logs_bin_to_octave -c -l %s -N %d -n %d",
               net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
       system(command);
     }
 
     if (np.log_net_tx) {
-      sprintf(command, "./logs/logs2octave -C -l %s -N %d -n %d",
+      sprintf(command, "./logs/convert_logs_to_bin_octave -C -l %s -N %d -n %d",
               net_tx_log_file_cpy, sp.totalNumReps, sp.repNumber);
       system(command);
     }
 
     if (np.log_phy_rx) {
-      sprintf(command, "./logs/logs2octave -r -l %s -N %d -n %d",
+      sprintf(command, "./logs/convert_logs_bin_to_octave -r -l %s -N %d -n %d",
               np.phy_rx_log_file, sp.totalNumReps, sp.repNumber);
       system(command);
     }
 
     if (np.log_phy_tx) {
-      sprintf(command, "./logs/logs2octave -t -l %s -N %d -n %d",
+      sprintf(command, "./logs/convert_logs_bin_to_octave -t -l %s -N %d -n %d",
               np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
       system(command);
     }
