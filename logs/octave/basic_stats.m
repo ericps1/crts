@@ -1,4 +1,4 @@
-function logStats = basicStats(logName)
+function logStats = basic_stats(logName)
 
 %% Taking the name of log file
 disp(["The name of log file that you entered is <", logName, ">."]);

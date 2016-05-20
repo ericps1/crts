@@ -5,7 +5,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <iostream>
-#include "CRTS.hpp"
+#include "crts.hpp"
 
 struct sc_info{
   std::string sc_name;
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
   flag_end = "EDIT SET SC END FLAG";
 
   // open read file
-  std::ifstream file_in("src/CRTS_controller.cpp", std::ifstream::in);
+  std::ifstream file_in("src/crts_controller.cpp", std::ifstream::in);
 
   // read file until the end
   while (!(file_in.eof())) {
@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
   file_in.close();
 
   // write file
-  std::ofstream file_out("src/CRTS_controller.cpp", std::ofstream::out);
+  std::ofstream file_out("src/crts_controller.cpp", std::ofstream::out);
   for (std::vector<std::string>::iterator i = file_lines.begin();
        i != file_lines.end(); i++) {
     file_out << (*i);
@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
   file_lines.clear();
 
   // open read file
-  file_in.open("src/CRTS_controller.cpp", std::ifstream::in);
+  file_in.open("src/crts_controller.cpp", std::ifstream::in);
 
   // read file until the end
   while (!(file_in.eof())) {
@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
   file_in.close();
 
   // write file
-  file_out.open("src/CRTS_controller.cpp", std::ofstream::out);
+  file_out.open("src/crts_controller.cpp", std::ofstream::out);
   for (std::vector<std::string>::iterator i = file_lines.begin();
        i != file_lines.end(); i++) {
     file_out << (*i);
@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
 
         // push all lines to map subclass
         std::string line_new;
-        line_new = "SCs = src/SC.cpp ";
+        line_new = "SCs = src/scenario_controller.cpp ";
         for (int i = 0; i < num_scs; i++) {
           line_new += scs[i].sc_dir+"/"+scs[i].sc_name;
           line_new += ".cpp ";

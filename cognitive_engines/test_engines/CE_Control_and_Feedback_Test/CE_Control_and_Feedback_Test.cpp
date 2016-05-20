@@ -1,4 +1,3 @@
-#include "ECR.hpp"
 #include "CE_Control_and_Feedback_Test.hpp"
 
 // constructor

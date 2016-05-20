@@ -1,9 +1,4 @@
 #include "CE_Subcarrier_Alloc.hpp"
-#include "ECR.hpp"
-#include <stdio.h>
-#include <timer.h>
-#include <sys/time.h>
-#include "CE_Subcarrier_Alloc.hpp"
 
 // constructor
 CE_Subcarrier_Alloc::CE_Subcarrier_Alloc(int argc, char **argv, ExtensibleCognitiveRadio *_ECR) {

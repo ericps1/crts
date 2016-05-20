@@ -1,7 +1,8 @@
 #ifndef _CE_NETWORK_LOADING_
 #define _CE_NETWORK_LOADING_
 
-#include "CE.hpp"
+#include "extensible_cognitive_radio.hpp"
+#include "cognitive_engine.hpp"
 #include "timer.h"
 
 class CE_Network_Loading : public Cognitive_Engine {

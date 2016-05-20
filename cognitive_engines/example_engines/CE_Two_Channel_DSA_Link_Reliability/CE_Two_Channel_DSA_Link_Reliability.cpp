@@ -1,7 +1,4 @@
 #include "CE_Two_Channel_DSA_Link_Reliability.hpp"
-#include "ECR.hpp"
-#include <stdio.h>
-#include <iostream>
 
 // constructor
 CE_Two_Channel_DSA_Link_Reliability::CE_Two_Channel_DSA_Link_Reliability(

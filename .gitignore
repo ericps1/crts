@@ -1,9 +1,9 @@
 # Ignore executables
-CRTS_CR
-CRTS_controller
-CRTS_interferer
-config_CEs
-config_SCs
+crts_cognitive_radio
+crts_controller
+crts_interferer
+config_cognitive_engines
+config_scenario_controllers
 
 # Ignore VIM swap files
 *.swp

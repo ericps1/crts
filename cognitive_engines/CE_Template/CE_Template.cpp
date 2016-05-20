@@ -1,4 +1,4 @@
-#include "ECR.hpp"
+#include "extensible_cognitive_radio.hpp"
 #include "CE_Template.hpp"
 
 // constructor

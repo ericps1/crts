@@ -1,7 +1,8 @@
 #ifndef _CE_CONTROL_AND_FEEDBACK_TEST_
 #define _CE_CONTROL_AND_FEEDBACK_TEST_
 
-#include "CE.hpp"
+#include "extensible_cognitive_radio.hpp"
+#include "cognitive_engine.hpp"
 #include "timer.h"
 
 class CE_Control_and_Feedback_Test : public Cognitive_Engine {

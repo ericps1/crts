@@ -13,9 +13,14 @@
 #include <sys/ioctl.h>
 #include <sched.h>
 #include <bitset>
-#include "CRTS.hpp"
-#include "ECR.hpp"
-#include "TUN.hpp"
+#include <uhd/utils/msg.hpp>
+#include <uhd/usrp/multi_usrp.hpp>
+#include <uhd/types/tune_request.hpp>
+#include "crts.hpp"
+#include "extensible_cognitive_radio.hpp"
+#include "cognitive_engine.hpp"
+#include "tun.hpp"
+#include "timer.h"
 
 // EDIT INCLUDE START FLAG
 #include "../cognitive_engines/CE_Template/CE_Template.hpp"

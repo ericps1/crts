@@ -6,8 +6,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include "CRTS.hpp"
-#include "ECR.hpp"
+#include "crts.hpp"
+#include "extensible_cognitive_radio.hpp"
 #include "interferer.hpp"
 
 void *sc_worker(void *_arg);
@@ -23,10 +23,10 @@ enum sc_event_types{
   FEEDBACK
 };
 
-class Scenario_Controller {
+class ScenarioController {
 public:
-  Scenario_Controller();
-  virtual ~Scenario_Controller();
+  ScenarioController();
+  virtual ~ScenarioController();
   virtual void execute();
   virtual void initialize_node_fb();
   void set_sc_timeout_ms(float t);

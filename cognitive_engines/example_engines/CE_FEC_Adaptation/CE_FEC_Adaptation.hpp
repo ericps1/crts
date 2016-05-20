@@ -1,7 +1,8 @@
 #ifndef _CE_FEC_ADAPTATION_
 #define _CE_FEC_ADAPTATION_
 
-#include "CE.hpp"
+#include "extensible_cognitive_radio.hpp"
+#include "cognitive_engine.hpp"
 #include "include/FEC_Select.hpp"
 
 class CE_FEC_Adaptation : public Cognitive_Engine {

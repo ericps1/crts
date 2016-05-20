@@ -1,4 +1,3 @@
-#include "ECR.hpp"
 #include "CE_FEC_Adaptation.hpp"
 
 #if 0

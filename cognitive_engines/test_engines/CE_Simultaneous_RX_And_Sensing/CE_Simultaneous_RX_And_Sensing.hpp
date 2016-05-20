@@ -2,8 +2,12 @@
 #define _CE_SIMULTANEOUS_RX_AND_SENSING_
 
 #include <liquid/liquid.h>
-#include "CE.hpp"
+#include <sys/time.h>
+#include "extensible_cognitive_radio.hpp"
+#include "cognitive_engine.hpp"
 #include "timer.h"
+#include <complex.h>
+#include <complex>
 
 class CE_Simultaneous_RX_And_Sensing : public Cognitive_Engine {
 

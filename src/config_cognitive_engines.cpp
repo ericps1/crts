@@ -5,7 +5,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <iostream>
-#include "CRTS.hpp"
+#include "crts.hpp"
 
 struct ce_info{
   std::string ce_name;
@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
   flag_end = "EDIT SET CE END FLAG";
 
   // open read file
-  std::ifstream file_in("src/ECR.cpp", std::ifstream::in);
+  std::ifstream file_in("src/extensible_cognitive_radio.cpp", std::ifstream::in);
 
   // read file until the end
   while (!(file_in.eof())) {
@@ -210,7 +210,7 @@ int main(int argc, char **argv) {
   file_in.close();
 
   // write file
-  std::ofstream file_out("src/ECR.cpp", std::ofstream::out);
+  std::ofstream file_out("src/extensible_cognitive_radio.cpp", std::ofstream::out);
   for (std::vector<std::string>::iterator i = file_lines.begin();
        i != file_lines.end(); i++) {
     file_out << (*i);
@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
   file_lines.clear();
 
   // open read file
-  file_in.open("src/ECR.cpp", std::ifstream::in);
+  file_in.open("src/extensible_cognitive_radio.cpp", std::ifstream::in);
 
   // read file until the end
   while (!(file_in.eof())) {
@@ -265,7 +265,7 @@ int main(int argc, char **argv) {
   file_in.close();
 
   // write file
-  file_out.open("src/ECR.cpp", std::ofstream::out);
+  file_out.open("src/extensible_cognitive_radio.cpp", std::ofstream::out);
   for (std::vector<std::string>::iterator i = file_lines.begin();
        i != file_lines.end(); i++) {
     file_out << (*i);
@@ -299,7 +299,7 @@ int main(int argc, char **argv) {
 
         // push all lines to map subclass
         std::string line_new;
-        line_new = "CEs = src/CE.cpp ";
+        line_new = "CEs = src/cognitive_engine.cpp ";
         for (int i = 0; i < num_ces; i++) {
           line_new += ("lib/"+ces[i].ce_name+".o ");
         }

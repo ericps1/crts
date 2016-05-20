@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "CE.hpp"
+#include "cognitive_engine.hpp"
 
 Cognitive_Engine::Cognitive_Engine() {}
 Cognitive_Engine::~Cognitive_Engine() {}

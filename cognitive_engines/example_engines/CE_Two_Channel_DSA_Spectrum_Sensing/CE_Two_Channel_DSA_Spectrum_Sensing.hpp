@@ -1,9 +1,12 @@
 #ifndef _CE_TWO_CHANNEL_DSA_SPECTRUM_SENSING_
 #define _CE_TWO_CHANNEL_DSA_SPECTRUM_SENSING_
 
-#include "ECR.hpp"
-#include "CE.hpp"
+#include <pthread.h>
+#include "extensible_cognitive_radio.hpp"
+#include "cognitive_engine.hpp"
 #include "timer.h"
+#include <complex.h>
+#include <complex>
 
 class CE_Two_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
 public:

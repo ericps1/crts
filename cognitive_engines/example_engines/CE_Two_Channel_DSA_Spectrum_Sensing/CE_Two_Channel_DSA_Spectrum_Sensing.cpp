@@ -1,11 +1,4 @@
 #include "CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
-#include "ECR.hpp"
-#include "timer.h"
-#include <complex.h>
-#include <complex>
-#include <pthread.h>
-//#include <liquid/liquid.h>
-#include "CE_Two_Channel_DSA_Spectrum_Sensing.hpp"
 
 #define DEBUG 0
 #if DEBUG == 1

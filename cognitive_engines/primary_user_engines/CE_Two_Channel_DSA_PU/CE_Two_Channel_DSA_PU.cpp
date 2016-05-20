@@ -1,8 +1,4 @@
 #include "CE_Two_Channel_DSA_PU.hpp"
-#include "ECR.hpp"
-#include <stdio.h>
-#include <timer.h>
-#include <sys/time.h>
 
 // constructor
 CE_Two_Channel_DSA_PU::CE_Two_Channel_DSA_PU(int argc, char **argv, ExtensibleCognitiveRadio *_ECR) {

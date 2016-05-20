@@ -1,16 +1,16 @@
-#include "SC.hpp"
+#include "scenario_controller.hpp"
 
-Scenario_Controller::Scenario_Controller() {}
-Scenario_Controller::~Scenario_Controller() {}
-void Scenario_Controller::execute() {}
+ScenarioController::ScenarioController() {}
+ScenarioController::~ScenarioController() {}
+void ScenarioController::execute() {}
 
-void Scenario_Controller::initialize_node_fb() {}
+void ScenarioController::initialize_node_fb() {}
 
-void Scenario_Controller::set_sc_timeout_ms(float t){
+void ScenarioController::set_sc_timeout_ms(float t){
   sc_timeout_ms = t;
 }
 
-void Scenario_Controller::set_node_parameter(int node, char cont_type, void* _arg){
+void ScenarioController::set_node_parameter(int node, char cont_type, void* _arg){
   char cont_msg[16];
   int arg_len = get_control_arg_len(cont_type);
 
@@ -27,7 +27,7 @@ void Scenario_Controller::set_node_parameter(int node, char cont_type, void* _ar
   }
 }
 
-void Scenario_Controller::receive_feedback(int node, char fb_type, void* _arg){
+void ScenarioController::receive_feedback(int node, char fb_type, void* _arg){
   pthread_mutex_lock(&sc_mutex);
   sc_event = FEEDBACK;
   fb.node = node;
@@ -37,7 +37,7 @@ void Scenario_Controller::receive_feedback(int node, char fb_type, void* _arg){
   pthread_mutex_unlock(&sc_mutex);
 }
 
-void Scenario_Controller::start_sc() {
+void ScenarioController::start_sc() {
   
   // start sc worker thread
   sc_running = false;       // ce is not running initially
@@ -57,7 +57,7 @@ void Scenario_Controller::start_sc() {
   pthread_cond_signal(&sc_cond);
 }
 
-void Scenario_Controller::stop_sc() {
+void ScenarioController::stop_sc() {
   // reset ce running flag
   sc_running = false;
 
@@ -75,7 +75,7 @@ void Scenario_Controller::stop_sc() {
 // main loop of SC
 void *sc_worker(void *_arg) {
   
-  Scenario_Controller *SC = (Scenario_Controller *)_arg;
+  ScenarioController *SC = (ScenarioController *)_arg;
 
   struct timeval time_now;
   double timeout_ns;

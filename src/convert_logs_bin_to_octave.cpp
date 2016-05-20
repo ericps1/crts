@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <limits.h>
-#include "ECR.hpp"
+#include "extensible_cognitive_radio.hpp"
 
 void help_logs2octave() {
   printf("logs2octave -- Create Octave .m file to visualize logs.\n");

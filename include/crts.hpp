@@ -1,12 +1,6 @@
 #ifndef _CRTS_HPP_
 #define _CRTS_HPP_
 
-#include <libconfig.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <liquid/liquid.h>
-#include <cstdint>
-
 /////////////////////////////////////////////////////////////////
 // Command-line style arguments
 /////////////////////////////////////////////////////////////////

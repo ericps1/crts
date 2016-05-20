@@ -1,9 +1,11 @@
 #ifndef _CE_TWO_CHANNEL_DSA_PU_
 #define _CE_TWO_CHANNEL_DSA_PU_
 
-#include "CE.hpp"
-#include "timer.h"
+#include <stdio.h>
 #include <sys/time.h>
+#include "extensible_cognitive_radio.hpp"
+#include "cognitive_engine.hpp"
+#include "timer.h"
 
 class CE_Two_Channel_DSA_PU : public Cognitive_Engine {
 public:

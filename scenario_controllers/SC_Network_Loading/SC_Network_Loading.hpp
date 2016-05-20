@@ -1,10 +1,10 @@
 #ifndef _SC_NETWORK_LOADING_
 #define _SC_NETWORK_LOADING_
 
-#include "SC.hpp"
+#include "scenario_controller.hpp"
 #include "timer.h"
 
-class SC_Network_Loading : public Scenario_Controller {
+class SC_Network_Loading : public ScenarioController {
 
 private:
   // internal members used by this CE

@@ -1,8 +1,11 @@
 #ifndef _CE_SUBCARRIER_ALLOC_
 #define _CE_SUBCARRIER_ALLOC_
 
-#include "CE.hpp"
+#include <stdio.h>
+#include <timer.h>
 #include <sys/time.h>
+#include "extensible_cognitive_radio.hpp"
+#include "cognitive_engine.hpp"
 
 class CE_Subcarrier_Alloc : public Cognitive_Engine {
 

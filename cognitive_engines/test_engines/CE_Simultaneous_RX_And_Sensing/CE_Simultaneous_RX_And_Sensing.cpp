@@ -1,9 +1,4 @@
 #include "CE_Simultaneous_RX_And_Sensing.hpp"
-#include "ECR.hpp"
-#include "timer.h"
-#include <sys/time.h>
-#include <complex.h>
-#include <complex>
 
 // constructor
 CE_Simultaneous_RX_And_Sensing::CE_Simultaneous_RX_And_Sensing(

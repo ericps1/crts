@@ -1,5 +1,10 @@
-#include "CRTS.hpp"
-#include "ECR.hpp"
+#include <libconfig.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <liquid/liquid.h>
+#include <cstdint>
+#include "crts.hpp"
+#include "extensible_cognitive_radio.hpp"
 
 #define DEBUG 0
 #if DEBUG == 1

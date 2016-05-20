@@ -19,9 +19,9 @@
 #include <signal.h>
 #include <random>
 #include "timer.h"
-#include "CRTS.hpp"
-#include "ECR.hpp"
-#include "TUN.hpp"
+#include "crts.hpp"
+#include "extensible_cognitive_radio.hpp"
+#include "tun.hpp"
 
 #define DEBUG 0
 #if DEBUG == 1

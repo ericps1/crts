@@ -1,8 +1,11 @@
 #ifndef _CE_THROUGHPUT_TEST_
 #define _CE_THROUGHPUT_TEST_
 
-#include "CE.hpp"
+#include <stdio.h>
+#include <timer.h>
 #include <sys/time.h>
+#include "extensible_cognitive_radio.hpp"
+#include "cognitive_engine.hpp"
 
 class CE_Throughput_Test : public Cognitive_Engine {
 

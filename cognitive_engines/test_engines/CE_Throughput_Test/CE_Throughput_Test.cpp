@@ -1,9 +1,4 @@
 #include "CE_Throughput_Test.hpp"
-#include "ECR.hpp"
-#include <stdio.h>
-#include <timer.h>
-#include <sys/time.h>
-#include "CE_Throughput_Test.hpp"
 
 // constructor
 CE_Throughput_Test::CE_Throughput_Test(int argc, char ** argv, ExtensibleCognitiveRadio *_ECR) {

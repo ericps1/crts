@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import commands
 #find the pids of any process that contains CRTS. 
-pids = commands.getoutput('ps -Ao \"%p, %a\" | grep -e \"[C]RTS_CR\" | cut -d\',\' -f1').split()
+pids = commands.getoutput('ps -Ao \"%p, %a\" | grep -e \"[c]rts_cognitive_radio\" | cut -d\',\' -f1').split()
 for pid in pids:
     cmd = 'kill -9 '
     cmd += pid

@@ -1,7 +1,7 @@
 #ifndef _SC_BER_SWEEP_
 #define _SC_BER_SWEEP_
 
-#include "SC.hpp"
+#include "scenario_controller.hpp"
 #include "timer.h"
 
 #define BER_SWEEP_TX_GAIN_MIN (5.0)
@@ -17,7 +17,7 @@
 
 #define BER_SWEEP_LOG_FILE ("./BER_SWEEP.m")
 
-class SC_BER_Sweep : public Scenario_Controller {
+class SC_BER_Sweep : public ScenarioController {
 
 private:
   // internal members used by this CE

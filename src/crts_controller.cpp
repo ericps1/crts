@@ -17,8 +17,8 @@
 #include <string.h>
 #include <time.h>
 #include <errno.h>
-#include "CRTS.hpp"
-#include "ECR.hpp"
+#include "crts.hpp"
+#include "extensible_cognitive_radio.hpp"
 
 // EDIT INCLUDE START FLAG
 #include "../scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.hpp"
@@ -34,7 +34,7 @@
 int sig_terminate;
 int num_nodes_terminated;
 
-int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, Scenario_Controller *SC) {
+int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, ScenarioController *SC) {
   // Listen to sockets for messages from any node
   char msg[256];
   for (int i = 0; i < num_nodes; i++) {
@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
       printf("Initializing SC\n");
 
       // create the scenario controller
-      Scenario_Controller *SC;
+      ScenarioController *SC;
       // EDIT SET SC START FLAG
       if(!strcmp(sp.SC, "SC_BER_Sweep"))
         SC = new SC_BER_Sweep(argc, argv);
@@ -284,47 +284,47 @@ int main(int argc, char **argv) {
         // define log file names if they weren't defined by the scenario
         if (!strcmp(np[j].phy_rx_log_file, "")) {
           strcpy(np[j].phy_rx_log_file, scenario_name);
-          sprintf(np[j].phy_rx_log_file, "%s_Node%i%s", np[j].phy_rx_log_file,
-                  j + 1, "_CR_PHY_RX");
+          sprintf(np[j].phy_rx_log_file, "%s_node_%i%s", np[j].phy_rx_log_file,
+                  j + 1, "_cognitive_radio_phy_rx");
         }
 
         if (!strcmp(np[j].phy_tx_log_file, "")) {
           strcpy(np[j].phy_tx_log_file, scenario_name);
-          sprintf(np[j].phy_tx_log_file, "%s_Node%i", np[j].phy_tx_log_file,
+          sprintf(np[j].phy_tx_log_file, "%s_node%i", np[j].phy_tx_log_file,
                   j + 1);
           switch (np[j].type) {
           case (CR):
             sprintf(np[j].phy_tx_log_file, "%s%s", np[j].phy_tx_log_file,
-                    "_CR_PHY_TX");
+                    "_cognitive_radio_phy_tx");
             break;
           case (interferer):
             sprintf(np[j].phy_tx_log_file, "%s%s", np[j].phy_tx_log_file,
-                    "_Int_PHY_TX");
+                    "_interferer_phy_tx");
             break;
           }
         }
 
         if (!strcmp(np[j].net_rx_log_file, "")) {
           strcpy(np[j].net_rx_log_file, scenario_name);
-          sprintf(np[j].net_rx_log_file, "%s_Node%i%s", np[j].net_rx_log_file,
-                  j + 1, "_CR_NET_RX");
+          sprintf(np[j].net_rx_log_file, "%s_node%i%s", np[j].net_rx_log_file,
+                  j + 1, "_cognitive_radio_net_rx");
         }
 
         if (!strcmp(np[j].net_tx_log_file, "")) {
           strcpy(np[j].net_tx_log_file, scenario_name);
-          sprintf(np[j].net_tx_log_file, "%s_Node%i%s", np[j].net_tx_log_file,
-                  j + 1, "_CR_NET_TX");
+          sprintf(np[j].net_tx_log_file, "%s_node%i%s", np[j].net_tx_log_file,
+                  j + 1, "_cognitive_radio_net_tx");
         }
 
         // append the rep number if necessary
         if (scenario_reps - 1) {
-          sprintf(np[j].phy_rx_log_file, "%s_Rep%i", np[j].phy_rx_log_file,
+          sprintf(np[j].phy_rx_log_file, "%s_rep_%i", np[j].phy_rx_log_file,
                   scenRepNum);
-          sprintf(np[j].phy_tx_log_file, "%s_Rep%i", np[j].phy_tx_log_file,
+          sprintf(np[j].phy_tx_log_file, "%s_rep_%i", np[j].phy_tx_log_file,
                   scenRepNum);
-          sprintf(np[j].net_tx_log_file, "%s_Rep%i", np[j].net_tx_log_file,
+          sprintf(np[j].net_tx_log_file, "%s_rep_%i", np[j].net_tx_log_file,
                   scenRepNum);
-          sprintf(np[j].net_rx_log_file, "%s_Rep%i", np[j].net_rx_log_file,
+          sprintf(np[j].net_rx_log_file, "%s_rep_%i", np[j].net_rx_log_file,
                   scenRepNum);
         }
 
@@ -345,10 +345,10 @@ int main(int argc, char **argv) {
           // add appropriate executable
           switch (np[j].type) {
           case CR:
-            strcat(command, " && ./CRTS_CR");
+            strcat(command, " && ./crts_cognitive_radio");
             break;
           case interferer:
-            strcat(command, " && ./CRTS_interferer");
+            strcat(command, " && ./crts_interferer");
             break;
           }
 
@@ -522,7 +522,7 @@ int main(int argc, char **argv) {
           strcat(command, np[j].CORNET_IP);
           strcat(command, " 'python ");
           strcat(command, crts_dir);
-          strcat(command, "/src/CRTS_cr_terminate.py'");
+          strcat(command, "/src/terminate_crts_cognitive_radio.py'");
           int ssh_return = system(command);
 
           if (ssh_return < 0)

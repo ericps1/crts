@@ -1,18 +1,16 @@
 #ifndef _CR_HPP_
 #define _CR_HPP_
 
-#include <stdio.h>
-#include <net/if.h>
-#include <math.h>
-#include <complex>
 #include <liquid/liquid.h>
 #include <pthread.h>
+#include <iostream>
+#include <fstream>
+#include <net/if.h>
 #include <uhd/utils/msg.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd/types/tune_request.hpp>
-#include <fstream>
-#include "CRTS.hpp"
-#include "CE.hpp"
+#include "crts.hpp"
+#include "cognitive_engine.hpp"
 #include "timer.h"
 
 #define ECR_CONTROL_INFO_BYTES 6

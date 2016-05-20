@@ -1,7 +1,7 @@
 #ifndef _CE_TEMPLATE_
 #define _CE_TEMPLATE_
 
-#include "CE.hpp"
+#include "cognitive_engine.hpp"
 
 class CE_Template : public Cognitive_Engine {
 

@@ -1,9 +1,9 @@
 #ifndef _SC_TEMPLATE_
 #define _SC_TEMPLATE_
 
-#include "SC.hpp"
+#include "scenario_controller.hpp"
 
-class SC_Template : public Scenario_Controller {
+class SC_Template : public ScenarioController {
 
 private:
   unsigned int debugLevel;

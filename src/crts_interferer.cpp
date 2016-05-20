@@ -18,7 +18,7 @@
 #include <complex>
 #include <liquid/liquid.h>
 #include <fstream>
-#include "CRTS.hpp"
+#include "crts.hpp"
 #include "interferer.hpp"
 #include "timer.h"
 

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <limits.h>
-#include "ECR.hpp"
+#include "extensible_cognitive_radio.hpp"
 
 void help_logs2python() {
   printf("logs2python -- Create Python .py file containing log data.\n");

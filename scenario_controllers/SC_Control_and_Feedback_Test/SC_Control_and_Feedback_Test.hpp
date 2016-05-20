@@ -1,9 +1,9 @@
 #ifndef _SC_CONTROL_AND_FEEDBACK_TEST_
 #define _SC_CONTROL_AND_FEEDBACK_TEST_
 
-#include "SC.hpp"
+#include "scenario_controller.hpp"
 
-class SC_Control_and_Feedback_Test : public Scenario_Controller {
+class SC_Control_and_Feedback_Test : public ScenarioController {
 
 private:
   // internal members used by this CE

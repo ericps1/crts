@@ -1,7 +1,10 @@
 #ifndef _CE_TWO_CHANNEL_DSA_LINK_RELIABILITY_
 #define _CE_TWO_CHANNEL_DSA_LINK_RELIABILITY_
 
-#include "CE.hpp"
+#include <stdio.h>
+#include <iostream>
+#include "extensible_cognitive_radio.hpp"
+#include "cognitive_engine.hpp"
 
 class CE_Two_Channel_DSA_Link_Reliability : public Cognitive_Engine {
 public:
