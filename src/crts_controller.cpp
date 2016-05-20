@@ -233,8 +233,9 @@ int main(int argc, char **argv) {
   struct node_parameters np[48];
 
   // read master scenario config file
-  char scenario_name[251];
   char scenario_file[255];
+  char scenario_name[251];
+  char *scenario_name_ptr;
   unsigned int scenario_reps;
   int num_scenarios = read_master_num_scenarios(nameMasterScenFile);
   printf("Number of scenarios: %i\n\n", num_scenarios);
@@ -247,18 +248,21 @@ int main(int argc, char **argv) {
   // loop through scenarios
   for (int i = 0; i < num_scenarios; i++) {
 
-    // read scenario name and repetitions
+    // read scenario file name and repetitions
     scenario_reps =
-        read_master_scenario(nameMasterScenFile, i + 1, scenario_name);
+        read_master_scenario(nameMasterScenFile, i + 1, scenario_file);
 
+    // store the full path and scenario name separately
+    scenario_name_ptr = strrchr(scenario_file,'/')+1;
+    strcpy(scenario_name, scenario_name_ptr);
+    strcat(scenario_file, ".cfg");
+      
     for (unsigned int scenRepNum = 1; scenRepNum <= scenario_reps;
          scenRepNum++) {
       printf("Scenario %i:\n", i + 1);
       printf("Rep %i:\n", scenRepNum);
       printf("Config file: %s\n", scenario_name);
       // read the scenario parameters from file
-      strcpy(scenario_file, scenario_name);
-      strcat(scenario_file, ".cfg");
       struct scenario_parameters sp = read_scenario_parameters(scenario_file);
       // Set the number of scenario  repititions in struct.
       sp.totalNumReps = scenario_reps;
@@ -297,7 +301,7 @@ int main(int argc, char **argv) {
 
         if (!strcmp(np[j].phy_tx_log_file, "")) {
           strcpy(np[j].phy_tx_log_file, scenario_name);
-          sprintf(np[j].phy_tx_log_file, "%s_node%i", np[j].phy_tx_log_file,
+          sprintf(np[j].phy_tx_log_file, "%s_node_%i", np[j].phy_tx_log_file,
                   j + 1);
           switch (np[j].type) {
           case (CR):
@@ -313,13 +317,13 @@ int main(int argc, char **argv) {
 
         if (!strcmp(np[j].net_rx_log_file, "")) {
           strcpy(np[j].net_rx_log_file, scenario_name);
-          sprintf(np[j].net_rx_log_file, "%s_node%i%s", np[j].net_rx_log_file,
+          sprintf(np[j].net_rx_log_file, "%s_node_%i%s", np[j].net_rx_log_file,
                   j + 1, "_cognitive_radio_net_rx");
         }
 
         if (!strcmp(np[j].net_tx_log_file, "")) {
           strcpy(np[j].net_tx_log_file, scenario_name);
-          sprintf(np[j].net_tx_log_file, "%s_node%i%s", np[j].net_tx_log_file,
+          sprintf(np[j].net_tx_log_file, "%s_node_%i%s", np[j].net_tx_log_file,
                   j + 1, "_cognitive_radio_net_tx");
         }
 
