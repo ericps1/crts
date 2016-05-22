@@ -38,7 +38,9 @@ std::ofstream log_rx_fstream;
 std::ofstream log_tx_fstream;
 float rx_stats_fb_period = 1e4;
 timer rx_stat_fb_timer;
-  
+long int bytes_sent;
+long int bytes_received;
+
 void apply_control_msg(char cont_type, 
                        void* _arg, 
                        struct node_parameters *np,
@@ -733,6 +735,9 @@ int main(int argc, char **argv) {
   std::poisson_distribution<int> poisson_generator(1e6);
   int poisson_rv;
 
+  bytes_sent = 0;
+  bytes_received = 0;
+
   // Wait for the start-time before beginning the scenario
   struct timeval tv;
   time_t time_s;
@@ -810,6 +815,8 @@ int main(int argc, char **argv) {
             (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
         if (send_return < 0)
           printf("Failed to send message\n");
+        else
+          bytes_sent += send_return;
 
         ECR->inc_tx_queued_bytes(send_return+32);
         
@@ -840,6 +847,7 @@ int main(int argc, char **argv) {
         // (It's in CRTS_server_addr)
         dprintf("CRTS received packet %i containing %i bytes:\n", rx_packet_num,
                 recv_len);
+        bytes_received += recv_len;
         if (np.log_net_rx) {
           log_rx_data(&sp, &np, recv_len, rx_packet_num);
         }
@@ -927,7 +935,12 @@ int main(int argc, char **argv) {
 
   printf(
       "CRTS: Reached termination. Sending termination message to controller\n");
-  char term_message = CRTS_MSG_TERMINATE;
-  write(TCP_controller, &term_message, 1);
+  char msg[1+2*sizeof(long int)];
+  msg[0] = CRTS_MSG_SUMMARY;
+  memcpy((void*)&msg[1], (void*)&bytes_sent, sizeof(bytes_sent));
+  memcpy((void*)&msg[1+sizeof(long int)], (void*)&bytes_received, sizeof(bytes_sent));
+  write(TCP_controller, &msg, 1+2*sizeof(long int));
+  msg[0] = CRTS_MSG_TERMINATE;
+  write(TCP_controller, &msg, 1);
   close(TCP_controller);
 }

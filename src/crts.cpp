@@ -69,28 +69,31 @@ void freeargcargv(int &argc, char **&argv) {
 // Config files
 //////////////////////////////////////////////////////////////////
 
-int read_master_num_scenarios(char *nameMasterScenFile) {
+void read_master_parameters(char *nameMasterScenFile, 
+                            int *num_scenarios, 
+                            bool *octave_log_summary) {
   config_t cfg; // Returns all parameters in this structure
   char config_str[30];
   const char *tmpS;
-  int num_scenarios = 1;
   int tmpI; // Stores the value of Integer Parameters from Config file
 
   config_init(&cfg);
 
   // Read the file. If there is an error, report it and exit.
-  if (!config_read_file(&cfg, nameMasterScenFile)) {
+  char scenario_master_file[100];
+  sprintf(scenario_master_file, "%s.cfg", nameMasterScenFile);
+  if (!config_read_file(&cfg, scenario_master_file)) {
     printf("Error reading master scenario file (%s) on line %i\n",
            nameMasterScenFile, config_error_line(&cfg));
     exit(EXIT_FAILURE);
   }
 
   // Read the number of scenarios for this execution
-  if (config_lookup_int(&cfg, "NumberofScenarios", &tmpI))
-    num_scenarios = (int)tmpI;
+  if (config_lookup_int(&cfg, "num_scenarios", &tmpI))
+    *num_scenarios = (int)tmpI;
 
   // Check that all scenarios are specified
-  for (int i = 0; i < num_scenarios; i++) {
+  for (int i = 0; i < *num_scenarios; i++) {
     sprintf(config_str, "scenario_%d", i + 1);
     if (!config_lookup_string(&cfg, config_str, &tmpS)) {
       printf("Scenario %i is not specified!\n", i);
@@ -98,7 +101,9 @@ int read_master_num_scenarios(char *nameMasterScenFile) {
     }
   }
 
-  return num_scenarios;
+  // Read the octave log summary flag
+  if (config_lookup_int(&cfg, "octave_log_summary", &tmpI))
+    *octave_log_summary = (int)tmpI;
 }
 
 int read_master_scenario(char *nameMasterScenFile, int scenario_num,
@@ -111,7 +116,9 @@ int read_master_scenario(char *nameMasterScenFile, int scenario_num,
   config_init(&cfg);
 
   // Read the file. If there is an error, report it and exit.
-  if (!config_read_file(&cfg, nameMasterScenFile)) {
+  char scenario_master_file[100];
+  sprintf(scenario_master_file, "%s.cfg", nameMasterScenFile);
+  if (!config_read_file(&cfg, scenario_master_file)) {
     printf("Error reading master scenario file (%s) on line %i\n",
            nameMasterScenFile, config_error_line(&cfg));
     exit(EXIT_FAILURE);

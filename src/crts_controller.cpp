@@ -33,6 +33,8 @@
 // global variables
 int sig_terminate;
 int num_nodes_terminated;
+long int bytes_sent[10];
+long int bytes_received[10];
 
 int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, ScenarioController *SC) {
   // Listen to sockets for messages from any node
@@ -82,6 +84,11 @@ int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, ScenarioController *SC
           }
           break;
         }
+        case CRTS_MSG_SUMMARY:
+          // receive the number of bytes sent and received
+          rflag = recv(TCP_nodes[i], &bytes_sent[i], sizeof(long int), 0);
+          rflag = recv(TCP_nodes[i], &bytes_received[i], sizeof(long int), 0);
+          break;
         default:
           printf("Invalid message type received from node %i\n", i+1);
       }
@@ -114,6 +121,33 @@ ScenarioController* create_sc(struct scenario_parameters *sp){
   freeargcargv(argc, argv);
   
   return SC;
+}
+
+void log_scenario_summary(int scenario_num, int rep_num, char *scenario_master_name,
+                          char *scenario_name, int num_nodes){
+ 
+  char log_summary_filename[100];
+  sprintf(log_summary_filename, "logs/octave/%s_summary.m", scenario_master_name);
+
+  // Append to file if not first scenario and first rep
+  FILE *log_summary;  
+  if ((scenario_num>1) || (rep_num>1))
+    log_summary = fopen(log_summary_filename, "a");
+  else{
+    printf("\nWriting new file\n\n");
+    log_summary = fopen(log_summary_filename, "w");
+  }
+
+  if (rep_num == 1)
+    fprintf(log_summary, "scenario{%i}.scenario_name = '%s';\n", scenario_num, scenario_name);
+  for (int i=0; i< num_nodes; i++){
+    fprintf(log_summary, "scenario{%i}.node{%i}.rep{%i}.bytes_sent = %li;\n", 
+            scenario_num, i+1, rep_num, bytes_sent[i]);
+    fprintf(log_summary, "scenario{%i}.node{%i}.rep{%i}.bytes_received = %li;\n", 
+            scenario_num, i+1, rep_num, bytes_received[i]);
+  }
+  fprintf(log_summary, "\n");
+  fclose(log_summary);
 }
 
 void help_CRTS_controller() {
@@ -151,7 +185,8 @@ int main(int argc, char **argv) {
   getcwd(crts_dir, 1000);
 
   // Default name of master scenario file
-  char *nameMasterScenFile = (char *)"scenario_master_template.cfg";
+  char scenario_master_name[100];
+  strcpy(scenario_master_name, "scenario_master_template");
 
   // Default IP address of server as seen by other nodes
   char *serv_ip_addr;
@@ -179,7 +214,7 @@ int main(int argc, char **argv) {
       help_CRTS_controller();
       return 0;
     case 'f':
-      nameMasterScenFile = optarg;
+      strcpy(scenario_master_name, optarg);
       break;
     case 'm':
       manual_execution = 1;
@@ -236,8 +271,12 @@ int main(int argc, char **argv) {
   char scenario_name[251];
   char *scenario_name_ptr;
   unsigned int scenario_reps;
-  int num_scenarios = read_master_num_scenarios(nameMasterScenFile);
+  int num_scenarios;
+  bool octave_log_summary;
+  read_master_parameters(scenario_master_name, &num_scenarios, &octave_log_summary);
   printf("Number of scenarios: %i\n\n", num_scenarios);
+  if (octave_log_summary);
+    printf("Will generate a summary octave script: /logs/octave/%s.m\n", scenario_master_name);
 
   // variables for reading the system clock
   struct timeval tv;
@@ -249,23 +288,22 @@ int main(int argc, char **argv) {
 
     // read scenario file name and repetitions
     scenario_reps =
-        read_master_scenario(nameMasterScenFile, i + 1, scenario_file);
+        read_master_scenario(scenario_master_name, i + 1, scenario_file);
 
     // store the full path and scenario name separately
     scenario_name_ptr = strrchr(scenario_file,'/')+1;
     strcpy(scenario_name, scenario_name_ptr);
     strcat(scenario_file, ".cfg");
       
-    for (unsigned int scenRepNum = 1; scenRepNum <= scenario_reps;
-         scenRepNum++) {
+    for (unsigned int rep_i = 1; rep_i <= scenario_reps; rep_i++) {
       printf("Scenario %i:\n", i + 1);
-      printf("Rep %i:\n", scenRepNum);
+      printf("Rep %i:\n", rep_i);
       printf("Config file: %s\n", scenario_name);
       // read the scenario parameters from file
       struct scenario_parameters sp = read_scenario_parameters(scenario_file);
       // Set the number of scenario  repititions in struct.
       sp.totalNumReps = scenario_reps;
-      sp.repNumber = scenRepNum;
+      sp.repNumber = rep_i;
 
       printf("Number of nodes: %i\n", sp.num_nodes);
       printf("Run time: %lld\n", (long long)sp.runTime);
@@ -329,13 +367,13 @@ int main(int argc, char **argv) {
         // append the rep number if necessary
         if (scenario_reps - 1) {
           sprintf(np[j].phy_rx_log_file, "%s_rep_%i", np[j].phy_rx_log_file,
-                  scenRepNum);
+                  rep_i);
           sprintf(np[j].phy_tx_log_file, "%s_rep_%i", np[j].phy_tx_log_file,
-                  scenRepNum);
+                  rep_i);
           sprintf(np[j].net_tx_log_file, "%s_rep_%i", np[j].net_tx_log_file,
-                  scenRepNum);
+                  rep_i);
           sprintf(np[j].net_rx_log_file, "%s_rep_%i", np[j].net_rx_log_file,
-                  scenRepNum);
+                  rep_i);
         }
 
         print_node_parameters(&np[j]);
@@ -549,6 +587,9 @@ int main(int argc, char **argv) {
       SC->stop_sc();
       delete SC;
 
+      if (octave_log_summary)
+        log_scenario_summary(i+1, rep_i, scenario_master_name, scenario_name, sp.num_nodes);
+      
       // don't continue to next scenario if there was a user issued termination
       if (sig_terminate)
         break;

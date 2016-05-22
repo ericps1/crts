@@ -13,7 +13,9 @@ void freeargcargv(int &argc, char **&argv);
 // Config files
 /////////////////////////////////////////////////////////////////
 
-int read_master_num_scenarios(char * nameMasterScenFile);
+void read_master_parameters(char *nameMasterScenFile, 
+                            int *num_scenarios, 
+                            bool *octave_log_summary); 
 
 int read_master_scenario(char * nameMasterScenFile, int scenario_num,
                               char * scenario_name);
@@ -189,7 +191,8 @@ enum crts_msg_type {
   CRTS_MSG_START,
   CRTS_MSG_TERMINATE,
   CRTS_MSG_CONTROL,
-  CRTS_MSG_FEEDBACK
+  CRTS_MSG_FEEDBACK,
+  CRTS_MSG_SUMMARY
 };
 
 // enumeration of all types of control and feedback passed between 
