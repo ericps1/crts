@@ -294,11 +294,11 @@ int main(int argc, char **argv) {
     scenario_name_ptr = strrchr(scenario_file,'/')+1;
     strcpy(scenario_name, scenario_name_ptr);
     strcat(scenario_file, ".cfg");
-      
+
     for (unsigned int rep_i = 1; rep_i <= scenario_reps; rep_i++) {
       printf("Scenario %i:\n", i + 1);
       printf("Rep %i:\n", rep_i);
-      printf("Config file: %s\n", scenario_name);
+      printf("Scenario configuration file: %s\n", scenario_name);
       // read the scenario parameters from file
       struct scenario_parameters sp = read_scenario_parameters(scenario_file);
       // Set the number of scenario  repititions in struct.
@@ -381,39 +381,25 @@ int main(int argc, char **argv) {
         // send command to launch executable if not doing so manually
         int ssh_return = 0;
         if (!manual_execution) {
-          char command[2000] = "ssh ";
-          // Add username to ssh command
-          strcat(command, ssh_uname);
-          strcat(command, "@");
-          strcat(command, np[j].CORNET_IP);
-          strcat(command, " 'sleep 1 && ");
-          strcat(command, " cd ");
-          strcat(command, crts_dir);
 
-          // add appropriate executable
+          char executable[20];
           switch (np[j].type) {
-          case CR:
-            strcat(command, " && ./crts_cognitive_radio");
-            break;
-          case interferer:
-            strcat(command, " && ./crts_interferer");
-            break;
+            case CR: sprintf(executable, "crts_cognitive_radio"); break;
+            case interferer: sprintf(executable, "crts_interferer"); break;
           }
 
-          // append IP Address of controller
-          strcat(command, " -a ");
-          strcat(command, serv_ip_addr);
+          char sysout_log[200];
+          sprintf(sysout_log, "%s/logs/sysout/%s_node_%i_rep_%i.sysout", crts_dir, scenario_name, j+1, rep_i);
 
-          // set command to continue program after shell is closed
-          strcat(command, " 2>&1 &'");
-          strcat(command, " > ");
-          strcat(command, crts_dir);
-          strcat(command, "/logs/sysout/node");
-          strcat(command, node_id);
-          strcat(command, ".SYSOUT &");
+          char command[2000];
+          sprintf(command, "ssh %s@%s 'sleep 1 && cd %s && ./%s -a %s 2>&1 &' > %s &",
+                  ssh_uname, np[j].CORNET_IP, crts_dir, executable, serv_ip_addr, sysout_log);
+          
           ssh_return = system(command);
-          // printf("Command executed: %s\n", command);
-          // printf("Return value: %i\n", ssh_return);
+          if (ssh_return) {
+            printf("SSH failed for node %i with address %s\n", j+1, np[j].CORNET_IP); 
+            exit(EXIT_FAILURE);
+          }
         }
 
         if (ssh_return != 0) {
@@ -560,22 +546,13 @@ int main(int argc, char **argv) {
       // terminate gracefully
       if (time_terminate) {
         for (int j = 0; j < sp.num_nodes; j++) {
-          printf("Running CRTS_CR cleanup on node %i: %s\n", j + 1,
-                 np[j].CORNET_IP);
+          printf("Running CRTS_CR cleanup on node %i: %s\n", j+1, np[j].CORNET_IP);
           char command[2000] = "ssh ";
-
-          // define command to execute CRTS_CR termination script
-          strcat(command, ssh_uname);
-          strcat(command, "@");
-          strcat(command, np[j].CORNET_IP);
-          strcat(command, " 'python ");
-          strcat(command, crts_dir);
-          strcat(command, "/src/terminate_crts_cognitive_radio.py'");
+          sprintf(command, "ssh %s@%s 'python %s/src/terminate_crts_cognitive_radio.py'",
+                  ssh_uname, np[j].CORNET_IP, crts_dir); 
           int ssh_return = system(command);
-
           if (ssh_return < 0)
-            printf("Error command to terminate CRTS on node %i: %s", j,
-                   np[j].CORNET_IP);
+            printf("Error terminating CRTS on node %i: %s", j+1, np[j].CORNET_IP);
         }
       }
       
