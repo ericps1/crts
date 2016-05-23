@@ -32,7 +32,7 @@ void SC_Control_and_Feedback_Test::execute(int node, char fb_type, void *_arg) {
   // handle all possible feedback types
   switch (fb_type) {
     case CRTS_TX_STATE:
-      if(np[node].type == CR) {
+      if(np[node].node_type == COGNITIVE_RADIO) {
         if (*(int*)_arg == TX_STOPPED)
           printf("Node %i has stopped transmitting\n", node+1);
         if (*(int*)_arg == TX_CONTINUOUS)
@@ -66,8 +66,7 @@ void SC_Control_and_Feedback_Test::execute(int node, char fb_type, void *_arg) {
     case CRTS_TX_FEC1:
       printf("Node %i has updated it's outter FEC scheme to %s\n", node+1, 
              fec_scheme_str[*(int*)_arg][0]);
-      break;
-    
+      break; 
     case CRTS_RX_STATE:
       if (*(int*)_arg == RX_STOPPED)
         printf("Node %i has stopped receiving\n", node+1);

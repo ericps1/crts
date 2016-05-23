@@ -48,7 +48,7 @@ void apply_control_msg(char cont_type,
                        int *fb_enables,
                        float *t_step); 
 
-void receive_command_from_controller(int *TCP_controller,
+void receive_command_from_controller(int *tcp_controller,
                                      struct scenario_parameters *sp,
                                      struct node_parameters *np,
                                      ExtensibleCognitiveRadio *ECR,
@@ -65,19 +65,19 @@ void receive_command_from_controller(int *TCP_controller,
   timeout.tv_sec = 0;
   timeout.tv_usec = 100;
   FD_ZERO(&fds);
-  FD_SET(*TCP_controller, &fds);
+  FD_SET(*tcp_controller, &fds);
 
   // if data is available or the scenario has not been started, read in message from controller
-  if (select(*TCP_controller + 1, &fds, NULL, NULL, &timeout) || (!start_msg_received)) {
+  if (select(*tcp_controller + 1, &fds, NULL, NULL, &timeout) || (!start_msg_received)) {
     // read the first byte which designates the message type
-    int rflag = recv(*TCP_controller, command_buffer, 1, 0);
+    int rflag = recv(*tcp_controller, command_buffer, 1, 0);
 
     int err = errno;
     if (rflag <= 0) {
       if ((err == EAGAIN) || (err == EWOULDBLOCK))
         return;
       else {
-        close(*TCP_controller);
+        close(*tcp_controller);
         printf("Socket failure\n");
         sig_terminate = 1;
       }
@@ -89,12 +89,12 @@ void receive_command_from_controller(int *TCP_controller,
       case CRTS_MSG_SCENARIO_PARAMETERS: // settings for upcoming scenario
         dprintf("Received settings for scenario\n");
         // receive and copy scenario parameters
-        rflag = recv(*TCP_controller, &command_buffer[1],
+        rflag = recv(*tcp_controller, &command_buffer[1],
                      sizeof(struct scenario_parameters), 0);
         memcpy(sp, &command_buffer[1], sizeof(struct scenario_parameters));
 
         // receive and copy node_parameters
-        rflag = recv(*TCP_controller,
+        rflag = recv(*tcp_controller,
                      &command_buffer[1 + sizeof(struct scenario_parameters)],
                      sizeof(struct node_parameters), 0);
         memcpy(np, &command_buffer[1 + sizeof(struct scenario_parameters)],
@@ -103,20 +103,20 @@ void receive_command_from_controller(int *TCP_controller,
         break;
       case CRTS_MSG_START: // updated start time (used for manual mode)
         printf("Received manual start from controller");
-        rflag = recv(*TCP_controller, &command_buffer[1], sizeof(int64_t), 0);
+        rflag = recv(*tcp_controller, &command_buffer[1], sizeof(int64_t), 0);
         start_msg_received = true;
         memcpy(&start_time_s, &command_buffer[1], sizeof(int64_t));
-        stop_time_s = (time_t) (start_time_s + sp->runTime);
+        stop_time_s = (time_t) (start_time_s + sp->run_time);
         break;
       case CRTS_MSG_TERMINATE: // terminate program
         dprintf("Received termination command from controller\n");
         sig_terminate = 1;
         break;
       case CRTS_MSG_CONTROL:
-        rflag = recv(*TCP_controller, &command_buffer[1], 1, 0);
+        rflag = recv(*tcp_controller, &command_buffer[1], 1, 0);
         int arg_len = get_control_arg_len(command_buffer[1]);
         if(arg_len > 0)
-          rflag = recv(*TCP_controller, &command_buffer[2], arg_len, 0);
+          rflag = recv(*tcp_controller, &command_buffer[2], arg_len, 0);
         dprintf("Received a %i byte control message\n", rflag);
         apply_control_msg(command_buffer[1], (void*) &command_buffer[2], np, ECR, fb_enables, t_step); 
         break;
@@ -199,7 +199,7 @@ void apply_control_msg(char cont_type,
   }
 }
 
-void send_feedback_to_controller(int *TCP_controller,
+void send_feedback_to_controller(int *tcp_controller,
                                  unsigned int fb_enables,
                                  ExtensibleCognitiveRadio *ECR) {
   // variables used to keep track of the state and send feedback to the controller when needed
@@ -361,7 +361,7 @@ void send_feedback_to_controller(int *TCP_controller,
   
   // send feedback to controller
   if(fb_args > 0){
-    send(*TCP_controller, fb_msg, fb_msg_ind, 0);
+    send(*tcp_controller, fb_msg, fb_msg_ind, 0);
   }      
 }
 
@@ -369,7 +369,7 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
                    int argc, char **argv) {
 
   // initialize ECR parameters if applicable
-  if (np->cr_type == ecr) {
+  if (np->cognitive_radio_type == EXTENSIBLE_COGNITIVE_RADIO) {
     ExtensibleCognitiveRadio *ECR = (ExtensibleCognitiveRadio *)ECR_p;
 
     // append relative locations for log files
@@ -384,8 +384,8 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
     strcat(phy_tx_log_file_name, ".log");
 
     // set cognitive radio parameters
-    ECR->set_ip(np->CRTS_IP);
-    ECR->print_metrics_flag = np->print_metrics;
+    ECR->set_ip(np->crts_ip);
+    ECR->print_metrics_flag = np->print_rx_frame_metrics;
     ECR->log_phy_rx_flag = np->log_phy_rx;
     ECR->log_phy_tx_flag = np->log_phy_tx;
     ECR->set_ce_timeout_ms(np->ce_timeout_ms);
@@ -408,7 +408,7 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
     ECR->set_tx_crc(np->tx_crc);
     ECR->set_tx_fec0(np->tx_fec0);
     ECR->set_tx_fec1(np->tx_fec1);
-    ECR->set_ce(np->CE, argc, argv);
+    ECR->set_ce(np->cognitive_engine, argc, argv);
     ECR->reset_log_files();
     ECR->set_rx_stat_tracking(false, 0.0);
 
@@ -427,7 +427,7 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
     }
   }
   // intialize python radio if applicable
-  else if (np->cr_type == python) {
+  else if (np->cognitive_radio_type == PYTHON) {
     // set IP for TUN interface
     // char command[50];
     // sprintf(command, "ifconfig tunCRTS %s", np->CRTS_IP);
@@ -509,8 +509,8 @@ int main(int argc, char **argv) {
   optind = 0;
 
   // Create TCP client to controller
-  int TCP_controller = socket(AF_INET, SOCK_STREAM, 0);
-  if (TCP_controller < 0) {
+  int tcp_controller = socket(AF_INET, SOCK_STREAM, 0);
+  if (tcp_controller < 0) {
     printf("ERROR: Receiver Failed to Create Client Socket\n");
     exit(EXIT_FAILURE);
   }
@@ -523,7 +523,7 @@ int main(int argc, char **argv) {
 
   // Attempt to connect client socket to server
   int connect_status =
-      connect(TCP_controller, (struct sockaddr *)&controller_addr,
+      connect(tcp_controller, (struct sockaddr *)&controller_addr,
               sizeof(controller_addr));
   if (connect_status) {
     printf("Failed to Connect to server.\n");
@@ -546,7 +546,7 @@ int main(int argc, char **argv) {
   sleep(1);
   float t_step;
   int fb_enables = 0;;
-  receive_command_from_controller(&TCP_controller, &sp, &np, ECR, &fb_enables, &t_step);
+  receive_command_from_controller(&tcp_controller, &sp, &np, ECR, &fb_enables, &t_step);
   
   // copy log file name for post processing later
   char net_rx_log_file_cpy[100];
@@ -617,7 +617,7 @@ int main(int argc, char **argv) {
 
   // Create and start the ECR or python CR so that they are in a ready
   // state when the experiment begins
-  if (np.cr_type == ecr) {
+  if (np.cognitive_radio_type == EXTENSIBLE_COGNITIVE_RADIO) {
     dprintf("Creating ECR object...\n");
     ECR = new ExtensibleCognitiveRadio;
 
@@ -630,12 +630,12 @@ int main(int argc, char **argv) {
     int argc = 0;
     char ** argv = NULL;
     dprintf("Converting ce_args to argc argv format\n");
-    str2argcargv(np.ce_args, np.CE, argc, argv);
+    str2argcargv(np.ce_args, np.cognitive_engine, argc, argv);
     dprintf("Initializing CR\n");
     Initialize_CR(&np, (void *)ECR, argc, argv);
     freeargcargv(argc, argv);
 
-  } else if (np.cr_type == python) {
+  } else if (np.cognitive_radio_type == PYTHON) {
     dprintf("CRTS: Forking child process\n");
     pid_t pid = fork();
 
@@ -643,10 +643,7 @@ int main(int argc, char **argv) {
     if (pid == 0) {
       char command[2000] = "sudo python cognitive_radios/";
       strcat(command, np.python_file);
-      for (int i = 0; i < np.num_arguments; i++) {
-        strcat(command, " ");
-        strcat(command, np.arguments[i]);
-      }
+      strcat(command, np.python_args);
       strcat(command, " &");
       int ret_value = system(command);
       if (ret_value != 0)
@@ -662,33 +659,33 @@ int main(int argc, char **argv) {
       };
 
       dprintf("CRTS Child: Closing sockets\n");
-      close(TCP_controller);
+      close(tcp_controller);
       exit(EXIT_SUCCESS);
     }
   }
 
   // Define address structure for CRTS socket server used to receive network
   // traffic
-  struct sockaddr_in CRTS_server_addr;
-  memset(&CRTS_server_addr, 0, sizeof(CRTS_server_addr));
-  CRTS_server_addr.sin_family = AF_INET;
+  struct sockaddr_in crts_server_addr;
+  memset(&crts_server_addr, 0, sizeof(crts_server_addr));
+  crts_server_addr.sin_family = AF_INET;
   // Only receive packets addressed to the CRTS_IP
-  CRTS_server_addr.sin_addr.s_addr = inet_addr(np.CRTS_IP);
-  CRTS_server_addr.sin_port = htons(port);
-  socklen_t clientlen = sizeof(CRTS_server_addr);
-  int CRTS_server_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  crts_server_addr.sin_addr.s_addr = inet_addr(np.crts_ip);
+  crts_server_addr.sin_port = htons(port);
+  socklen_t clientlen = sizeof(crts_server_addr);
+  int crts_server_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
   // Define address structure for CRTS socket client used to send network
   // traffic
-  struct sockaddr_in CRTS_client_addr;
-  memset(&CRTS_client_addr, 0, sizeof(CRTS_client_addr));
-  CRTS_client_addr.sin_family = AF_INET;
-  CRTS_client_addr.sin_addr.s_addr = inet_addr(np.TARGET_IP);
-  CRTS_client_addr.sin_port = htons(port);
-  int CRTS_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  struct sockaddr_in crts_client_addr;
+  memset(&crts_client_addr, 0, sizeof(crts_client_addr));
+  crts_client_addr.sin_family = AF_INET;
+  crts_client_addr.sin_addr.s_addr = inet_addr(np.target_ip);
+  crts_client_addr.sin_port = htons(port);
+  int crts_client_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
   // Bind CRTS server socket
-  bind(CRTS_server_sock, (sockaddr *)&CRTS_server_addr, clientlen);
+  bind(crts_server_sock, (sockaddr *)&crts_server_addr, clientlen);
 
   // Define a buffer for receiving and a temporary message for sending
   int recv_buffer_len = 8192 * 2;
@@ -713,11 +710,11 @@ int main(int argc, char **argv) {
   
   // initialize sig_terminate flag and check return from socket call
   sig_terminate = 0;
-  if (CRTS_client_sock < 0) {
+  if (crts_client_sock < 0) {
     printf("CRTS failed to create client socket\n");
     sig_terminate = 1;
   }
-  if (CRTS_server_sock < 0) {
+  if (crts_server_sock < 0) {
     printf("CRTS failed to create server socket\n");
     sig_terminate = 1;
   }
@@ -742,7 +739,7 @@ int main(int argc, char **argv) {
   struct timeval tv;
   time_t time_s;
   while (1) {
-    receive_command_from_controller(&TCP_controller, &sp, &np, ECR, &fb_enables, &t_step);
+    receive_command_from_controller(&tcp_controller, &sp, &np, ECR, &fb_enables, &t_step);
     gettimeofday(&tv, NULL);
     time_s = tv.tv_sec;
     if ((time_s >= (time_t) start_time_s) && start_msg_received)
@@ -752,7 +749,7 @@ int main(int argc, char **argv) {
     usleep(5e2);
   }
 
-  if (np.cr_type == ecr) {
+  if (np.cognitive_radio_type == EXTENSIBLE_COGNITIVE_RADIO) {
     // Start ECR
     dprintf("Starting ECR object...\n");
     ECR->start_rx();
@@ -765,11 +762,11 @@ int main(int argc, char **argv) {
   // main loop: receives control, sends feedback, and generates/receives network traffic
   while ((time_s < stop_time_s) && (!sig_terminate)) {
     // Listen for any updates from the controller
-    receive_command_from_controller(&TCP_controller, &sp, &np, ECR, &fb_enables, &t_step);
+    receive_command_from_controller(&tcp_controller, &sp, &np, ECR, &fb_enables, &t_step);
 
     // send feedback to the controller if applicable
     if (fb_enables > 0)
-      send_feedback_to_controller(&TCP_controller, fb_enables, ECR);
+      send_feedback_to_controller(&tcp_controller, fb_enables, ECR);
 
     // Update send time only after immediately sending (send_flag == true)
     if (send_flag == true) {
@@ -811,8 +808,8 @@ int main(int argc, char **argv) {
         // send UDP packet via CR
         dprintf("CRTS sending packet %i\n", packet_counter);
         int send_return = sendto(
-            CRTS_client_sock, (char *)message, sizeof(message), 0,
-            (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
+            crts_client_sock, (char *)message, sizeof(message), 0,
+            (struct sockaddr *)&crts_client_addr, sizeof(crts_client_addr));
         if (send_return < 0)
           printf("Failed to send message\n");
         else
@@ -829,10 +826,10 @@ int main(int argc, char **argv) {
     // read all available data from the UDP socket
     int recv_len = 0;
     FD_ZERO(&read_fds);
-    FD_SET(CRTS_server_sock, &read_fds);
-    while (select(CRTS_server_sock + 1, &read_fds, NULL, NULL, &timeout) > 0) {
-      recv_len = recvfrom(CRTS_server_sock, recv_buffer, recv_buffer_len, 0,
-                          (struct sockaddr *)&CRTS_server_addr, &clientlen);
+    FD_SET(crts_server_sock, &read_fds);
+    while (select(crts_server_sock + 1, &read_fds, NULL, NULL, &timeout) > 0) {
+      recv_len = recvfrom(crts_server_sock, recv_buffer, recv_buffer_len, 0,
+                          (struct sockaddr *)&crts_server_addr, &clientlen);
 
       // determine packet number
       int rx_packet_num = 0;
@@ -854,7 +851,7 @@ int main(int argc, char **argv) {
       }
 
       FD_ZERO(&read_fds);
-      FD_SET(CRTS_server_sock, &read_fds);
+      FD_SET(crts_server_sock, &read_fds);
     }
 
     // Update the current time
@@ -869,67 +866,59 @@ int main(int argc, char **argv) {
     log_tx_fstream.close();
 
   // close all network connections
-  close(CRTS_client_sock);
-  close(CRTS_server_sock);
+  close(crts_client_sock);
+  close(crts_server_sock);
 
   // auto-generate octave logs from binary logs
   char command[1000];
   if (np.generate_octave_logs) {
     if (np.log_net_rx) {
-      sprintf(command, "./logs/convert_logs_bin_to_octave -c -l %s -N %d -n %d",
-              net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
+      sprintf(command, "./logs/convert_logs_bin_to_octave -c -l %s", net_rx_log_file_cpy);
       system(command);
     }
 
     if (np.log_net_tx) {
-      sprintf(command, "./logs/convert_logs_to_bin_octave -C -l %s -N %d -n %d",
-              net_tx_log_file_cpy, sp.totalNumReps, sp.repNumber);
+      sprintf(command, "./logs/convert_logs_to_bin_octave -C -l %s", net_tx_log_file_cpy);
       system(command);
     }
 
     if (np.log_phy_rx) {
-      sprintf(command, "./logs/convert_logs_bin_to_octave -r -l %s -N %d -n %d",
-              np.phy_rx_log_file, sp.totalNumReps, sp.repNumber);
+      sprintf(command, "./logs/convert_logs_bin_to_octave -r -l %s", np.phy_rx_log_file);
       system(command);
     }
 
     if (np.log_phy_tx) {
-      sprintf(command, "./logs/convert_logs_bin_to_octave -t -l %s -N %d -n %d",
-              np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
+      sprintf(command, "./logs/convert_logs_bin_to_octave -t -l %s", np.phy_tx_log_file);
       system(command);
     }
   }
   // auto-generate python logs from binary logs
   if (np.generate_python_logs) {
     if (np.log_net_rx) {
-      sprintf(command, "./logs/logs2python -c -l %s -N %d -n %d",
-              net_rx_log_file_cpy, sp.totalNumReps, sp.repNumber);
+      sprintf(command, "./logs/convert_logs_bin_to_python -c -l %s", net_rx_log_file_cpy);
       system(command);
     }
 
     if (np.log_net_tx) {
-      sprintf(command, "./logs/logs2octave -C -l %s -N %d -n %d",
-              net_tx_log_file_cpy, sp.totalNumReps, sp.repNumber);
+      sprintf(command, "./logs/logs2octave -C -l %s", net_tx_log_file_cpy);
       system(command);
     }
 
     if (np.log_phy_rx) {
-      sprintf(command, "./logs/logs2python -r -l %s -N %d -n %d",
-              np.phy_rx_log_file, sp.totalNumReps, sp.repNumber);
+      sprintf(command, "./logs/logs2python -r -l %s", np.phy_rx_log_file);
       system(command);
     }
 
     if (np.log_phy_tx) {
-      sprintf(command, "./logs/logs2python -t -l %s -N %d -n %d",
-              np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
+      sprintf(command, "./logs/logs2python -t -l %s", np.phy_tx_log_file);
       system(command);
     }
   }
 
   // clean up ECR/python process
-  if (np.cr_type == ecr) {
+  if (np.cognitive_radio_type == EXTENSIBLE_COGNITIVE_RADIO) {
     delete ECR;
-  } else if (np.cr_type == python) {
+  } else if (np.cognitive_radio_type == PYTHON) {
     kill(pid, SIGTERM);
   }
 
@@ -939,8 +928,8 @@ int main(int argc, char **argv) {
   msg[0] = CRTS_MSG_SUMMARY;
   memcpy((void*)&msg[1], (void*)&bytes_sent, sizeof(bytes_sent));
   memcpy((void*)&msg[1+sizeof(long int)], (void*)&bytes_received, sizeof(bytes_sent));
-  write(TCP_controller, &msg, 1+2*sizeof(long int));
+  write(tcp_controller, &msg, 1+2*sizeof(long int));
   msg[0] = CRTS_MSG_TERMINATE;
-  write(TCP_controller, &msg, 1);
-  close(TCP_controller);
+  write(tcp_controller, &msg, 1);
+  close(tcp_controller);
 }

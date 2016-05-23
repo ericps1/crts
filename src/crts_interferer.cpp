@@ -145,7 +145,7 @@ receive_command_from_controller(Interferer *Int, struct node_parameters *np,
       rflag = recv(TCP_controller, &command_buffer[1], sizeof(time_t), 0);
       start_msg_received = true;
       memcpy(&start_time_s, &command_buffer[1], sizeof(time_t));
-      stop_time_s = start_time_s + sp->runTime;
+      stop_time_s = start_time_s + sp->run_time;
       break;
     case CRTS_MSG_TERMINATE: // terminate program
       dprintf("Received termination command from controller\n");
@@ -409,8 +409,7 @@ int main(int argc, char **argv) {
 
   if (np.generate_octave_logs) {
     char command[100];
-    sprintf(command, "./logs/logs2octave -i -l %s -N %d -n %d",
-            np.phy_tx_log_file, sp.totalNumReps, sp.repNumber);
+    sprintf(command, "./logs/convert_logs_bin_to_octave -i -l %s", np.phy_tx_log_file);
     printf("command: %s\n", command);
     system(command);
   }

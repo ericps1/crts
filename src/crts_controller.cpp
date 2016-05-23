@@ -124,7 +124,7 @@ ScenarioController* create_sc(struct scenario_parameters *sp){
 }
 
 void log_scenario_summary(int scenario_num, int rep_num, char *scenario_master_name,
-                          char *scenario_name, int num_nodes){
+                          char *scenario_name, struct scenario_parameters *sp){
  
   char log_summary_filename[100];
   sprintf(log_summary_filename, "logs/octave/%s_summary.m", scenario_master_name);
@@ -138,12 +138,15 @@ void log_scenario_summary(int scenario_num, int rep_num, char *scenario_master_n
     log_summary = fopen(log_summary_filename, "w");
   }
 
-  if (rep_num == 1)
-    fprintf(log_summary, "scenario{%i}.scenario_name = '%s';\n", scenario_num, scenario_name);
-  for (int i=0; i< num_nodes; i++){
-    fprintf(log_summary, "scenario{%i}.node{%i}.rep{%i}.bytes_sent = %li;\n", 
+  if (rep_num == 1) {
+    fprintf(log_summary, "scenario_name{%i} = '%s';\n", scenario_num, scenario_name);
+    fprintf(log_summary, "run_time(%i) = %li;\n", scenario_num, sp->run_time);
+    fprintf(log_summary, "num_nodes(%i) = %i;\n\n", scenario_num, sp->num_nodes);
+  }
+  for (int i=0; i< sp->num_nodes; i++){
+    fprintf(log_summary, "bytes_sent(%i,%i,%i) = %li;\n", 
             scenario_num, i+1, rep_num, bytes_sent[i]);
-    fprintf(log_summary, "scenario{%i}.node{%i}.rep{%i}.bytes_received = %li;\n", 
+    fprintf(log_summary, "bytes_received(%i,%i,%i) = %li;\n", 
             scenario_num, i+1, rep_num, bytes_received[i]);
   }
   fprintf(log_summary, "\n");
@@ -302,11 +305,11 @@ int main(int argc, char **argv) {
       // read the scenario parameters from file
       struct scenario_parameters sp = read_scenario_parameters(scenario_file);
       // Set the number of scenario  repititions in struct.
-      sp.totalNumReps = scenario_reps;
-      sp.repNumber = rep_i;
+      sp.total_num_reps = scenario_reps;
+      sp.rep_num = rep_i;
 
       printf("Number of nodes: %i\n", sp.num_nodes);
-      printf("Run time: %lld\n", (long long)sp.runTime);
+      printf("Run time: %lld\n", (long long)sp.run_time);
       printf("Scenario controller: %s\n", sp.SC);
 
       // create the scenario controller
@@ -340,12 +343,12 @@ int main(int argc, char **argv) {
           strcpy(np[j].phy_tx_log_file, scenario_name);
           sprintf(np[j].phy_tx_log_file, "%s_node_%i", np[j].phy_tx_log_file,
                   j + 1);
-          switch (np[j].type) {
-          case (CR):
+          switch (np[j].node_type) {
+          case (COGNITIVE_RADIO):
             sprintf(np[j].phy_tx_log_file, "%s%s", np[j].phy_tx_log_file,
                     "_cognitive_radio_phy_tx");
             break;
-          case (interferer):
+          case (INTERFERER):
             sprintf(np[j].phy_tx_log_file, "%s%s", np[j].phy_tx_log_file,
                     "_interferer_phy_tx");
             break;
@@ -383,9 +386,9 @@ int main(int argc, char **argv) {
         if (!manual_execution) {
 
           char executable[20];
-          switch (np[j].type) {
-            case CR: sprintf(executable, "crts_cognitive_radio"); break;
-            case interferer: sprintf(executable, "crts_interferer"); break;
+          switch (np[j].node_type) {
+            case COGNITIVE_RADIO: sprintf(executable, "crts_cognitive_radio"); break;
+            case INTERFERER: sprintf(executable, "crts_interferer"); break;
           }
 
           char sysout_log[200];
@@ -393,11 +396,11 @@ int main(int argc, char **argv) {
 
           char command[2000];
           sprintf(command, "ssh %s@%s 'sleep 1 && cd %s && ./%s -a %s 2>&1 &' > %s &",
-                  ssh_uname, np[j].CORNET_IP, crts_dir, executable, serv_ip_addr, sysout_log);
+                  ssh_uname, np[j].server_ip, crts_dir, executable, serv_ip_addr, sysout_log);
           
           ssh_return = system(command);
           if (ssh_return) {
-            printf("SSH failed for node %i with address %s\n", j+1, np[j].CORNET_IP); 
+            printf("SSH failed for node %i with address %s\n", j+1, np[j].server_ip); 
             exit(EXIT_FAILURE);
           }
         }
@@ -445,7 +448,7 @@ int main(int argc, char **argv) {
 
         // copy IP of connected node to node parameters if in manual mode
         if (manual_execution)
-          strcpy(np[j].CORNET_IP, inet_ntoa(nodeAddr[j].sin_addr));
+          strcpy(np[j].server_ip, inet_ntoa(nodeAddr[j].sin_addr));
 
         // send scenario and node parameters
         printf("\nNode %i has connected. Sending its parameters...\n", j + 1);
@@ -503,7 +506,7 @@ int main(int argc, char **argv) {
         // just to handle the case where a node or nodes do not terminate properly.
         gettimeofday(&tv, NULL);
         time_s = tv.tv_sec;
-        if (time_s > (time_t) start_time_s + (time_t) sp.runTime + 10)
+        if (time_s > (time_t) start_time_s + (time_t) sp.run_time + 10)
           time_terminate = 1;
       }
 
@@ -546,13 +549,13 @@ int main(int argc, char **argv) {
       // terminate gracefully
       if (time_terminate) {
         for (int j = 0; j < sp.num_nodes; j++) {
-          printf("Running CRTS_CR cleanup on node %i: %s\n", j+1, np[j].CORNET_IP);
+          printf("Running CRTS_CR cleanup on node %i: %s\n", j+1, np[j].server_ip);
           char command[2000] = "ssh ";
           sprintf(command, "ssh %s@%s 'python %s/src/terminate_crts_cognitive_radio.py'",
-                  ssh_uname, np[j].CORNET_IP, crts_dir); 
+                  ssh_uname, np[j].server_ip, crts_dir); 
           int ssh_return = system(command);
           if (ssh_return < 0)
-            printf("Error terminating CRTS on node %i: %s", j+1, np[j].CORNET_IP);
+            printf("Error terminating CRTS on node %i: %s", j+1, np[j].server_ip);
         }
       }
       
@@ -565,7 +568,7 @@ int main(int argc, char **argv) {
       delete SC;
 
       if (octave_log_summary)
-        log_scenario_summary(i+1, rep_i, scenario_master_name, scenario_name, sp.num_nodes);
+        log_scenario_summary(i+1, rep_i, scenario_master_name, scenario_name, &sp);
       
       // don't continue to next scenario if there was a user issued termination
       if (sig_terminate)

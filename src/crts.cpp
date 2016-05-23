@@ -174,7 +174,7 @@ struct scenario_parameters read_scenario_parameters(char *scenario_file) {
   sp.num_nodes = tmpI;
   config_lookup_float(&cfg, "run_time", &tmpD);
   // FIXME: Only integer number of seconds are allowed
-  sp.runTime = (int64_t)tmpD;
+  sp.run_time = (int64_t)tmpD;
   
   if (config_lookup_string(&cfg, "scenario_controller", &tmpS))
     strcpy(sp.SC, tmpS);
@@ -229,58 +229,44 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   strcat(nodestr, node_num.c_str());
   config_setting_t *node_config = config_lookup(&cfg, nodestr);
 
-  // read CORNET IP address for the node
-  if (config_setting_lookup_string(node_config, "TARGET_IP", &tmpS))
-    strcpy(np.TARGET_IP, tmpS);
+  // read target IP address for the node
+  if (config_setting_lookup_string(node_config, "target_ip", &tmpS))
+    strcpy(np.target_ip, tmpS);
   else
-    strcpy(np.TARGET_IP, "10.0.0.3");
+    strcpy(np.target_ip, "10.0.0.3");
 
-  // read CORNET IP address for the node
-  if (config_setting_lookup_string(node_config, "CORNET_IP", &tmpS))
-    strcpy(np.CORNET_IP, tmpS);
+  // read server IP address for the node
+  if (config_setting_lookup_string(node_config, "server_ip", &tmpS))
+    strcpy(np.server_ip, tmpS);
   else
-    strcpy(np.CORNET_IP, "192.168.1.12");
+    strcpy(np.server_ip, "192.168.1.12");
 
   // read type of node
-  if (config_setting_lookup_string(node_config, "type", &tmpS)) {
-    // printf("\nNode type: %s\n", tmpS);
-    if (strcmp(tmpS, "CR") == 0) {
-      np.type = CR;
-      np.cr_type = ecr;
+  if (config_setting_lookup_string(node_config, "node_type", &tmpS)) {
+    if (strcmp(tmpS, "cognitive radio") == 0) {
+      np.node_type = COGNITIVE_RADIO;
+      np.cognitive_radio_type = EXTENSIBLE_COGNITIVE_RADIO;
       // If node is a CR, lookup whether is uses the ECR or python
-      if (config_setting_lookup_string(node_config, "cr_type", &tmpS)) {
+      if (config_setting_lookup_string(node_config, "cognitive_radio_type", &tmpS)) {
         if (strcmp(tmpS, "python") == 0) {
-          np.cr_type = python;
+          np.cognitive_radio_type = PYTHON;
           // python radios are specified by the "python_file" field in the
           // scenario file
           if (config_setting_lookup_string(node_config, "python_file", &tmpS)) {
             strcpy(np.python_file, tmpS);
-            // check for optional command line arguments and add them to
-            // np.arguments if found
-            const config_setting_t *arguments;
-            char path[100];
-            strcpy(path, nodestr);
-            strcat(path, ".arguments");
-            arguments = config_lookup(&cfg, path);
-            np.num_arguments = 0;
-            if (arguments != NULL) {
-              np.num_arguments = config_setting_length(arguments);
-              for (int i = 0; i < np.num_arguments; i++) {
-                tmpS = config_setting_get_string_elem(arguments, i);
-                strcpy(np.arguments[i], tmpS);
-              }
-            } else
-              printf("arguments not found\n");
+            // check for optional command line arguments
+            if (config_setting_lookup_string(node_config, "python_args", &tmpS)) {
+              strcpy(np.python_args, tmpS);
+            }
           } else {
             printf("A python radio requires a python file.\n");
           }
         }
         // Possibly add more types later, but for now if not python, then radio
-        // must be ECR-based
-        // and the engine to use is specified by the "CE" field
+        // must be ECR-based using the cognitive_engine
         else {
-          if (config_setting_lookup_string(node_config, "CE", &tmpS))
-            strcpy(np.CE, tmpS);
+          if (config_setting_lookup_string(node_config, "cognitive_engine", &tmpS))
+            strcpy(np.cognitive_engine, tmpS);
           else {
             printf(
                 "Configuration of a node did not specify a cognitive engine");
@@ -289,17 +275,17 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
         }
       }
     } else if (strcmp(tmpS, "interferer") == 0)
-      np.type = interferer;
+      np.node_type = INTERFERER;
   }
 
   // read all possible node settings
-  if (config_setting_lookup_string(node_config, "CRTS_IP", &tmpS))
-    strcpy(np.CRTS_IP, tmpS);
+  if (config_setting_lookup_string(node_config, "crts_ip", &tmpS))
+    strcpy(np.crts_ip, tmpS);
   else
-    strcpy(np.CRTS_IP, "10.0.0.2");
+    strcpy(np.crts_ip, "10.0.0.2");
 
-  if (config_setting_lookup_int(node_config, "print_metrics", &tmpI))
-    np.print_metrics = (int)tmpI;
+  if (config_setting_lookup_int(node_config, "print_rx_frame_metrics", &tmpI))
+    np.print_rx_frame_metrics = (int)tmpI;
 
   if (config_setting_lookup_int(node_config, "log_phy_rx", &tmpI))
     np.log_phy_rx = (int)tmpI;
@@ -726,25 +712,25 @@ void print_node_parameters(struct node_parameters *np) {
   printf("--------------------------------------------------------------\n");
   printf("General Settings:\n");
   char node_type[15] = "UNKNOWN";
-  if (np->type == CR) {
-    strcpy(node_type, "CR");
-  } else if (np->type == interferer) {
+  if (np->node_type == COGNITIVE_RADIO) {
+    strcpy(node_type, "Cognitive Radio");
+  } else if (np->node_type == INTERFERER) {
     strcpy(node_type, "Interferer");
   }
 
   printf("    Node type:                         %-s\n", node_type);
-  if (np->type == CR) {
-    char cr_type[15] = "ecr";
-    if (np->cr_type == python)
+  if (np->node_type == COGNITIVE_RADIO) {
+    char cr_type[15] = "ECR";
+    if (np->cognitive_radio_type == PYTHON)
       strcpy(cr_type, "python");
-    printf("    CR type:                           %-s\n", cr_type);
+    printf("    Cognitive Radio type:            %-s\n", cr_type);
   }
-  printf("    CORNET IP:                         %-s\n", np->CORNET_IP);
+  printf("    Server IP:                         %-s\n", np->server_ip);
   //
-  if (np->type != interferer) {
+  if (np->node_type != INTERFERER) {
     printf("\nVirtual Network Interface Settings:\n");
-    printf("    CRTS IP:                           %-s\n", np->CRTS_IP);
-    printf("    Target IP:                         %-s\n", np->TARGET_IP);
+    printf("    CRTS IP:                           %-s\n", np->crts_ip);
+    printf("    Target IP:                         %-s\n", np->target_ip);
     char traffic[15];
     switch (np->net_traffic_type) {
     case NET_TRAFFIC_STREAM:
@@ -765,17 +751,17 @@ void print_node_parameters(struct node_parameters *np) {
              np->net_burst_length);
     //
     printf("\nCognitive Engine Settings:\n");
-    printf("    Cognitive Engine:                  %-s\n", np->CE);
+    printf("    Cognitive Engine:                  %-s\n", np->cognitive_engine);
     printf("    CE timeout:                        %-.2f\n", np->ce_timeout_ms);
   }
   //
   printf("\nLog/Report Settings:\n");
-  if (np->type != interferer)
+  if (np->node_type != INTERFERER)
     printf("    PHY Rx log file:                   %-s\n", np->phy_rx_log_file);
   printf("    PHY Tx log file:                   %-s\n", np->phy_tx_log_file);
-  if (np->type != interferer)
+  if (np->node_type != INTERFERER)
     printf("    NET Rx log file:                   %-s\n", np->net_rx_log_file);
-  if (np->type != interferer)
+  if (np->node_type != INTERFERER)
     printf("    NET Tx log file:                   %-s\n", np->net_tx_log_file);
   printf("    Generate octave logs:              %i\n",
          np->generate_octave_logs);
@@ -783,7 +769,7 @@ void print_node_parameters(struct node_parameters *np) {
          np->generate_python_logs);
   //
   printf("\nInitial USRP Settings:\n");
-  if (np->type != interferer) {
+  if (np->node_type != INTERFERER) {
     printf("    Receive frequency:                 %-.2e\n", np->rx_freq);
     printf("    Receive rate:                      %-.2e\n", np->rx_rate);
     printf("    Receive gain:                      %-.2f\n", np->rx_gain);
@@ -792,7 +778,7 @@ void print_node_parameters(struct node_parameters *np) {
   printf("    Transmit rate:                     %-.2e\n", np->tx_rate);
   printf("    Transmit gain:                     %-.2f\n", np->tx_gain);
   //
-  if (np->type != interferer && np->cr_type == ecr) {
+  if (np->node_type != INTERFERER && np->cognitive_radio_type == EXTENSIBLE_COGNITIVE_RADIO) {
     printf("\nInitial Liquid OFDM Settings\n");
     printf("    Receive subcarriers:               %i\n", np->tx_subcarriers);
     printf("    Receive cyclic prefix length:      %i\n", np->tx_cp_len);
@@ -811,7 +797,7 @@ void print_node_parameters(struct node_parameters *np) {
            fec_scheme_str[np->tx_fec1][0]);
   }
 
-  if (np->type == interferer) {
+  if (np->node_type == INTERFERER) {
     printf("\nInitial Interference Settings:\n");
     char interference_type[5] = "NONE";
     char tx_freq_behavior[6] = "NONE";

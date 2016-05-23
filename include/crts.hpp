@@ -39,15 +39,15 @@ struct scenario_parameters {
 
   // The length of time to run the scenario
   //time_t runTime;
-  int64_t runTime;
+  int64_t run_time;
 
   // Total number of times this scenario
   // will be run
-  unsigned int totalNumReps;
+  unsigned int total_num_reps;
 
   // The repetition number of this scenario instance
-  // i.e. 1 <= repNumber <= totalNumReps
-  unsigned int repNumber;
+  // i.e. 1 <= rep_num <= total_num_reps
+  unsigned int rep_num;
 
   // Scenario controller
   char SC[100];
@@ -59,14 +59,14 @@ struct scenario_parameters {
 // Node parameters
 //////////////////////////////////////////////////////////////////
 
-enum node_type {
-  CR = 0,    // cognitive radio node type
-  interferer // interferer node type
+enum NodeType {
+  COGNITIVE_RADIO = 0,    // cognitive radio node type
+  INTERFERER // interferer node type
 };
 
-enum cr_type {
-  python = 0, // third party python radios
-  ecr // Radios created using ECR
+enum COGNITIVE_RADIO_TYPE {
+  PYTHON = 0, // third party python radios
+  EXTENSIBLE_COGNITIVE_RADIO // Radios created using ECR
 };
 
 enum net_traffic_type {
@@ -93,32 +93,30 @@ enum subcarrier_alloc {
 
 struct node_parameters {
   // general
-  int type;
-  int cr_type;
+  int node_type;
+  int cognitive_radio_type;
   char python_file[100];
-  char arguments[20][50];
-  int num_arguments;
+  char python_args[2048];
   
   // network settings
-  char CORNET_IP[20];
-  char CRTS_IP[20];
-  char TARGET_IP[20];
+  char server_ip[20];
+  char crts_ip[20];
+  char target_ip[20];
   int net_traffic_type;
   int net_burst_length;
   double net_mean_throughput;
   
-  
-  // CE settings
-  char CE[100];
+  // cognitive engine settings
+  char cognitive_engine[100];
   double ce_timeout_ms;
   char ce_args[2048]; 
   
   // log/print settings
-  int print_metrics;
-  int log_phy_rx;
-  int log_phy_tx;
-  int log_net_rx;
-  int log_net_tx;
+  bool print_rx_frame_metrics;
+  bool log_phy_rx;
+  bool log_phy_tx;
+  bool log_net_rx;
+  bool log_net_tx;
   char phy_rx_log_file[260];
   char phy_tx_log_file[260];
   char net_rx_log_file[260];

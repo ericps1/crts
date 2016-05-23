@@ -11,9 +11,6 @@ void help() {
   printf(" -i : Log file contains interferer transmit parameters.\n");
   printf(" -c : Log file contains CRTS rx data.\n");
   printf(" -C : Log file contains CRTS tx data.\n");
-  //printf(" -N : Total number of repetitions for this scenario (default: 1)\n");
-  //printf(" -n : The repetition number for this scenario (required if -N is "
-  //       "given)\n");
 }
 
 int main(int argc, char **argv) {
