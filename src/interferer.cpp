@@ -9,7 +9,7 @@
 #include <liquid/liquid.h>
 #include <fstream>
 #include "interferer.hpp"
-#include "node_parameters.hpp"
+#include "crts.hpp"
 #include "timer.h"
 #include <random>
 
