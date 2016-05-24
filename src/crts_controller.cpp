@@ -292,10 +292,13 @@ int main(int argc, char **argv) {
     // read scenario file name and repetitions
     scenario_reps =
         read_master_scenario(scenario_master_name, i + 1, scenario_file);
-
     // store the full path and scenario name separately
-    scenario_name_ptr = strrchr(scenario_file,'/')+1;
-    strcpy(scenario_name, scenario_name_ptr);
+    scenario_name_ptr = strrchr(scenario_file,'/');
+    if(scenario_name_ptr != NULL)
+    {
+        scenario_name_ptr++;
+        strcpy(scenario_name, scenario_name_ptr);
+    }
     strcat(scenario_file, ".cfg");
 
     for (unsigned int rep_i = 1; rep_i <= scenario_reps; rep_i++) {

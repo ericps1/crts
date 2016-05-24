@@ -83,8 +83,8 @@ void read_master_parameters(char *nameMasterScenFile,
   char scenario_master_file[100];
   sprintf(scenario_master_file, "%s.cfg", nameMasterScenFile);
   if (!config_read_file(&cfg, scenario_master_file)) {
-    printf("Error reading master scenario file (%s) on line %i\n",
-           nameMasterScenFile, config_error_line(&cfg));
+    printf("Error reading master scenario file (%s) on line %i: %s\n",
+           nameMasterScenFile, config_error_line(&cfg), config_error_text(&cfg));
     exit(EXIT_FAILURE);
   }
 

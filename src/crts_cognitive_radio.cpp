@@ -142,6 +142,7 @@ void apply_control_msg(char cont_type,
       break;
     case CRTS_TX_RATE:
       ECR->set_tx_rate(*(double*)_arg);
+      break;
     case CRTS_TX_GAIN:
       ECR->set_tx_gain_uhd(*(double*)_arg);
       break;
@@ -434,9 +435,9 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
   {
       // set IP for TUN interface
       char command[100];
-      sprintf(command, "ifconfig tunCRTS %s", np->CRTS_IP);
+      sprintf(command, "ifconfig tunCRTS %s", np->crts_ip);
       system("ip link set dev tunCRTS up");
-      sprintf(command, "ip addr add %s/24 dev tunCRTS", np->CRTS_IP);
+      sprintf(command, "ip addr add %s/24 dev tunCRTS", np->crts_ip);
       system(command);
       printf("Running command: %s\n", command);
       system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
@@ -666,9 +667,7 @@ int main(int argc, char **argv) {
             //      The second item is the file to run, this case the cognitive radio file.
             //      The next items in the array are the actual arguments from the node_parameters
             //      The final item must be a NULL pointer
-            //      So the final size of the array is np.num_arguments + 1 (program to run) + 1 (file to run) + 1 NULL
-            //          pointer = np.num_arguments + 3
-            char* c_arguments[np.num_arguments + 3];
+            char* c_arguments[4];
             //Allocate space for and place "python" in first slot
             c_arguments[0] = new char[strlen("python")];
             strcpy(c_arguments[0], "python");
@@ -689,13 +688,10 @@ int main(int argc, char **argv) {
             strcpy(c_arguments[1], path_to_radio);
 
             //Allocate space for and place arguments from np.arguments into array
-            for(int i = 2; i < np.num_arguments + 2; i++)
-            {
-                c_arguments[i] = new char[strlen(np.arguments[i-2])];
-                strcpy(c_arguments[i], np.arguments[i - 2]);
-            }
+            c_arguments[2] = new char[strlen(np.python_args)];
+            strcpy(c_arguments[2], np.python_args);
             //End array with a NULL pointer
-            c_arguments[np.num_arguments + 2] = (char*)0;
+            c_arguments[3] = (char*)0;
             //Call execvp to start python radio. execvp replaces the current process (in this case the child of CRTS_CR
             //forked above), so the original CRTS_CR keeps running.
             execvp("python", c_arguments);
@@ -715,7 +711,7 @@ int main(int argc, char **argv) {
   struct sockaddr_in crts_server_addr;
   memset(&crts_server_addr, 0, sizeof(crts_server_addr));
   crts_server_addr.sin_family = AF_INET;
-  // Only receive packets addressed to the CRTS_IP
+  // Only receive packets addressed to the crts_ip
   crts_server_addr.sin_addr.s_addr = inet_addr(np.crts_ip);
   crts_server_addr.sin_port = htons(port);
   socklen_t clientlen = sizeof(crts_server_addr);
@@ -854,8 +850,8 @@ int main(int argc, char **argv) {
         // send UDP packet via CR
         dprintf("CRTS sending packet %i\n", packet_counter);
         int send_return = 0;
-        sendto(CRTS_client_sock, (char *)message, sizeof(message), 0,
-                (struct sockaddr *)&CRTS_client_addr, sizeof(CRTS_client_addr));
+        sendto(crts_client_sock, (char *)message, sizeof(message), 0,
+                (struct sockaddr *)&crts_client_addr, sizeof(crts_client_addr));
         if (send_return < 0)
           printf("Failed to send message\n");
         else

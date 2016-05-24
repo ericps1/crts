@@ -80,7 +80,8 @@ enum interference_type {
   NOISE,  // random noise interference
   GMSK,   // gaussian minimum-shift keying inteference
   RRC,    // root-raised cosine interference (as in WCDMA)
-  OFDM    // orthogonal frequency division multiplexing interference
+  OFDM,    // orthogonal frequency division multiplexing interference
+  AWGN
 };
 
 enum tx_freq_behavior { FIXED = 0, SWEEP, RANDOM };
@@ -201,6 +202,7 @@ enum crts_ctrl_and_fdbk_type {
   CRTS_TX_RATE,
   CRTS_TX_GAIN,
   CRTS_TX_MOD,
+  CRTS_TX_CRC,
   CRTS_TX_FEC0,
   CRTS_TX_FEC1,
 

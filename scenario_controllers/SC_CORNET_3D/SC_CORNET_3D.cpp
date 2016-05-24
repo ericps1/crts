@@ -59,6 +59,13 @@ SC_CORNET_3D::SC_CORNET_3D(int argc, char **argv) {
       printf("Failed to Connect to server.\n");
       exit(EXIT_FAILURE);
   }
+  old_mod = 40;
+  old_crc = 6;
+  old_fec0 = 12;
+  old_fec1 = 1;
+  old_freq = 770e6;
+  old_bandwidth = 1e6;
+  old_gain = 20.0;
 }
 
 // destructor
@@ -93,23 +100,23 @@ void SC_CORNET_3D::execute() {
                 fs.node = fb.node;
                 fs.value = *(double*)fb.arg;
                 send(TCP_CORNET_3D, (char*)&fs, sizeof(fs), 0);
-                printf("Node %i has updated it's transmit frequency to %.1e\n", fb.node, *(double*)fb.arg);
+                printf("Node %i has updated its transmit frequency to %.1e\n", fb.node, *(double*)fb.arg);
                 break;
             case CRTS_TX_RATE:
                 fs.type = 2;
                 fs.node = fb.node;
                 fs.value = *(double*)fb.arg;
                 send(TCP_CORNET_3D, (char*)&fs, sizeof(fs), 0);
-                printf("Node %i has updated it's transmit rate to %.3e\n", fb.node, *(double*)fb.arg);
+                printf("Node %i has updated its transmit rate to %.3e\n", fb.node, *(double*)fb.arg);
                 break;
             case CRTS_TX_GAIN:
-                printf("Node %i has updated it's transmit gain to %.3f\n", fb.node, *(double*)fb.arg);
+                printf("Node %i has updated its transmit gain to %.3f\n", fb.node, *(double*)fb.arg);
                 break;
 
             case CRTS_RX_STATS:
                 struct ExtensibleCognitiveRadio::rx_statistics rx_stats = 
                     *(struct ExtensibleCognitiveRadio::rx_statistics*) fb.arg;
-                float per = rx_stats.avg_per;
+                float per = rx_stats.per;
 
                 std::string s_per = std::to_string(per);
                 if(fb.node == 0)
@@ -153,7 +160,7 @@ void SC_CORNET_3D::execute() {
             if(params.type == 9)
             {
                 printf("calling killall\n");
-                system("killall CRTS_controller");
+                system("killall crts_controller");
             }
 
             if(params.mod != old_mod)
