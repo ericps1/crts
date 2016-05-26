@@ -215,12 +215,17 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
       np.type = interferer;
   }
 
+
+    
   // read all possible node settings
   if (config_setting_lookup_string(node_config, "CRTS_IP", &tmpS))
     strcpy(np.CRTS_IP, tmpS);
   else
     strcpy(np.CRTS_IP, "10.0.0.2");
-
+  if(config_setting_lookup_string(node_config, "team_name", &tmpS))
+      strcpy(np.team_name, tmpS);
+  else
+      strcpy(np.team_name, "Default");
   if (config_setting_lookup_int(node_config, "print_metrics", &tmpI))
     np.print_metrics = (int)tmpI;
 
@@ -665,7 +670,7 @@ void print_node_parameters(struct node_parameters *np) {
   } else if (np->type == interferer) {
     strcpy(node_type, "Interferer");
   }
-
+  printf("    Team Name:                         %-s\n", np->team_name);
   printf("    Node type:                         %-s\n", node_type);
   if (np->type == CR) {
     char cr_type[15] = "ecr";

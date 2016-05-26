@@ -49,6 +49,7 @@ struct node_parameters {
   char python_file[100];
   char arguments[20][50];
   int num_arguments;
+  char team_name[200];
   
   // network settings
   char CORNET_IP[20];
