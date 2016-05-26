@@ -15,7 +15,7 @@ struct feedback_struct
 };
 
 // constructor
-SC_Scoreboard::SC_Scoreboard() 
+SC_Scoreboard::SC_Scoreboard(int argc, char **argv) 
 {
     // Create TCP client to CORNET3D
     TCP_Scoreboard = socket(AF_INET, SOCK_STREAM, 0);
@@ -32,6 +32,7 @@ SC_Scoreboard::SC_Scoreboard()
 
     // Attempt to connect client socket to server
     int connect_status = 1;
+    /*(
     std::cout << "Waiting for connection from CORNET3D" << std::endl;
     while(connect_status != 0)
     {
@@ -47,6 +48,7 @@ SC_Scoreboard::SC_Scoreboard()
         printf("Failed to Connect to server.\n");
         exit(EXIT_FAILURE);
     }
+    */
 }
 
 // destructor
@@ -54,7 +56,8 @@ SC_Scoreboard::~SC_Scoreboard() {}
 
 // setup feedback enables for each node
 void SC_Scoreboard::initialize_node_fb() {
-
+    for(unsigned int i = 0; i < sp.num_nodes; i++)
+        printf("team %u: %s\n", i, np[i].team_name);
     // enable all feedback types
     int fb_enables = INT_MAX;
     //int fb_enables = INT_MAX;
