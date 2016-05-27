@@ -6,7 +6,7 @@ CEs = src/CE.cpp cognitive_engines/CE_Template.cpp cognitive_engines/CE_Subcarri
 #EDIT CE END FLAG
 
 #EDIT SC START FLAG
-SCs = src/SC.cpp scenario_controllers/SC_BER_Sweep.cpp scenario_controllers/SC_Control_and_Feedback_Test.cpp scenario_controllers/SC_CORNET_3D.cpp scenario_controllers/SC_Network_Loading.cpp scenario_controllers/SC_Template.cpp
+SCs = src/SC.cpp scenario_controllers/SC_BER_Sweep.cpp scenario_controllers/SC_Control_and_Feedback_Test.cpp scenario_controllers/SC_Scoreboard.cpp scenario_controllers/SC_CORNET_3D.cpp scenario_controllers/SC_Network_Loading.cpp scenario_controllers/SC_Template.cpp
 #EDIT SC END FLAG
 
 all: lib/TUN.o lib/read_configs.o config_CEs config_SCs lib/ECR.o logs/logs2python logs/logs2octave CRTS_CR lib/interferer.o CRTS_interferer CRTS_controller
