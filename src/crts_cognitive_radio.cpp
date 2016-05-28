@@ -835,14 +835,14 @@ int main(int argc, char **argv) {
       int rx_packet_num = 0;
       for (int i = 0; i < CRTS_CR_PACKET_NUM_LEN; i++)
         rx_packet_num +=
-            (((unsigned char)recv_buffer[15 + i]) ^ packet_num_prs[i])
+            (((unsigned char)recv_buffer[i]) ^ packet_num_prs[i])
             << 8 * (CRTS_CR_PACKET_NUM_LEN - i - 1);
 
       // print out/log details of received messages
       if (recv_len > 0) {
         // TODO: Say what address message was received from.
         // (It's in CRTS_server_addr)
-        dprintf("CRTS received packet %i containing %i bytes:\n", rx_packet_num,
+        printf("CRTS received packet %i containing %i bytes:\n", rx_packet_num,
                 recv_len);
         bytes_received += recv_len;
         if (np.log_net_rx) {
