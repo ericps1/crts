@@ -34,7 +34,7 @@ def replaceTextInScenarioFile(txIPAddress,rxIPAddress, scenarioFile='CORNET_3D.c
 
 def replaceIPsInScenarioFile(scenarioFile, IPs):
     pathToScenario = 'scenarios/' + scenarioFile
-    strCORNETIP = 'server_ip = '
+    strCORNETIP = 'CORNET_IP = '
     changed = 0
     foundNode = False
     for i in range(len(IPs)):
@@ -70,4 +70,4 @@ while i < len(sys.argv):
     i = i + 1
 replaceIPsInScenarioFile(sys.argv[1], ips)
 rewriteMasterScenarioFile(sys.argv[1])
-call(["./crts_controller", "-f", "cornet_master_scenario_file"])
+call(["./CRTS_controller", "-f", "cornet_master_scenario_file.cfg"])

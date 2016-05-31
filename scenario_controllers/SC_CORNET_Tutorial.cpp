@@ -124,7 +124,7 @@ void SC_CORNET_Tutorial::execute() {
             if(params.type == 9)
             {
                 printf("calling killall\n");
-                system("killall crts_controller");
+                system("killall CRTS_controller");
             }
 
             if(params.mod != old_mod)
