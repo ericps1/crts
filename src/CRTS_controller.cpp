@@ -26,7 +26,7 @@
 #include "../scenario_controllers/SC_BER_Sweep.hpp"
 #include "../scenario_controllers/SC_Control_and_Feedback_Test.hpp"
 #include "../scenario_controllers/SC_Scoreboard.hpp"
-#include "../scenario_controllers/SC_CORNET_3D.hpp"
+#include "../scenario_controllers/SC_CORNET_Tutorial.hpp"
 #include "../scenario_controllers/SC_Network_Loading.hpp"
 #include "../scenario_controllers/SC_Template.hpp"
 // EDIT INCLUDE END FLAG
@@ -253,8 +253,8 @@ int main(int argc, char **argv) {
         SC = new SC_Control_and_Feedback_Test();
       if(!strcmp(sp.SC, "SC_Scoreboard"))
         SC = new SC_Scoreboard();
-      if(!strcmp(sp.SC, "SC_CORNET_3D"))
-        SC = new SC_CORNET_3D();
+      if(!strcmp(sp.SC, "SC_CORNET_Tutorial"))
+        SC = new SC_CORNET_Tutorial();
       if(!strcmp(sp.SC, "SC_Network_Loading"))
         SC = new SC_Network_Loading();
       if(!strcmp(sp.SC, "SC_Template"))

@@ -3,32 +3,10 @@
 
 #include "timer.h"
 #include "SC.hpp"
+#include "CORNET_3D.hpp"
 
 #define Scoreboard_PORT 4446
 #define Scoreboard_IP "192.168.1.103"
-
-struct num_nodes_struct
-{
-    int num_nodes;
-};
-
-struct feedback_struct
-{
-    int type;
-    int node;
-    float frequency;
-    float bandwidth;
-};
-
-struct node_struct
-{
-    float frequency;
-    float bandwidth;
-    char team_name[200];
-    int role;
-    int node;
-};
-
 
 class SC_Scoreboard : public Scenario_Controller {
 

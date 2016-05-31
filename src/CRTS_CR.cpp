@@ -148,6 +148,9 @@ void apply_control_msg(char cont_type,
     case CRTS_TX_MOD:
       ECR->set_tx_modulation(*(int*)_arg);
       break;
+    case CRTS_TX_CRC:
+      ECR->set_tx_crc(*(int*)_arg);
+      break;
     case CRTS_TX_FEC0:
       ECR->set_tx_fec0(*(int*)_arg);
       break;
@@ -208,6 +211,7 @@ void send_feedback_to_controller(int *TCP_controller,
   static double last_tx_rate = ECR->get_tx_rate();
   static double last_tx_gain = ECR->get_tx_gain_uhd();
   static int last_tx_mod = ECR->get_tx_modulation();
+  static int last_tx_crc = ECR->get_tx_crc();
   static int last_tx_fec0 = ECR->get_tx_fec0();
   static int last_tx_fec1 = ECR->get_tx_fec1();
 
@@ -277,6 +281,16 @@ void send_feedback_to_controller(int *TCP_controller,
       memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_mod, sizeof(tx_mod));
       fb_msg_ind += 1+sizeof(tx_mod);
       last_tx_mod = tx_mod;
+      fb_args++;
+    }
+  }
+  if (fb_enables & CRTS_TX_CRC_FB_EN){
+    int tx_crc = ECR->get_tx_crc();
+    if(tx_crc != last_tx_crc){
+      fb_msg[fb_msg_ind] = CRTS_TX_CRC;
+      memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_crc, sizeof(tx_crc));
+      fb_msg_ind += 1+sizeof(tx_crc);
+      last_tx_crc = tx_crc;
       fb_args++;
     }
   }
