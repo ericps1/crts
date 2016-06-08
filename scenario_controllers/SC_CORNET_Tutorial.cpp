@@ -110,6 +110,7 @@ void SC_CORNET_Tutorial::execute() {
             printf("sizeof crts_params: %lu\n", sizeof(params));
             
             std::cout << "node: " << fb.node << std::endl;
+            printf("params.currentNodeId: %u\n", params.currentNodeId);
             printf("params.mod: %u\n", params.mod);
             printf("params.crc: %u\n", params.crc);
             printf("params.fec0: %u\n", params.fec0);
@@ -129,45 +130,45 @@ void SC_CORNET_Tutorial::execute() {
 
             if(params.mod != old_mod)
             {
-                set_node_parameter(0, CRTS_TX_MOD, &params.mod);  
+                set_node_parameter(params.currentNodeId, CRTS_TX_MOD, &params.mod);  
                 old_mod = params.mod;
             }
 
             if(params.crc != old_crc)
             {
-                set_node_parameter(0, CRTS_TX_CRC, &params.crc);
+                set_node_parameter(params.currentNodeId, CRTS_TX_CRC, &params.crc);
                 old_crc = params.crc;
             }
 
             if(params.fec0 != old_fec0)
             {
-                set_node_parameter(0, CRTS_TX_FEC0, &params.fec0);
+                set_node_parameter(params.currentNodeId, CRTS_TX_FEC0, &params.fec0);
                 old_fec0 = params.fec0;
             }   
 
             if(params.fec1 != old_fec1)
             {
-                set_node_parameter(0, CRTS_TX_FEC1, &params.fec1);
+                set_node_parameter(params.currentNodeId, CRTS_TX_FEC1, &params.fec1);
                 old_fec1 = params.fec1;
             }
 
             if(params.freq != old_freq)
             {
-                set_node_parameter(0, CRTS_TX_FREQ, &params.freq);
-                set_node_parameter(1, CRTS_RX_FREQ, &params.freq);
+                set_node_parameter(params.currentNodeId, CRTS_TX_FREQ, &params.freq);
+                set_node_parameter(params.currentNodeId == 0 ? 1: 0, CRTS_RX_FREQ, &params.freq);
                 old_freq = params.freq;
             }
 
             if(params.bandwidth != old_bandwidth)
             {
-                set_node_parameter(0, CRTS_TX_RATE, &params.bandwidth);
-                set_node_parameter(1, CRTS_RX_RATE, &params.bandwidth);
+                set_node_parameter(params.currentNodeId, CRTS_TX_RATE, &params.bandwidth);
+                set_node_parameter(params.currentNodeId == 0 ? 1: 0, CRTS_RX_RATE, &params.bandwidth);
                 old_bandwidth = params.bandwidth;
             }
 
             if(params.gain != old_gain)
             {
-                set_node_parameter(0, CRTS_TX_GAIN, &params.gain);
+                set_node_parameter(params.currentNodeId, CRTS_TX_GAIN, &params.gain);
                 old_gain = params.gain;
             }
         }

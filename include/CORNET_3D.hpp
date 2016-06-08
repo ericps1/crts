@@ -26,8 +26,9 @@ struct node_struct
 
 struct crts_params
 {
-    int guard; //not used, needed to make struct correct size
+    //int guard; //not used, needed to make struct correct size
     int type;
+    int currentNodeId;
     int mod;
     int crc;
     int fec0;
