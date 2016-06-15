@@ -228,6 +228,12 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   strcpy(nodestr, "node");
   strcat(nodestr, node_num.c_str());
   config_setting_t *node_config = config_lookup(&cfg, nodestr);
+  
+  // read team name for the node
+  if(config_setting_lookup_string(node_config, "team_name", &tmpS))
+      strcpy(np.team_name, tmpS);
+  else
+      strcpy(np.team_name, "Default");
 
   // read target IP address for the node
   if (config_setting_lookup_string(node_config, "target_ip", &tmpS))
@@ -720,6 +726,7 @@ void print_node_parameters(struct node_parameters *np) {
     strcpy(node_type, "Interferer");
   }
 
+  printf("    Team name:                         %-s\n", np->team_name);
   printf("    Node type:                         %-s\n", node_type);
   if (np->node_type == COGNITIVE_RADIO) {
     char cr_type[15] = "ECR";
@@ -861,6 +868,7 @@ int get_control_arg_len(int control_type){
   switch(control_type){
     case CRTS_TX_STATE:
     case CRTS_TX_MOD:
+    case CRTS_TX_CRC:
     case CRTS_TX_FEC0:
     case CRTS_TX_FEC1:
     case CRTS_RX_STATE:
@@ -900,6 +908,7 @@ int get_feedback_arg_len(int fb_type){
   switch(fb_type){
     case CRTS_TX_STATE:
     case CRTS_TX_MOD:
+    case CRTS_TX_CRC:
     case CRTS_TX_FEC0:
     case CRTS_TX_FEC1:
     case CRTS_RX_STATE:

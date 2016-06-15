@@ -212,6 +212,7 @@ void send_feedback_to_controller(int *tcp_controller,
   static double last_tx_rate = ECR->get_tx_rate();
   static double last_tx_gain = ECR->get_tx_gain_uhd();
   static int last_tx_mod = ECR->get_tx_modulation();
+  static int last_tx_crc = ECR->get_tx_crc();
   static int last_tx_fec0 = ECR->get_tx_fec0();
   static int last_tx_fec1 = ECR->get_tx_fec1();
 
@@ -283,6 +284,16 @@ void send_feedback_to_controller(int *tcp_controller,
       last_tx_mod = tx_mod;
       fb_args++;
     }
+  }
+  if (fb_enables & CRTS_TX_CRC_FB_EN){
+      int tx_crc = ECR->get_tx_crc();
+      if(tx_crc != last_tx_crc){
+          fb_msg[fb_msg_ind] = CRTS_TX_CRC;
+          memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_crc, sizeof(tx_crc));
+          fb_msg_ind += 1+sizeof(tx_crc);
+          last_tx_crc = tx_crc;
+          fb_args++;
+      }
   }
   if (fb_enables & CRTS_TX_FEC0_FB_EN){
     int tx_fec0 = ECR->get_tx_fec0();
