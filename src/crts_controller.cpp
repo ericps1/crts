@@ -22,10 +22,11 @@
 
 // EDIT INCLUDE START FLAG
 #include "../scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.hpp"
+#include "../scenario_controllers/SC_Scoreboard/SC_Scoreboard.hpp"
 #include "../scenario_controllers/SC_Template/SC_Template.hpp"
 #include "../scenario_controllers/SC_Network_Loading/SC_Network_Loading.hpp"
 #include "../scenario_controllers/SC_Control_and_Feedback_Test/SC_Control_and_Feedback_Test.hpp"
-#include "../scenario_controllers/SC_CORNET_3D/SC_CORNET_3D.hpp"
+#include "../scenario_controllers/SC_CORNET_Tutorial/SC_CORNET_Tutorial.hpp"
 // EDIT INCLUDE END FLAG
 
 #define MAXPENDING 5
@@ -108,14 +109,16 @@ ScenarioController* create_sc(struct scenario_parameters *sp){
   // EDIT SET SC START FLAG
       if(!strcmp(sp->SC, "SC_BER_Sweep"))
         SC = new SC_BER_Sweep(argc, argv);
+      if(!strcmp(sp->SC, "SC_Scoreboard"))
+        SC = new SC_Scoreboard(argc, argv);
       if(!strcmp(sp->SC, "SC_Template"))
         SC = new SC_Template(argc, argv);
       if(!strcmp(sp->SC, "SC_Network_Loading"))
         SC = new SC_Network_Loading(argc, argv);
       if(!strcmp(sp->SC, "SC_Control_and_Feedback_Test"))
         SC = new SC_Control_and_Feedback_Test(argc, argv);
-      if(!strcmp(sp->SC, "SC_CORNET_3D"))
-        SC = new SC_CORNET_3D(argc, argv);
+      if(!strcmp(sp->SC, "SC_CORNET_Tutorial"))
+        SC = new SC_CORNET_Tutorial(argc, argv);
   // EDIT SET SC END FLAG
     
   freeargcargv(argc, argv);
