@@ -21,10 +21,12 @@
 #include "extensible_cognitive_radio.hpp"
 
 // EDIT INCLUDE START FLAG
+#include "../scenario_controllers/SC_CORNET_Hopper/SC_CORNET_Hopper.hpp"
 #include "../scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.hpp"
 #include "../scenario_controllers/SC_Scoreboard/SC_Scoreboard.hpp"
 #include "../scenario_controllers/SC_Template/SC_Template.hpp"
 #include "../scenario_controllers/SC_Network_Loading/SC_Network_Loading.hpp"
+#include "../scenario_controllers/SC_CORNET_Display/SC_CORNET_Display.hpp"
 #include "../scenario_controllers/SC_Control_and_Feedback_Test/SC_Control_and_Feedback_Test.hpp"
 #include "../scenario_controllers/SC_CORNET_Tutorial/SC_CORNET_Tutorial.hpp"
 // EDIT INCLUDE END FLAG
@@ -107,6 +109,8 @@ ScenarioController* create_sc(struct scenario_parameters *sp){
   ScenarioController *SC;
 
   // EDIT SET SC START FLAG
+      if(!strcmp(sp->SC, "SC_CORNET_Hopper"))
+        SC = new SC_CORNET_Hopper(argc, argv);
       if(!strcmp(sp->SC, "SC_BER_Sweep"))
         SC = new SC_BER_Sweep(argc, argv);
       if(!strcmp(sp->SC, "SC_Scoreboard"))
@@ -115,6 +119,8 @@ ScenarioController* create_sc(struct scenario_parameters *sp){
         SC = new SC_Template(argc, argv);
       if(!strcmp(sp->SC, "SC_Network_Loading"))
         SC = new SC_Network_Loading(argc, argv);
+      if(!strcmp(sp->SC, "SC_CORNET_Display"))
+        SC = new SC_CORNET_Display(argc, argv);
       if(!strcmp(sp->SC, "SC_Control_and_Feedback_Test"))
         SC = new SC_Control_and_Feedback_Test(argc, argv);
       if(!strcmp(sp->SC, "SC_CORNET_Tutorial"))

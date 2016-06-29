@@ -62,10 +62,9 @@ void SC_CORNET_Tutorial::initialize_node_fb() {
         set_node_parameter(i, CRTS_FB_EN, (void*) &fb_enables);
 
     double rx_stats_period = 1.0;
-    for(int i=0; i<sp.num_nodes; i++){
-        set_node_parameter(i, CRTS_RX_STATS, (void*) &rx_stats_period);
-        set_node_parameter(i, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
-    }
+    double rx_stats_report_rate = 1.0;
+    set_node_parameter(1, CRTS_RX_STATS, (void*) &rx_stats_period);
+    set_node_parameter(1, CRTS_RX_STATS_FB, (void*) &rx_stats_report_rate);
 }
 
 // execute function
@@ -76,21 +75,22 @@ void SC_CORNET_Tutorial::execute() {
     {
         feedback_struct fs;
         switch (fb.fb_type) {
+            case CRTS_TX_FREQ:
+                printf("received frequency update\n");
+                break;
             case CRTS_RX_STATS:
                 struct ExtensibleCognitiveRadio::rx_statistics rx_stats = 
                     *(struct ExtensibleCognitiveRadio::rx_statistics*) fb.arg;
                 float per = rx_stats.per;
-
-                if(fb.node == 0)
-                {
-                    // forward feedback to CORNET 3D web server
-                    fs.type = 0;
-                    fs.node = fb.node;
-                    fs.frequency = per;
-                    fs.bandwidth = 0.0;
-                    send(TCP_CORNET_Tutorial, (char*)&fs, sizeof(fs), 0);
-                }
+                float throughput = rx_stats.throughput;
+                // forward feedback to CORNET 3D web server
+                fs.type = 0;
+                fs.node = fb.node;
+                fs.frequency = per;
+                fs.bandwidth = throughput;
+                send(TCP_CORNET_Tutorial, (char*)&fs, sizeof(fs), 0);
                 break;
+                
         }
     }
     // forward commands from CORNET 3D webserver to node
@@ -123,47 +123,48 @@ void SC_CORNET_Tutorial::execute() {
             {
                 printf("calling killall\n");
                 system("killall crts_controller");
+                exit(1);
             }
 
-            if(params.mod != old_mod)
+            if(params.mod >= 0 && params.mod != old_mod)
             {
                 set_node_parameter(params.node, CRTS_TX_MOD, &params.mod);  
                 old_mod = params.mod;
             }
 
-            if(params.crc != old_crc)
+            if(params.crc >= 0 && params.crc != old_crc)
             {
                 set_node_parameter(params.node, CRTS_TX_CRC, &params.crc);
                 old_crc = params.crc;
             }
 
-            if(params.fec0 != old_fec0)
+            if(params.fec0 >= 0 && params.fec0 != old_fec0)
             {
                 set_node_parameter(params.node, CRTS_TX_FEC0, &params.fec0);
                 old_fec0 = params.fec0;
             }   
 
-            if(params.fec1 != old_fec1)
+            if(params.fec1 >= 0 && params.fec1 != old_fec1)
             {
                 set_node_parameter(params.node, CRTS_TX_FEC1, &params.fec1);
                 old_fec1 = params.fec1;
             }
 
-            if(params.freq != old_freq)
+            if(params.freq >= 0 && params.freq != old_freq)
             {
                 set_node_parameter(params.node, CRTS_TX_FREQ, &params.freq);
                 set_node_parameter(params.node == 0 ? 1 : 0, CRTS_RX_FREQ, &params.freq);
                 old_freq = params.freq;
             }
 
-            if(params.bandwidth != old_bandwidth)
+            if(params.bandwidth >= 0 && params.bandwidth != old_bandwidth)
             {
                 set_node_parameter(params.node, CRTS_TX_RATE, &params.bandwidth);
                 set_node_parameter(params.node == 0 ? 1 : 0, CRTS_RX_RATE, &params.bandwidth);
                 old_bandwidth = params.bandwidth;
             }
 
-            if(params.gain != old_gain)
+            if(params.gain >= 0 && params.gain != old_gain)
             {
                 set_node_parameter(params.node, CRTS_TX_GAIN, &params.gain);
                 old_gain = params.gain;
