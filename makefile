@@ -2,13 +2,13 @@ FLAGS = -I include -Wall -fPIC -std=c++11 -g
 LIBS = lib/tun.o lib/ecr.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
 #EDIT CE OBJECT LIST START FLAG
-CEs = src/cognitive_engine.cpp lib/CE_Template.o lib/CE_Subcarrier_Alloc.o lib/CE_Throughput_Test.o lib/CE_Control_and_Feedback_Test.o lib/CE_Simultaneous_RX_And_Sensing.o lib/CE_Two_Channel_DSA_Spectrum_Sensing.o lib/CE_Mod_Adaptation.o lib/CE_Network_Loading.o lib/CE_FEC_Adaptation.o lib/CE_Two_Channel_DSA_Link_Reliability.o lib/CE_Two_Channel_DSA_PU.o 
+CEs = src/cognitive_engine.cpp lib/CE_Sharc4_1.o lib/CE_Template.o lib/CE_Subcarrier_Alloc.o lib/CE_Throughput_Test.o lib/CE_Control_and_Feedback_Test.o lib/CE_Simultaneous_RX_And_Sensing.o lib/CE_Two_Channel_DSA_Spectrum_Sensing.o lib/CE_Mod_Adaptation.o lib/CE_Network_Loading.o lib/CE_FEC_Adaptation.o lib/CE_Two_Channel_DSA_Link_Reliability.o lib/CE_Two_Channel_DSA_PU.o lib/CE_Sharc10_1.o 
 
 CE_srcs =  cognitive_engines/src/AMC.cpp cognitive_engines/example_engines/CE_Mod_Adaptation/src/Mod_Select.cpp cognitive_engines/example_engines/CE_FEC_Adaptation/src/FEC_Select.cpp
 #EDIT CE OBJECT LIST END FLAG
 
 #EDIT SC START FLAG
-SCs = src/scenario_controller.cpp scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.cpp scenario_controllers/SC_Scoreboard/SC_Scoreboard.cpp scenario_controllers/SC_Template/SC_Template.cpp scenario_controllers/SC_Network_Loading/SC_Network_Loading.cpp scenario_controllers/SC_Control_and_Feedback_Test/SC_Control_and_Feedback_Test.cpp scenario_controllers/SC_CORNET_Tutorial/SC_CORNET_Tutorial.cpp 
+SCs = src/scenario_controller.cpp scenario_controllers/SC_CORNET_Hopper/SC_CORNET_Hopper.cpp scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.cpp scenario_controllers/SC_Scoreboard/SC_Scoreboard.cpp scenario_controllers/SC_Template/SC_Template.cpp scenario_controllers/SC_Network_Loading/SC_Network_Loading.cpp scenario_controllers/SC_CORNET_Display/SC_CORNET_Display.cpp scenario_controllers/SC_Control_and_Feedback_Test/SC_Control_and_Feedback_Test.cpp scenario_controllers/SC_CORNET_Tutorial/SC_CORNET_Tutorial.cpp 
 #EDIT SC END FLAG
 
 all: lib/crts.o config_cognitive_engines config_scenario_controllers lib/tun.o lib/timer.o lib/ecr.o lib/interferer.o logs/convert_logs_bin_to_octave logs/convert_logs_bin_to_python $(CEs) crts_interferer crts_cognitive_radio crts_controller
@@ -74,6 +74,9 @@ clean:
 	$(MAKE) -C doc clean
 
 #EDIT CE COMPILATION START FLAG
+lib/CE_Sharc4_1.o: cognitive_engines/CE_Sharc4_1/CE_Sharc4_1.cpp cognitive_engines/CE_Sharc4_1/CE_Sharc4_1.hpp cognitive_engines/src/AMC.cpp cognitive_engines/example_engines/CE_Mod_Adaptation/src/Mod_Select.cpp cognitive_engines/example_engines/CE_FEC_Adaptation/src/FEC_Select.cpp 
+	g++ $(FLAGS) -c -o lib/CE_Sharc4_1.o cognitive_engines/CE_Sharc4_1/CE_Sharc4_1.cpp 
+
 lib/CE_Template.o: cognitive_engines/CE_Template/CE_Template.cpp cognitive_engines/CE_Template/CE_Template.hpp cognitive_engines/src/AMC.cpp cognitive_engines/example_engines/CE_Mod_Adaptation/src/Mod_Select.cpp cognitive_engines/example_engines/CE_FEC_Adaptation/src/FEC_Select.cpp 
 	g++ $(FLAGS) -c -o lib/CE_Template.o cognitive_engines/CE_Template/CE_Template.cpp 
 
@@ -106,6 +109,9 @@ lib/CE_Two_Channel_DSA_Link_Reliability.o: cognitive_engines/example_engines/CE_
 
 lib/CE_Two_Channel_DSA_PU.o: cognitive_engines/primary_user_engines/CE_Two_Channel_DSA_PU/CE_Two_Channel_DSA_PU.cpp cognitive_engines/primary_user_engines/CE_Two_Channel_DSA_PU/CE_Two_Channel_DSA_PU.hpp cognitive_engines/src/AMC.cpp cognitive_engines/example_engines/CE_Mod_Adaptation/src/Mod_Select.cpp cognitive_engines/example_engines/CE_FEC_Adaptation/src/FEC_Select.cpp 
 	g++ $(FLAGS) -c -o lib/CE_Two_Channel_DSA_PU.o cognitive_engines/primary_user_engines/CE_Two_Channel_DSA_PU/CE_Two_Channel_DSA_PU.cpp 
+
+lib/CE_Sharc10_1.o: cognitive_engines/CE_Sharc10_1/CE_Sharc10_1.cpp cognitive_engines/CE_Sharc10_1/CE_Sharc10_1.hpp cognitive_engines/src/AMC.cpp cognitive_engines/example_engines/CE_Mod_Adaptation/src/Mod_Select.cpp cognitive_engines/example_engines/CE_FEC_Adaptation/src/FEC_Select.cpp 
+	g++ $(FLAGS) -c -o lib/CE_Sharc10_1.o cognitive_engines/CE_Sharc10_1/CE_Sharc10_1.cpp 
 
 #EDIT CE COMPILATION END FLAG
     

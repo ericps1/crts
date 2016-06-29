@@ -23,6 +23,7 @@
 #include "timer.h"
 
 // EDIT INCLUDE START FLAG
+#include "../cognitive_engines/CE_Sharc4_1/CE_Sharc4_1.hpp"
 #include "../cognitive_engines/CE_Template/CE_Template.hpp"
 #include "../cognitive_engines/test_engines/CE_Subcarrier_Alloc/CE_Subcarrier_Alloc.hpp"
 #include "../cognitive_engines/test_engines/CE_Throughput_Test/CE_Throughput_Test.hpp"
@@ -34,6 +35,7 @@
 #include "../cognitive_engines/example_engines/CE_FEC_Adaptation/CE_FEC_Adaptation.hpp"
 #include "../cognitive_engines/example_engines/CE_Two_Channel_DSA_Link_Reliability/CE_Two_Channel_DSA_Link_Reliability.hpp"
 #include "../cognitive_engines/primary_user_engines/CE_Two_Channel_DSA_PU/CE_Two_Channel_DSA_PU.hpp"
+#include "../cognitive_engines/CE_Sharc10_1/CE_Sharc10_1.hpp"
 // EDIT INCLUDE END FLAG
 
 #define DEBUG 0
@@ -356,6 +358,8 @@ ExtensibleCognitiveRadio::~ExtensibleCognitiveRadio() {
 void ExtensibleCognitiveRadio::set_ce(char *ce, int argc, char **argv) {
   ///@cond INTERNAL
   // EDIT SET CE START FLAG
+  if(!strcmp(ce, "CE_Sharc4_1"))
+    CE = new CE_Sharc4_1(argc, argv, this);
   if(!strcmp(ce, "CE_Template"))
     CE = new CE_Template(argc, argv, this);
   if(!strcmp(ce, "CE_Subcarrier_Alloc"))
@@ -378,6 +382,8 @@ void ExtensibleCognitiveRadio::set_ce(char *ce, int argc, char **argv) {
     CE = new CE_Two_Channel_DSA_Link_Reliability(argc, argv, this);
   if(!strcmp(ce, "CE_Two_Channel_DSA_PU"))
     CE = new CE_Two_Channel_DSA_PU(argc, argv, this);
+  if(!strcmp(ce, "CE_Sharc10_1"))
+    CE = new CE_Sharc10_1(argc, argv, this);
   // EDIT SET CE END FLAG
   ///@endcond
 }
