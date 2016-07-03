@@ -102,7 +102,7 @@ void receive_command_from_controller(int *tcp_controller,
         print_node_parameters(np);
         break;
       case CRTS_MSG_START: // updated start time (used for manual mode)
-        printf("Received manual start from controller");
+        dprintf("Received manual start from controller");
         rflag = recv(*tcp_controller, &command_buffer[1], sizeof(int64_t), 0);
         start_msg_received = true;
         memcpy(&start_time_s, &command_buffer[1], sizeof(int64_t));
@@ -159,6 +159,9 @@ void apply_control_msg(char cont_type,
         ECR->stop_rx();
       if (*(int*)_arg == RX_CONTINUOUS)
         ECR->start_rx();
+      break;
+    case CRTS_RX_RESET:
+      ECR->reset_rx();
       break;
     case CRTS_RX_FREQ:
       ECR->set_rx_freq(*(double*)_arg);
@@ -842,7 +845,7 @@ int main(int argc, char **argv) {
       if (recv_len > 0) {
         // TODO: Say what address message was received from.
         // (It's in CRTS_server_addr)
-        printf("CRTS received packet %i containing %i bytes:\n", rx_packet_num,
+        dprintf("CRTS received packet %i containing %i bytes:\n", rx_packet_num,
                 recv_len);
         bytes_received += recv_len;
         if (np.log_net_rx) {

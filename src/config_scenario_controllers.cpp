@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
   std::string base_directory = "scenario_controllers";
   process_directory(base_directory, customize, false);
 
-  printf("Configuring CRTS to use the following scenario controllers:\n\n");
+  printf("\nConfiguring CRTS to use the following scenario controllers:\n\n");
   for (int i = 0; i < num_scs; i++)
     printf("%s\n", scs[i].sc_name.c_str());
 

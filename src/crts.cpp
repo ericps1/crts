@@ -720,10 +720,10 @@ void print_node_parameters(struct node_parameters *np) {
 
   printf("    Node type:                         %-s\n", node_type);
   if (np->node_type == COGNITIVE_RADIO) {
-    char cr_type[15] = "ECR";
+    char cr_type[30] = "Extensible Cognitive Radio";
     if (np->cognitive_radio_type == PYTHON)
       strcpy(cr_type, "python");
-    printf("    Cognitive Radio type:            %-s\n", cr_type);
+    printf("    Cognitive Radio type:              %-s\n", cr_type);
   }
   printf("    Server IP:                         %-s\n", np->server_ip);
   //

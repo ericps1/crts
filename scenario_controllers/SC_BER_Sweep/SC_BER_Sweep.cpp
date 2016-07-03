@@ -4,8 +4,8 @@
 
 // constructor
 SC_BER_Sweep::SC_BER_Sweep(int argc, char **argv) {
-  tx_gain = BER_SWEEP_TX_GAIN_MIN;
-  rx_gain = BER_SWEEP_RX_GAIN_MIN;
+  tx_gain = tx_gain_min;
+  rx_gain = rx_gain_min;
   feedback_count = 0;
   data_ind = 1;
 
@@ -61,33 +61,28 @@ void SC_BER_Sweep::initialize_node_fb() {
   printf("Enabling rx statistics feedback\n");
   int fb_enables = CRTS_RX_STATS_FB_EN; 
   set_node_parameter(0, CRTS_FB_EN, (void*) &fb_enables);
-  //set_node_parameter(1, CRTS_FB_EN, (void*) &fb_enables);
   
-  double rx_stats_period = BER_SWEEP_DWELL_TIME_S;
-  set_node_parameter(0, CRTS_RX_STATS, (void*) &rx_stats_period);
-  //set_node_parameter(1, CRTS_RX_STATS, (void*) &rx_stats_period); 
+  double rx_stats_period = dwell_time_s;
+  set_node_parameter(0, CRTS_RX_STATS, (void*) &rx_stats_period); 
   set_node_parameter(0, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
-  //set_node_parameter(1, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
 
   // initialize gains
-  //set_node_parameter(0, CRTS_TX_GAIN, (void*) &tx_gain);
-  set_node_parameter(1, CRTS_TX_GAIN, (void*) &tx_gain);
   set_node_parameter(0, CRTS_RX_GAIN, (void*) &rx_gain);
-  //set_node_parameter(1, CRTS_RX_GAIN, (void*) &rx_gain);
+  set_node_parameter(1, CRTS_TX_GAIN, (void*) &tx_gain);
 }
 
 // execute function
-void SC_BER_Sweep::execute(int node, char fb_type, void *_arg) {
+void SC_BER_Sweep::execute() {
 
   printf("\n"); 
   printf("Tx gain: %f\n", tx_gain);
   printf("Rx gain: %f\n", rx_gain);
 
   // handle all possible feedback types
-  switch (fb_type) {
+  switch (fb.fb_type) {
     case CRTS_RX_STATS:
-      rx_stats = *(struct ExtensibleCognitiveRadio::rx_statistics*) _arg;
-      printf("Node %i has sent updated receive statistics:\n", node+1);
+      rx_stats = *(struct ExtensibleCognitiveRadio::rx_statistics*) fb.arg;
+      printf("Node %i has sent updated receive statistics:\n", fb.node+1);
       printf("  Number of frames received: %i\n", rx_stats.frames_received);
       printf("  Average BER:               %.3e\n", rx_stats.ber);
       printf("  Average PER:               %.3f\n", rx_stats.per);
@@ -96,13 +91,13 @@ void SC_BER_Sweep::execute(int node, char fb_type, void *_arg) {
       printf("  Average RSSI (dB):              %.3f\n", rx_stats.rssi_dB);
       
       log = fopen(BER_SWEEP_LOG_FILE, "a");
-      fprintf(log, "Total_gain(%i,%i) = %f;\n", node+1, data_ind, tx_gain+rx_gain);
-      fprintf(log, "Frames(%i,%i) = %i;\n", node+1, data_ind, rx_stats.frames_received);
-      fprintf(log, "BER(%i,%i) = %f;\n", node+1, data_ind, rx_stats.ber);
-      fprintf(log, "PER(%i,%i) = %f;\n", node+1, data_ind, rx_stats.per);
-      fprintf(log, "Throughput(%i,%i) = %f;\n", node+1, data_ind, rx_stats.throughput);
-      fprintf(log, "EVM(%i,%i) = %f;\n", node+1, data_ind, rx_stats.evm_dB);
-      fprintf(log, "RSSI(%i,%i) = %f;\n", node+1, data_ind, rx_stats.rssi_dB);
+      fprintf(log, "Total_gain(%i,%i) = %f;\n", fb.node+1, data_ind, tx_gain+rx_gain);
+      fprintf(log, "Frames(%i,%i) = %i;\n", fb.node+1, data_ind, rx_stats.frames_received);
+      fprintf(log, "BER(%i,%i) = %f;\n", fb.node+1, data_ind, rx_stats.ber);
+      fprintf(log, "PER(%i,%i) = %f;\n", fb.node+1, data_ind, rx_stats.per);
+      fprintf(log, "Throughput(%i,%i) = %f;\n", fb.node+1, data_ind, rx_stats.throughput);
+      fprintf(log, "EVM(%i,%i) = %f;\n", fb.node+1, data_ind, rx_stats.evm_dB);
+      fprintf(log, "RSSI(%i,%i) = %f;\n", fb.node+1, data_ind, rx_stats.rssi_dB);
       fprintf(log, "\n");
       fclose(log);
       break;
@@ -114,25 +109,22 @@ void SC_BER_Sweep::execute(int node, char fb_type, void *_arg) {
     data_ind++;
       
     // update transmitter and receiver gains
-    if(tx_gain >= BER_SWEEP_TX_GAIN_MAX)
-      tx_gain = BER_SWEEP_TX_GAIN_MIN;
+    if(tx_gain >= tx_gain_max)
+      tx_gain = tx_gain_min;
     else
-      tx_gain += BER_SWEEP_RX_GAIN_STEP;
+      tx_gain += tx_gain_step;
 
-    if(rx_gain >= BER_SWEEP_RX_GAIN_MAX)
-      rx_gain = BER_SWEEP_RX_GAIN_MIN;
+    if(rx_gain >= rx_gain_max)
+      rx_gain = rx_gain_max;
     else
-      rx_gain += BER_SWEEP_RX_GAIN_STEP;
+      rx_gain += rx_gain_step;
 
-    //set_node_parameter(0, CRTS_TX_GAIN, (void*) &tx_gain);
     set_node_parameter(1, CRTS_TX_GAIN, (void*) &tx_gain);
-    //set_node_parameter(0, CRTS_RX_GAIN, (void*) &rx_gain);
     set_node_parameter(1, CRTS_RX_GAIN, (void*) &rx_gain);
 
     // wait for state to settle and reset statistics
-    usleep(BER_SWEEP_SETTLE_TIME_US);
+    usleep(settle_time_us);
     set_node_parameter(0, CRTS_RX_STATS_RESET, NULL);
-    //set_node_parameter(1, CRTS_RX_STATS_RESET, NULL);  
   }
 }
 

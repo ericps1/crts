@@ -24,6 +24,7 @@
 #include "../scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.hpp"
 #include "../scenario_controllers/SC_Template/SC_Template.hpp"
 #include "../scenario_controllers/SC_Network_Loading/SC_Network_Loading.hpp"
+#include "../scenario_controllers/SC_Rx_Overflow_Test/SC_Rx_Overflow_Test.hpp"
 #include "../scenario_controllers/SC_Control_and_Feedback_Test/SC_Control_and_Feedback_Test.hpp"
 #include "../scenario_controllers/SC_CORNET_3D/SC_CORNET_3D.hpp"
 // EDIT INCLUDE END FLAG
@@ -62,7 +63,7 @@ int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, ScenarioController *SC
     else {
       switch (msg[0]) {
         case CRTS_MSG_TERMINATE: // terminate program
-          printf("Node %i has sent a termination message...\n", i + 1);
+          printf("Node %i has sent a termination message...\n", i+1);
           num_nodes_terminated++;
           // check if all nodes have terminated
           if (num_nodes_terminated == num_nodes)
@@ -112,6 +113,8 @@ ScenarioController* create_sc(struct scenario_parameters *sp){
         SC = new SC_Template(argc, argv);
       if(!strcmp(sp->SC, "SC_Network_Loading"))
         SC = new SC_Network_Loading(argc, argv);
+      if(!strcmp(sp->SC, "SC_Rx_Overflow_Test"))
+        SC = new SC_Rx_Overflow_Test(argc, argv);
       if(!strcmp(sp->SC, "SC_Control_and_Feedback_Test"))
         SC = new SC_Control_and_Feedback_Test(argc, argv);
       if(!strcmp(sp->SC, "SC_CORNET_3D"))
@@ -134,7 +137,6 @@ void log_scenario_summary(int scenario_num, int rep_num, char *scenario_master_n
   if ((scenario_num>1) || (rep_num>1))
     log_summary = fopen(log_summary_filename, "a");
   else{
-    printf("\nWriting new file\n\n");
     log_summary = fopen(log_summary_filename, "w");
   }
 
@@ -536,7 +538,7 @@ int main(int argc, char **argv) {
           // time
           gettimeofday(&tv, NULL);
           time_s = tv.tv_sec;
-          if (time_s > msg_sent_time_s + 3) {
+          if (time_s > msg_sent_time_s + 5) {
             printf("Nodes have not all responded with a successful "
                    "termination... forciblly terminating any CRTS processes "
                    "still running\n");

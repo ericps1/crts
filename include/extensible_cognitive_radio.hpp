@@ -511,6 +511,7 @@ public:
     float per;
     float ber;
     float throughput;
+    int uhd_overflows;
   };
 
   //=================================================================================
@@ -755,7 +756,11 @@ public:
 
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::rx_parameter_s::rx_state.
-  double get_rx_state();
+  int get_rx_state();
+
+  /// \brief Return the value of
+  /// ExtensibleCognitiveRadio::rx_parameter_s::rx_worker_state.
+  int get_rx_worker_state();
 
   /// \brief Return the value of
   /// ExtensibleCognitiveRadio::rx_parameter_s::rx_freq.
@@ -915,7 +920,10 @@ private:
   void update_rx_params();
   ofdmflexframesync fs; // frame synchronizer object
   unsigned int frame_num;
-
+  unsigned int frame_uhd_overflows; // overflows that have occurred
+  std::complex<float> *rx_buffer;
+  size_t rx_buffer_len; 
+  
   // receiver threading objects
   pthread_t rx_process;     // receive thread
   pthread_mutex_t rx_mutex; // receive mutex
