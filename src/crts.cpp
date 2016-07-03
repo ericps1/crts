@@ -185,6 +185,10 @@ struct scenario_parameters read_scenario_parameters(char *scenario_file) {
     sp.sc_timeout_ms = tmpD;
   else
     sp.sc_timeout_ms = 1.0;
+  if (sp.sc_timeout_ms > 1.0)
+    printf("\nWARNING: Large Scenario Controller timeouts can cause the system to hang\n"
+           "         on shutdown. It's recommended that you use a smaller timeout and\n"
+           "         adjust your Scenario Controller code if necessary.\n\n");
 
   if (config_lookup_string(&cfg, "sc_args", &tmpS))
     strcpy(sp.sc_args, tmpS);
@@ -319,6 +323,10 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
 
   if (config_setting_lookup_float(node_config, "ce_timeout_ms", &tmpD))
     np.ce_timeout_ms = tmpD;
+  if (np.ce_timeout_ms > 1.0)
+    printf("\nWARNING: Large Cognitive Engine timeouts can cause the system to hang\n"
+           "         on shutdown. It's recommended that you use a smaller timeout and\n"
+           "         adjust your Cognitive Engine code if necessary.\n\n");
 
   if (config_setting_lookup_float(node_config, "net_mean_throughput", &tmpD)) {
     np.net_mean_throughput = tmpD;

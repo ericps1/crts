@@ -506,6 +506,7 @@ public:
   // struct for receive statistics
   struct rx_statistics{
     int frames_received;
+    int valid_frames;
     float evm_dB;
     float rssi_dB;
     float per;

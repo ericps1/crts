@@ -279,10 +279,10 @@ int main(int argc, char **argv) {
   int num_scenarios;
   bool octave_log_summary;
   read_master_parameters(scenario_master_name, &num_scenarios, &octave_log_summary);
-  printf("Number of scenarios: %i\n\n", num_scenarios);
   if (octave_log_summary);
     printf("Will generate a summary octave script: /logs/octave/%s.m\n", scenario_master_name);
-
+  printf("Number of scenarios: %i\n\n", num_scenarios);
+  
   // variables for reading the system clock
   struct timeval tv;
   time_t time_s;
@@ -301,9 +301,8 @@ int main(int argc, char **argv) {
     strcat(scenario_file, ".cfg");
 
     for (unsigned int rep_i = 1; rep_i <= scenario_reps; rep_i++) {
-      printf("Scenario %i:\n", i + 1);
-      printf("Rep %i:\n", rep_i);
-      printf("Scenario configuration file: %s\n", scenario_name);
+      printf("Scenario %i: %s\n", i + 1, scenario_name);
+      printf("Rep: %i\n", rep_i);
       // read the scenario parameters from file
       struct scenario_parameters sp = read_scenario_parameters(scenario_file);
       // Set the number of scenario  repititions in struct.

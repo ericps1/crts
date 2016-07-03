@@ -1624,6 +1624,7 @@ void ExtensibleCognitiveRadio::update_rx_stats(){
   // update statistics
   pthread_mutex_lock(&rx_params_mutex);    
   rx_stats.frames_received = N;
+  rx_stats.valid_frames = sum_payload_valid;
   if (N > 0) {
     rx_stats.evm_dB = 10.0*log10(sum_evm/(float)N);
     rx_stats.rssi_dB = 10.0*log10(sum_rssi/(float)N);
