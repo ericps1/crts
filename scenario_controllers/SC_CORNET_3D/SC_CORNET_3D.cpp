@@ -40,28 +40,26 @@ void SC_CORNET_3D::initialize_node_fb() {
   
   // enable all feedback types
   int fb_enables = INT_MAX;
-  for(int i=0; i<sp.num_nodes; i++)
-    set_node_parameter(i, CRTS_FB_EN, (void*) &fb_enables);
-  
   double rx_stats_period = 0.1;
-  for(int i=0; i<sp.num_nodes; i++){
+  for(int i=1; i<=sp.num_nodes; i++) {
+    set_node_parameter(i, CRTS_FB_EN, (void*) &fb_enables);
     set_node_parameter(i, CRTS_RX_STATS, (void*) &rx_stats_period);
     set_node_parameter(i, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
   }
 }
 
 // execute function
-void SC_CORNET_3D::execute(int node, char fb_type, void *_arg) {
+void SC_CORNET_3D::execute() {
 
   char msg[16];
 
   msg[0] = CRTS_MSG_FEEDBACK;
-  msg[1] = node;
-  msg[2] = fb_type;
+  msg[1] = fb.node;
+  msg[2] = fb.fb_type;
   
-  int arg_len = get_feedback_arg_len(fb_type);
+  int arg_len = get_feedback_arg_len(fb.fb_type);
 
-  memcpy((void*) &msg[3], _arg, arg_len);
+  memcpy((void*) &msg[3], fb.arg, arg_len);
 
   // forward feedback to CORNET 3D web server
   send(TCP_CORNET_3D, msg, 3+arg_len, 0);
@@ -85,7 +83,7 @@ void SC_CORNET_3D::execute(int node, char fb_type, void *_arg) {
     switch (msg[0]) {
       case CRTS_MSG_CONTROL:
         rlen = recv(TCP_CORNET_3D, &msg[1], 2, 0);
-        node = msg[1];
+        node = msg[1]+1; // +1 added by Eric S due to change in node numbering convention
         cont_type = msg[2];
         arg_len = get_control_arg_len(cont_type);
         rlen = recv(TCP_CORNET_3D, &msg[3], arg_len, 0);

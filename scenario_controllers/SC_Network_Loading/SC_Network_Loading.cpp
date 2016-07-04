@@ -19,16 +19,16 @@ SC_Network_Loading::~SC_Network_Loading() {
 void SC_Network_Loading::initialize_node_fb() {
   // get feedback for receiver statistics of each node
   int fb_enables = CRTS_RX_STATS_FB_EN; 
-  set_node_parameter(0, CRTS_FB_EN, (void*) &fb_enables);
   set_node_parameter(1, CRTS_FB_EN, (void*) &fb_enables);
+  set_node_parameter(2, CRTS_FB_EN, (void*) &fb_enables);
   
   double rx_stats_tracking_period = 1.0;
-  set_node_parameter(0, CRTS_RX_STATS, (void*) &rx_stats_tracking_period);
   set_node_parameter(1, CRTS_RX_STATS, (void*) &rx_stats_tracking_period);
+  set_node_parameter(2, CRTS_RX_STATS, (void*) &rx_stats_tracking_period);
   
   double rx_stats_fb_period = 1.0;
-  set_node_parameter(0, CRTS_RX_STATS_FB, (void*) &rx_stats_fb_period);
   set_node_parameter(1, CRTS_RX_STATS_FB, (void*) &rx_stats_fb_period);
+  set_node_parameter(2, CRTS_RX_STATS_FB, (void*) &rx_stats_fb_period);
 }
 
 // execute function

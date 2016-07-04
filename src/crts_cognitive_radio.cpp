@@ -189,7 +189,6 @@ void apply_control_msg(char cont_type,
     case CRTS_NET_THROUGHPUT:
       np->net_mean_throughput = *(double*)_arg;
       *t_step = 8.0 * (double)CRTS_CR_PACKET_LEN / np->net_mean_throughput;
-      printf("\nUpdated network throughput: %e\n\n", np->net_mean_throughput);
       break;
     case CRTS_NET_MODEL:
       np->net_traffic_type = *(int*)_arg;

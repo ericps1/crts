@@ -23,14 +23,14 @@ void ScenarioController::set_node_parameter(int node, char cont_type, void* _arg
     printf("set_node_parameters() was called for a node which exceeds the number of nodes in this scenario\n");
     exit(1);
   } else {
-    write(TCP_nodes[node], cont_msg, 2+arg_len);
+    write(TCP_nodes[node-1], cont_msg, 2+arg_len);
   }
 }
 
 void ScenarioController::receive_feedback(int node, char fb_type, void* _arg){
   pthread_mutex_lock(&sc_mutex);
   sc_event = FEEDBACK;
-  fb.node = node;
+  fb.node = node+1;
   fb.fb_type = fb_type;
   fb.arg = _arg;
   execute();

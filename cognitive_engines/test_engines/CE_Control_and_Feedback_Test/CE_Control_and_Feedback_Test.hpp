@@ -9,15 +9,13 @@ class CE_Control_and_Feedback_Test : public Cognitive_Engine {
 
 private:
   // internal members used by this CE
-  const float print_stats_period_s = 1.0;
-  timer print_stats_timer;
-  const float tx_gain_period_s = 1.0;
-  const float tx_gain_increment = 1.0;
   timer tx_gain_timer;
-  int frame_counter;
-  int frame_errs;
-  float sum_evm;
-  float sum_rssi;
+  timer tx_duty_cycle_timer;
+  const float tx_gain_period_s = 5.0;
+  const float tx_gain_increment = 5.0;
+  static constexpr float tx_duty_cycle_period_s = 20.0;
+  static constexpr float tx_duty_cycle = 0.5;
+  bool tx_on;
 
 public:
   CE_Control_and_Feedback_Test(int argc, char **argv, ExtensibleCognitiveRadio *_ECR);

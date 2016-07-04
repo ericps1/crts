@@ -1284,6 +1284,9 @@ void *ECR_rx_worker(void *_arg) {
   ECR->ce_usrp_rx_buffer = (std::complex<float> *)malloc(
       ECR->rx_buffer_len * sizeof(std::complex<float>));
 
+  timer rx_stat_update_timer = timer_create();
+
+
   while (ECR->rx_thread_running) {
     // wait for signal to start
     pthread_mutex_lock(&(ECR->rx_params_mutex));
@@ -1305,6 +1308,8 @@ void *ECR_rx_worker(void *_arg) {
     ECR->usrp_rx->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
     pthread_mutex_unlock(&ECR->rx_mutex);  
 
+    timer_tic(rx_stat_update_timer);
+    
     bool rx_continue = true;
     // run receiver
     while (rx_continue) {
@@ -1367,14 +1372,13 @@ void *ECR_rx_worker(void *_arg) {
       
       // we need to tightly control the state of the worker thread
       // to protect against issues with abrupt starts and stops
-      pthread_mutex_lock(&ECR->rx_params_mutex);
       if (ECR->rx_state == RX_STOPPED){
         dprintf("rx worker halting\n");
         rx_continue = false;
         ECR->rx_worker_state = WORKER_HALTED;
       }
-      pthread_mutex_unlock(&ECR->rx_params_mutex); 
-
+      if (timer_toc(rx_stat_update_timer) > 0.001)
+        ECR->update_rx_stats(false); 
     } // while rx running
     dprintf("rx_worker finished running\n");
 
@@ -1446,7 +1450,7 @@ int rxCallback(unsigned char *_header, int _header_valid,
 
     // Track statistics if required
     if (ECR->rx_stat_tracking){
-      ECR->update_rx_stats();
+      ECR->update_rx_stats(true);
       ECR->frame_uhd_overflows = 0;
     }
   }
@@ -1473,7 +1477,7 @@ void ExtensibleCognitiveRadio::reset_rx_stats(){
   pthread_mutex_unlock(&rx_params_mutex);
 }
 
-void ExtensibleCognitiveRadio::update_rx_stats(){
+void ExtensibleCognitiveRadio::update_rx_stats(bool frame_received){
   // static variables only needed by this function to track statistics
   static std::vector<struct timeval> time_stamp;
   static std::vector<float> evm;
@@ -1482,7 +1486,7 @@ void ExtensibleCognitiveRadio::update_rx_stats(){
   static std::vector<int> payload_len;
   static std::vector<int> bit_errors;
   static std::vector<int> uhd_overflows;
-
+  
   static float sum_evm = 0.0;
   static float sum_rssi = 0.0;
   static int sum_payload_valid = 0;
@@ -1556,71 +1560,79 @@ void ExtensibleCognitiveRadio::update_rx_stats(){
       ind_first++;
   }
 
-  // resize memory if needed
-  N++;
-  if (N>K) {
-    int K2 = 2*K;
-    time_stamp.resize(K2);
-    evm.resize(K2,0.0);
-    rssi.resize(K2,0.0);
-    payload_valid.resize(K2,0);
-    payload_len.resize(K2,0);
-    bit_errors.resize(K2,0);
-    uhd_overflows.resize(K2,0);
+  if (frame_received) {
+    // resize memory if needed
+    N++; 
+    if (N>K) {
+      int K2 = 2*K;
+      time_stamp.resize(K2);
+      evm.resize(K2,0.0);
+      rssi.resize(K2,0.0);
+      payload_valid.resize(K2,0);
+      payload_len.resize(K2,0);
+      bit_errors.resize(K2,0);
+      uhd_overflows.resize(K2,0);
+      
+      // copy data that has been wrapped around
+      if(ind_first>0){
+        std::copy(time_stamp.begin(), time_stamp.begin()+ind_first, time_stamp.begin()+K);
+        std::copy(evm.begin(), evm.begin()+ind_first, evm.begin()+K);
+        std::copy(rssi.begin(), rssi.begin()+ind_first, rssi.begin()+K);
+        std::copy(payload_valid.begin(), payload_valid.begin()+ind_first, payload_valid.begin()+K);
+        std::copy(payload_len.begin(), payload_len.begin()+ind_first, payload_len.begin()+K);
+        std::copy(bit_errors.begin(), bit_errors.begin()+ind_first, bit_errors.begin()+K); 
+        std::copy(uhd_overflows.begin(), uhd_overflows.begin()+ind_first, uhd_overflows.begin()+K); 
+      
+        memset(&time_stamp[0], 0, ind_first*sizeof(struct timeval));
+        memset(&evm[0], 0, ind_first*sizeof(float));
+        memset(&rssi[0], 0, ind_first*sizeof(float));
+        memset(&payload_valid[0], 0, ind_first*sizeof(int));
+        memset(&payload_len[0], 0, ind_first*sizeof(int));
+        memset(&bit_errors[0], 0, ind_first*sizeof(int));
+        memset(&uhd_overflows[0], 0, ind_first*sizeof(int));
+      }
 
-    // copy data that has been wrapped around
-    if(ind_first>0){
-      std::copy(time_stamp.begin(), time_stamp.begin()+ind_first-1, time_stamp.begin()+K);
-      std::copy(evm.begin(), evm.begin()+ind_first-1, evm.begin()+K);
-      std::copy(rssi.begin(), rssi.begin()+ind_first-1, rssi.begin()+K);
-      std::copy(payload_valid.begin(), payload_valid.begin()+ind_first-1, payload_valid.begin()+K);
-      std::copy(payload_len.begin(), payload_len.begin()+ind_first-1, payload_len.begin()+K);
-      std::copy(bit_errors.begin(), bit_errors.begin()+ind_first-1, bit_errors.begin()+K); 
-      std::copy(uhd_overflows.begin(), uhd_overflows.begin()+ind_first-1, uhd_overflows.begin()+K); 
+      K = K2;
     }
 
-    K = K2;
-  }
+    // update the last data point index
+    ind_last = ind_first+(N-1);
+    if(ind_last >= K)
+      ind_last -= K;
 
-  // update the last data point index
-  ind_last = ind_first+(N-1);
-  if(ind_last >= K)
-    ind_last -= K;
-
-  // calculate number of bit errors if needed
-  unsigned int errors = 0;
-  //printf("Header valid: %i\n", CE_metrics.control_valid);
-  //printf("%i byte payload valid: %i\n", CE_metrics.payload_len, CE_metrics.payload_valid);
-  if(!CE_metrics.payload_valid) {
-    for(unsigned int i=0; i<CE_metrics.payload_len; i++) {
-      // only count errors in the known portion (not the IP header and packet number)
-      if(i%(total_frame_len) >= unknown_len) {
-        errors += std::bitset<8>((CE_metrics.payload[i]^known_net_payload[(i%total_frame_len)-unknown_len])).count();
+    // calculate number of bit errors if needed
+    unsigned int errors = 0;
+    if(!CE_metrics.payload_valid) {
+      for(unsigned int i=0; i<CE_metrics.payload_len; i++) {
+        // only count errors in the known portion (not the IP header and packet number)
+        if(i%(total_frame_len) >= unknown_len) {
+          errors += std::bitset<8>((CE_metrics.payload[i]^known_net_payload[(i%total_frame_len)-unknown_len])).count();
+        }
       }
     }
+
+    // store latest values
+    time_stamp[ind_last] = time_now;
+    if ( CE_metrics.stats.evm > 0.0 )
+      evm[ind_last] = 1.0;
+    else
+      evm[ind_last] = pow(10.0,CE_metrics.stats.evm/10.0);
+    rssi[ind_last] = pow(10.0,CE_metrics.stats.rssi/10.0);
+    payload_valid[ind_last] = CE_metrics.payload_valid;
+    payload_len[ind_last] = CE_metrics.payload_len;
+    bit_errors[ind_last] = errors;
+    uhd_overflows[ind_last] = frame_uhd_overflows;
+    
+    // update sums
+    sum_evm += evm[ind_last];
+    sum_rssi += rssi[ind_last];
+    sum_payload_valid += payload_valid[ind_last];
+    sum_payload_len += payload_len[ind_last];
+    sum_valid_bytes += payload_valid[ind_last]*payload_len[ind_last];
+    sum_bit_errors += bit_errors[ind_last];
+    sum_uhd_overflows += uhd_overflows[ind_last];
   }
-
-  // store latest values
-  time_stamp[ind_last] = time_now;
-  if ( CE_metrics.stats.evm > 0.0 )
-    evm[ind_last] = 1.0;
-  else
-    evm[ind_last] = pow(10.0,CE_metrics.stats.evm/10.0);
-  rssi[ind_last] = pow(10.0,CE_metrics.stats.rssi/10.0);
-  payload_valid[ind_last] = CE_metrics.payload_valid;
-  payload_len[ind_last] = CE_metrics.payload_len;
-  bit_errors[ind_last] = errors;
-  uhd_overflows[ind_last] = frame_uhd_overflows;
   
-  // update sums
-  sum_evm += evm[ind_last];
-  sum_rssi += rssi[ind_last];
-  sum_payload_valid += payload_valid[ind_last];
-  sum_payload_len += payload_len[ind_last];
-  sum_valid_bytes += payload_valid[ind_last]*payload_len[ind_last];
-  sum_bit_errors += bit_errors[ind_last];
-  sum_uhd_overflows += uhd_overflows[ind_last];
-
   // update statistics
   pthread_mutex_lock(&rx_params_mutex);    
   rx_stats.frames_received = N;
@@ -1629,6 +1641,8 @@ void ExtensibleCognitiveRadio::update_rx_stats(){
     rx_stats.evm_dB = 10.0*log10(sum_evm/(float)N);
     rx_stats.rssi_dB = 10.0*log10(sum_rssi/(float)N);
     rx_stats.per = (float)(N-sum_payload_valid)/(float)N;
+    if(N<sum_payload_valid)
+      printf("N: %i sum_payload_valid: %i\n", N, sum_payload_valid);
   } else {
     rx_stats.evm_dB = 0.0;
     rx_stats.rssi_dB = -100.0;

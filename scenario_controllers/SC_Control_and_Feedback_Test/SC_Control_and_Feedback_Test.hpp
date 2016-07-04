@@ -11,7 +11,7 @@ private:
 public:
   SC_Control_and_Feedback_Test(int argc, char **argv);
   ~SC_Control_and_Feedback_Test();
-  virtual void execute(int node, char fb_type, void *_arg);
+  virtual void execute();
   virtual void initialize_node_fb();
 };
 

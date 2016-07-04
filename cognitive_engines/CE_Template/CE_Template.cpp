@@ -4,6 +4,7 @@
 // constructor
 CE_Template::CE_Template(int argc, char **argv, ExtensibleCognitiveRadio *_ECR) {
 
+  // save the ECR pointer (this should not be removed)
   ECR = _ECR;
 
   // default Debug Message Level

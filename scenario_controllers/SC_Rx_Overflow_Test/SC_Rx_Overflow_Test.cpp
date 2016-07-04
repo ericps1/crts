@@ -59,14 +59,14 @@ SC_Rx_Overflow_Test::~SC_Rx_Overflow_Test() {
 void SC_Rx_Overflow_Test::initialize_node_fb() {
 
   int fb_enables = CRTS_RX_STATS_FB_EN; 
-  set_node_parameter(0, CRTS_FB_EN, (void*) &fb_enables);
   set_node_parameter(1, CRTS_FB_EN, (void*) &fb_enables);
+  set_node_parameter(2, CRTS_FB_EN, (void*) &fb_enables);
 
   double rx_stats_period = dwell_time_s;
-  set_node_parameter(0, CRTS_RX_STATS, (void*) &rx_stats_period); 
-  set_node_parameter(0, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
   set_node_parameter(1, CRTS_RX_STATS, (void*) &rx_stats_period); 
   set_node_parameter(1, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
+  set_node_parameter(2, CRTS_RX_STATS, (void*) &rx_stats_period); 
+  set_node_parameter(2, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
 }
 
 // execute function
@@ -74,15 +74,15 @@ void SC_Rx_Overflow_Test::execute() {
   
   if ((sc_event == FEEDBACK) && (fb.fb_type == CRTS_RX_STATS)) {
     rx_stats = *(struct ExtensibleCognitiveRadio::rx_statistics*) fb.arg;
-    uhd_overflows[fb.node][rate_ind][mod_ind][fec_ind] = rx_stats.uhd_overflows;
+    uhd_overflows[fb.node-1][rate_ind][mod_ind][fec_ind] = rx_stats.uhd_overflows;
 
-    printf("Node: %i, Rate: %.3e, Mod: %s, FEC: %s\n", fb.node+1, rates[rate_ind], 
+    printf("Node: %i, Rate: %.3e, Mod: %s, FEC: %s\n", fb.node, rates[rate_ind], 
            modulation_types[mods[mod_ind]].name, fec_scheme_str[fecs[fec_ind]][0]);
-    printf("  UHD rx overflows: %i\n\n", uhd_overflows[fb.node][rate_ind][mod_ind][fec_ind]);
+    printf("  UHD rx overflows: %i\n\n", uhd_overflows[fb.node-1][rate_ind][mod_ind][fec_ind]);
 
     
-    if (fb.node == 0) node_1_feedback_received = true;
-    if (fb.node == 1) node_2_feedback_received = true;
+    if (fb.node == 1) node_1_feedback_received = true;
+    if (fb.node == 2) node_2_feedback_received = true;
     
     // update transmission rate, modulation, and coding scheme
     // once feedback has been received from both nodes
@@ -96,26 +96,26 @@ void SC_Rx_Overflow_Test::execute() {
         if (mod_ind == num_mods-1) {
           mod_ind = 0;
           rate_ind = (rate_ind == num_rates-1) ? 0 : rate_ind+1;
-          set_node_parameter(0, CRTS_TX_RATE, (void*) &rates[rate_ind]);
           set_node_parameter(1, CRTS_TX_RATE, (void*) &rates[rate_ind]);
-          set_node_parameter(0, CRTS_RX_RATE, (void*) &rates[rate_ind]);
-          set_node_parameter(1, CRTS_RX_RATE, (void*) &rates[rate_ind]); 
+          set_node_parameter(2, CRTS_TX_RATE, (void*) &rates[rate_ind]);
+          set_node_parameter(1, CRTS_RX_RATE, (void*) &rates[rate_ind]);
+          set_node_parameter(2, CRTS_RX_RATE, (void*) &rates[rate_ind]); 
         }
         else
           mod_ind++;
-        set_node_parameter(0, CRTS_TX_MOD, (void*) &mods[mod_ind]);
         set_node_parameter(1, CRTS_TX_MOD, (void*) &mods[mod_ind]);
+        set_node_parameter(2, CRTS_TX_MOD, (void*) &mods[mod_ind]);
       }
       else
         fec_ind++;
-      set_node_parameter(0, CRTS_TX_FEC0, (void*) &fecs[fec_ind]);
       set_node_parameter(1, CRTS_TX_FEC0, (void*) &fecs[fec_ind]);
+      set_node_parameter(2, CRTS_TX_FEC0, (void*) &fecs[fec_ind]);
 
       // wait for state to settle and reset statistics
       sleep(settle_time_s);
       printf("Resetting receivers\n");
-      set_node_parameter(0, CRTS_RX_RESET, NULL);
-      set_node_parameter(1, CRTS_RX_RESET, NULL);  
+      set_node_parameter(1, CRTS_RX_RESET, NULL);
+      set_node_parameter(2, CRTS_RX_RESET, NULL);  
       
     }
   }

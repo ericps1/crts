@@ -890,7 +890,7 @@ private:
   bool rx_stat_tracking;
   bool reset_rx_stats_flag;
   float rx_stat_tracking_period;
-  void update_rx_stats();
+  void update_rx_stats(bool frame_received);
   char known_net_payload[CRTS_CR_PACKET_LEN];
 
   //=================================================================================
