@@ -14,8 +14,10 @@ struct ce_info{
 
 int num_ces = 0;
 int num_srcs = 0;
+int num_headers = 0;
 struct ce_info ces[100];
 std::string src_list[100];
+std::string header_list[100];
 
 void process_directory(std::string directory, bool customize, bool ce_dir){
 
@@ -103,6 +105,33 @@ void process_directory(std::string directory, bool customize, bool ce_dir){
               num_srcs++;
             }
           }
+          // file is non-CE header file 
+          else if ((epdf->d_name[strlen(epdf->d_name) - 2] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'h') || 
+                   (epdf->d_name[strlen(epdf->d_name) - 3] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 2] == 'h' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'h') ||
+                   (epdf->d_name[strlen(epdf->d_name) - 4] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 3] == 'h' &&
+                    epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'p')) {
+            bool useThisSrc = true;
+            if (customize)
+            {
+              char input;
+              do {
+                std::cout << "Use " << (directory+"/"+epdf->d_name) <<"? [y/n]" << std::endl;
+                std::cin >> input;
+              } while (!std::cin.fail() && input!='y' && input!='n');
+              if (input == 'n')
+                useThisSrc = false;
+            }
+            if (useThisSrc) {
+              // Copy filename into list of src names for specific ce
+              header_list[num_headers].assign(directory+"/"+epdf->d_name);
+              num_headers++;
+            }
+          }
         }
       }
     }
@@ -115,7 +144,7 @@ void process_directory(std::string directory, bool customize, bool ce_dir){
   }
 }
 
-void help_config_CEs() {
+void help_config_cognitive_engines() {
   printf("config_CEs -- Configure CRTS to use cusotm cognitive engines\n");
   printf("              (located in the cognitive_engines/ directory).\n");
   printf(" -h : Help.\n");
@@ -137,10 +166,10 @@ int main(int argc, char **argv) {
         customize = true;
         break;
       case 'h':
-        help_config_CEs();
+        help_config_cognitive_engines();
         exit(EXIT_SUCCESS);
       default:
-        help_config_CEs();
+        help_config_cognitive_engines();
         exit(EXIT_FAILURE);
     }
   }
@@ -304,11 +333,18 @@ int main(int argc, char **argv) {
           line_new += ("lib/"+ces[i].ce_name+".o ");
         }
         file_lines.push_back(line_new);
-        line_new = "";
-        file_lines.push_back(line_new);
         line_new = "CE_srcs = ";
         for (int i = 0; i < num_srcs; i++) {
           line_new += (" "+src_list[i]);
+        }
+        file_lines.push_back(line_new);
+
+        line_new = "CE_Headers = ";
+        for (int i = 0; i < num_ces; i++) {
+          line_new += ces[i].ce_dir+"/"+ces[i].ce_name+".hpp ";
+        }
+        for (int i = 0; i < num_headers; i++) {
+          line_new += header_list[i]+" ";
         }
         file_lines.push_back(line_new);
       }

@@ -3,12 +3,13 @@ LIBS = lib/tun.o lib/ecr.o -lliquid -luhd -lpthread -lm -lc -lconfig
 
 #EDIT CE OBJECT LIST START FLAG
 CEs = src/cognitive_engine.cpp lib/CE_Template.o lib/CE_Subcarrier_Alloc.o lib/CE_Throughput_Test.o lib/CE_Control_and_Feedback_Test.o lib/CE_Simultaneous_RX_And_Sensing.o lib/CE_Two_Channel_DSA_Spectrum_Sensing.o lib/CE_Mod_Adaptation.o lib/CE_Network_Loading.o lib/CE_FEC_Adaptation.o lib/CE_Two_Channel_DSA_Link_Reliability.o lib/CE_Two_Channel_DSA_PU.o 
-
 CE_srcs =  cognitive_engines/src/AMC.cpp cognitive_engines/example_engines/CE_Mod_Adaptation/src/Mod_Select.cpp cognitive_engines/example_engines/CE_FEC_Adaptation/src/FEC_Select.cpp
+CE_Headers = cognitive_engines/CE_Template/CE_Template.hpp cognitive_engines/test_engines/CE_Subcarrier_Alloc/CE_Subcarrier_Alloc.hpp cognitive_engines/test_engines/CE_Throughput_Test/CE_Throughput_Test.hpp cognitive_engines/test_engines/CE_Control_and_Feedback_Test/CE_Control_and_Feedback_Test.hpp cognitive_engines/test_engines/CE_Simultaneous_RX_And_Sensing/CE_Simultaneous_RX_And_Sensing.hpp cognitive_engines/example_engines/CE_Two_Channel_DSA_Spectrum_Sensing/CE_Two_Channel_DSA_Spectrum_Sensing.hpp cognitive_engines/example_engines/CE_Mod_Adaptation/CE_Mod_Adaptation.hpp cognitive_engines/example_engines/CE_Network_Loading/CE_Network_Loading.hpp cognitive_engines/example_engines/CE_FEC_Adaptation/CE_FEC_Adaptation.hpp cognitive_engines/example_engines/CE_Two_Channel_DSA_Link_Reliability/CE_Two_Channel_DSA_Link_Reliability.hpp cognitive_engines/primary_user_engines/CE_Two_Channel_DSA_PU/CE_Two_Channel_DSA_PU.hpp cognitive_engines/CE_Template/CE_Template.hpp cognitive_engines/include/AMC.hpp cognitive_engines/test_engines/CE_Subcarrier_Alloc/CE_Subcarrier_Alloc.hpp cognitive_engines/test_engines/CE_Throughput_Test/CE_Throughput_Test.hpp cognitive_engines/test_engines/CE_Control_and_Feedback_Test/CE_Control_and_Feedback_Test.hpp cognitive_engines/test_engines/CE_Simultaneous_RX_And_Sensing/CE_Simultaneous_RX_And_Sensing.hpp cognitive_engines/example_engines/CE_Two_Channel_DSA_Spectrum_Sensing/CE_Two_Channel_DSA_Spectrum_Sensing.hpp cognitive_engines/example_engines/CE_Mod_Adaptation/include/Mod_Select.hpp cognitive_engines/example_engines/CE_Mod_Adaptation/CE_Mod_Adaptation.hpp cognitive_engines/example_engines/CE_Network_Loading/CE_Network_Loading.hpp cognitive_engines/example_engines/CE_FEC_Adaptation/CE_FEC_Adaptation.hpp cognitive_engines/example_engines/CE_FEC_Adaptation/include/FEC_Select.hpp cognitive_engines/example_engines/CE_Two_Channel_DSA_Link_Reliability/CE_Two_Channel_DSA_Link_Reliability.hpp cognitive_engines/primary_user_engines/CE_Two_Channel_DSA_PU/CE_Two_Channel_DSA_PU.hpp 
 #EDIT CE OBJECT LIST END FLAG
 
 #EDIT SC START FLAG
 SCs = src/scenario_controller.cpp scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.cpp scenario_controllers/SC_Template/SC_Template.cpp scenario_controllers/SC_Network_Loading/SC_Network_Loading.cpp scenario_controllers/SC_Rx_Overflow_Test/SC_Rx_Overflow_Test.cpp scenario_controllers/SC_Control_and_Feedback_Test/SC_Control_and_Feedback_Test.cpp scenario_controllers/SC_CORNET_3D/SC_CORNET_3D.cpp 
+SC_Headers = scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.hpp scenario_controllers/SC_Template/SC_Template.hpp scenario_controllers/SC_Network_Loading/SC_Network_Loading.hpp scenario_controllers/SC_Rx_Overflow_Test/SC_Rx_Overflow_Test.hpp scenario_controllers/SC_Control_and_Feedback_Test/SC_Control_and_Feedback_Test.hpp scenario_controllers/SC_CORNET_3D/SC_CORNET_3D.hpp 
 #EDIT SC END FLAG
 
 all: lib/crts.o config_cognitive_engines config_scenario_controllers lib/tun.o lib/timer.o lib/ecr.o lib/interferer.o logs/convert_logs_bin_to_octave logs/convert_logs_bin_to_python $(CEs) crts_interferer crts_cognitive_radio crts_controller
@@ -43,10 +44,10 @@ logs/convert_logs_bin_to_python: src/convert_logs_bin_to_python.cpp
 crts_interferer: include/interferer.hpp include/crts.hpp src/crts_interferer.cpp src/interferer.cpp src/crts.cpp 
 	g++ $(FLAGS) -o crts_interferer src/crts_interferer.cpp lib/crts.o lib/interferer.o lib/timer.o -luhd -lc -lconfig -lliquid -lpthread
 
-crts_cognitive_radio: include/extensible_cognitive_radio.hpp src/tun.cpp src/extensible_cognitive_radio.cpp src/crts_cognitive_radio.cpp  $(CEs) $(CE_srcs)
+crts_cognitive_radio: include/extensible_cognitive_radio.hpp src/tun.cpp src/extensible_cognitive_radio.cpp src/crts_cognitive_radio.cpp  $(CEs) $(CE_srcs) $(CE_Headers)
 	g++ $(FLAGS) -o crts_cognitive_radio src/crts_cognitive_radio.cpp lib/crts.o lib/timer.o $(CEs) $(CE_srcs) $(LIBS)
 
-crts_controller: include/crts.hpp src/crts.cpp src/crts_controller.cpp $(SCs)
+crts_controller: include/crts.hpp src/crts.cpp src/crts_controller.cpp $(SCs) $(SC_Headers)
 	g++ $(FLAGS) -o crts_controller src/crts_controller.cpp lib/crts.o lib/timer.o -lconfig -lliquid -lpthread $(SCs)
 
 install:

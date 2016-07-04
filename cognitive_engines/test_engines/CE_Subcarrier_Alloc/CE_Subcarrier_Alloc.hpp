@@ -14,7 +14,7 @@ private:
   time_t switch_time_s;
   int period_s;
   int first_execution;
-
+  
   char custom_alloc[32];
   int alloc;
 

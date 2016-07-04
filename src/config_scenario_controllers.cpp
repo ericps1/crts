@@ -14,8 +14,10 @@ struct sc_info{
 
 int num_scs = 0;
 int num_srcs = 0;
+int num_headers = 0;
 struct sc_info scs[100];
 std::string src_list[100];
+std::string header_list[100];
 
 void process_directory(std::string directory, bool customize, bool sc_dir){
 
@@ -103,6 +105,34 @@ void process_directory(std::string directory, bool customize, bool sc_dir){
               num_srcs++;
             }
           }
+          // file is non-CE header file 
+          else if ((epdf->d_name[strlen(epdf->d_name) - 2] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'h') || 
+                   (epdf->d_name[strlen(epdf->d_name) - 3] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 2] == 'h' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'h') ||
+                   (epdf->d_name[strlen(epdf->d_name) - 4] == '.' &&
+                    epdf->d_name[strlen(epdf->d_name) - 3] == 'h' &&
+                    epdf->d_name[strlen(epdf->d_name) - 2] == 'p' &&
+                    epdf->d_name[strlen(epdf->d_name) - 1] == 'p')) {
+            bool useThisSrc = true;
+            if (customize)
+            {
+              char input;
+              do {
+                std::cout << "Use " << (directory+"/"+epdf->d_name) <<"? [y/n]" << std::endl;
+                std::cin >> input;
+              } while (!std::cin.fail() && input!='y' && input!='n');
+              if (input == 'n')
+                useThisSrc = false;
+            }
+            if (useThisSrc) {
+              // Copy filename into list of src names for specific ce
+              header_list[num_headers].assign(directory+"/"+epdf->d_name);
+              num_headers++;
+            }
+          }
+
         }
       }
     }
@@ -115,9 +145,9 @@ void process_directory(std::string directory, bool customize, bool sc_dir){
   }
 }
 
-void help_config_SCs() {
-  printf("config_SCs -- Configure CRTS to use custom scenario controllers\n");
-  printf("              (located in the scenario_controllers/ directory).\n");
+void help_config_scenario_controllers() {
+  printf("config_scenario_controllerss -- Configure CRTS to use custom scenario controllers\n");
+  printf("                                (located in the scenario_controllers/ directory).\n");
   printf(" -h : Help.\n");
   printf(" -c : Customize the selection of scenario controllers and source files.\n");
 }
@@ -137,10 +167,10 @@ int main(int argc, char **argv) {
         customize = true;
         break;
       case 'h':
-        help_config_SCs();
+        help_config_scenario_controllers();
         exit(EXIT_SUCCESS);
       default:
-        help_config_SCs();
+        help_config_scenario_controllers();
         exit(EXIT_FAILURE);
     }
   }
@@ -304,7 +334,16 @@ int main(int argc, char **argv) {
         for (int i = 0; i < num_srcs; i++) {
           line_new += src_list[i];
         }
-        // line_new += "\r";
+        file_lines.push_back(line_new);
+
+        line_new = "SC_Headers = ";
+        for (int i = 0; i < num_scs; i++) {
+          line_new += scs[i].sc_dir+"/"+scs[i].sc_name+".hpp";
+        }
+        for (int i = 0; i < num_headers; i++) {
+          line_new += header_list[i];
+        }
+// line_new += "\r";
         file_lines.push_back(line_new);
       }
     }
