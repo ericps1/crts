@@ -34,8 +34,8 @@
 // global variables
 int sig_terminate;
 int num_nodes_terminated;
-long int bytes_sent[10];
-long int bytes_received[10];
+long int bytes_sent[CRTS_MAX_NODES];
+long int bytes_received[CRTS_MAX_NODES];
 
 int receive_msg_from_nodes(int *TCP_nodes, int num_nodes, ScenarioController *SC) {
   // Listen to sockets for messages from any node
@@ -155,7 +155,7 @@ void log_scenario_summary(int scenario_num, int rep_num, char *scenario_master_n
   fclose(log_summary);
 }
 
-void help_CRTS_controller() {
+void help_crts_controller() {
   printf("CRTS_controller -- Initiate cognitive radio testing.\n");
   printf(" -h : Help.\n");
   printf(" -m : Manual Mode - Start each node manually rather than have "
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
   while ((d = getopt(argc, argv, "hf:ma:")) != EOF) {
     switch (d) {
     case 'h':
-      help_CRTS_controller();
+      help_crts_controller();
       return 0;
     case 'f':
       strcpy(scenario_master_name, optarg);
@@ -537,7 +537,7 @@ int main(int argc, char **argv) {
           // time
           gettimeofday(&tv, NULL);
           time_s = tv.tv_sec;
-          if (time_s > msg_sent_time_s + 5) {
+          if (time_s > msg_sent_time_s + CRTS_FORCEFUL_TERMINATION_DELAY_S) {
             printf("Nodes have not all responded with a successful "
                    "termination... forciblly terminating any CRTS processes "
                    "still running\n");
