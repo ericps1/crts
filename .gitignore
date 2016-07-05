@@ -8,8 +8,16 @@ config_scenario_controllers
 # Ignore VIM swap files
 *.swp
 *.swo
+*.swn
 
 # Ignore system output files
 *.SYSOUT
 
+# Ignore archives
+*.tar.gz
 
+# Ignore data files
+*.dat
+
+# Master scenario file used by cornet 3d. It will be created if necessary so it doesnt need to be in the repo
+cornet_master_scenario_file.cfg

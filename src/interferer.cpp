@@ -11,6 +11,7 @@
 #include "interferer.hpp"
 #include "crts.hpp"
 #include "timer.h"
+#include <random>
 
 #define DEBUG 0
 #if DEBUG == 1
@@ -19,7 +20,9 @@
 #define dprintf(...) /*__VA_ARGS__*/
 #endif
 
-Interferer::Interferer() {
+Interferer::Interferer()
+    :generator(), dist(5.0, 5.0)     // Gaussian parameter set up
+{
   // set default parameters
   interference_type = RRC;
   period = 1.0;
@@ -67,12 +70,18 @@ Interferer::Interferer() {
       ofdmflexframegen_create(num_subcarriers, OFDM_CP_LENGTH,
                               OFDM_TAPER_LENGTH, subcarrierAlloc, &fgprops);
 
+  sample_file.open("AWGN_samples.dat");
+
+
+
   // create timers
   duty_cycle_timer = timer_create();
   freq_dwell_timer = timer_create();
 }
 
 Interferer::~Interferer() {
+
+  sample_file.close();
   tx_log_file.close();
 
   // join tx thread
@@ -94,6 +103,7 @@ void Interferer::set_log_file(char *log_file_name) {
   strcpy(tx_log_file_name, log_file_name);
 
   // If log file names use subdirectories, create them if they don't exist
+
   char *subdirptr = strrchr(tx_log_file_name, '/');
   if (subdirptr) {
     char subdirs[60];
@@ -131,10 +141,21 @@ void Interferer::BuildNOISETransmission() {
     tx_buffer[i].imag(0.5 * (float)rand() / (float)RAND_MAX - 0.25);
   }
   buffered_samps = tx_buffer.size();
-  printf("Buffer built\n");
+  }
+  
+  void Interferer::BuildAWGNTransmission() {
+  for (unsigned int i = 0; i < tx_buffer.size(); i++) {
+       tx_buffer[i].real (dist(generator));
+    tx_buffer[i].imag (dist(generator));
+    if(sample_file.is_open())
+    {
+        sample_file << tx_buffer[i].real() << " + " << tx_buffer[i].imag() << "i" << std::endl;
+    }
+  }
+  buffered_samps = tx_buffer.size();
 }
 
-// ========================================================================
+// ========================================================================f
 //  FUNCTION:  Build GMSK Transmission
 //
 //  Based upon liquid-usrp gmskframe_tx.cc
@@ -417,6 +438,9 @@ void *Interferer_tx_worker(void *_arg) {
           break;
         case (OFDM):
           Int->BuildOFDMTransmission();
+          break;
+        case (AWGN):
+          Int->BuildAWGNTransmission();
           break;
         }
 

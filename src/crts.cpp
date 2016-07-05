@@ -83,8 +83,8 @@ void read_master_parameters(char *nameMasterScenFile,
   char scenario_master_file[100];
   sprintf(scenario_master_file, "%s.cfg", nameMasterScenFile);
   if (!config_read_file(&cfg, scenario_master_file)) {
-    printf("Error reading master scenario file (%s) on line %i\n",
-           nameMasterScenFile, config_error_line(&cfg));
+    printf("Error reading master scenario file (%s) on line %i: %s\n",
+           nameMasterScenFile, config_error_line(&cfg), config_error_text(&cfg));
     exit(EXIT_FAILURE);
   }
 
@@ -232,6 +232,12 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   strcpy(nodestr, "node");
   strcat(nodestr, node_num.c_str());
   config_setting_t *node_config = config_lookup(&cfg, nodestr);
+  
+  // read team name for the node
+  if(config_setting_lookup_string(node_config, "team_name", &tmpS))
+      strcpy(np.team_name, tmpS);
+  else
+      strcpy(np.team_name, "Default");
 
   // read target IP address for the node
   if (config_setting_lookup_string(node_config, "target_ip", &tmpS))
@@ -667,6 +673,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
       np.interference_type = RRC;
     if (!strcmp(tmpS, "OFDM"))
       np.interference_type = OFDM;
+    if (!strcmp(tmpS, "AWGN"))
+      np.interference_type = AWGN; 
   }
 
   if (config_setting_lookup_float(node_config, "period", &tmpD))
@@ -726,6 +734,7 @@ void print_node_parameters(struct node_parameters *np) {
     strcpy(node_type, "Interferer");
   }
 
+  printf("    Team name:                         %-s\n", np->team_name);
   printf("    Node type:                         %-s\n", node_type);
   if (np->node_type == COGNITIVE_RADIO) {
     char cr_type[30] = "Extensible Cognitive Radio";
@@ -814,7 +823,7 @@ void print_node_parameters(struct node_parameters *np) {
       strcpy(interference_type, "CW");
       break;
     case (NOISE):
-      strcpy(interference_type, "AWGN");
+      strcpy(interference_type, "NOISE");
       break;
     case (GMSK):
       strcpy(interference_type, "GMSK");
@@ -824,6 +833,9 @@ void print_node_parameters(struct node_parameters *np) {
       break;
     case (OFDM):
       strcpy(interference_type, "OFDM");
+      break;
+    case (AWGN):
+      strcpy(interference_type, "AWGN");
       break;
     }
     switch (np->tx_freq_behavior) {
@@ -864,6 +876,7 @@ int get_control_arg_len(int control_type){
   switch(control_type){
     case CRTS_TX_STATE:
     case CRTS_TX_MOD:
+    case CRTS_TX_CRC:
     case CRTS_TX_FEC0:
     case CRTS_TX_FEC1:
     case CRTS_RX_STATE:
@@ -903,6 +916,7 @@ int get_feedback_arg_len(int fb_type){
   switch(fb_type){
     case CRTS_TX_STATE:
     case CRTS_TX_MOD:
+    case CRTS_TX_CRC:
     case CRTS_TX_FEC0:
     case CRTS_TX_FEC1:
     case CRTS_RX_STATE:

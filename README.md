@@ -260,6 +260,14 @@ transmitting a dedicated control packet from the CE.
 
 Examples of cognitive engines are provided in the `cognitive_engines/` directory.
 
+### Cognitive Radios in Python
+
+Along with cognitive engines defined by the ECR, CRTS also supports cognitive radios written in python. An
+example of a very simple python cognitive radio can be found in cognitive_radios/python_txrx.py.  When using a python radio, the scenario file
+must specify the cr\_type ("python") and a python\_file (python_txrx.py in the example scenario). The python file must be
+in the top-level cognitive_radios folder. In addition, you can supply arguments to pass to your radio by using the
+arguments field. An example scenario file for a python radio can be found in scenarios/Python\_Flowgraph_Example.cfg.
+
 ### Interferers
 
 The testing scenarios for CRTS may involve generic interferers. There are a number

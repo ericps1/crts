@@ -80,7 +80,8 @@ enum interference_type {
   NOISE,  // random noise interference
   GMSK,   // gaussian minimum-shift keying inteference
   RRC,    // root-raised cosine interference (as in WCDMA)
-  OFDM    // orthogonal frequency division multiplexing interference
+  OFDM,    // orthogonal frequency division multiplexing interference
+  AWGN
 };
 
 enum tx_freq_behavior { FIXED = 0, SWEEP, RANDOM };
@@ -97,6 +98,7 @@ struct node_parameters {
   int cognitive_radio_type;
   char python_file[100];
   char python_args[2048];
+  char team_name[200];
   
   // network settings
   char server_ip[20];
@@ -205,6 +207,7 @@ enum crts_params {
   CRTS_TX_RATE,
   CRTS_TX_GAIN,
   CRTS_TX_MOD,
+  CRTS_TX_CRC,
   CRTS_TX_FEC0,
   CRTS_TX_FEC1,
 
@@ -238,6 +241,7 @@ enum crts_params {
 #define CRTS_TX_RATE_FB_EN        (1<<CRTS_TX_RATE)
 #define CRTS_TX_GAIN_FB_EN        (1<<CRTS_TX_GAIN)
 #define CRTS_TX_MOD_FB_EN         (1<<CRTS_TX_MOD)
+#define CRTS_TX_CRC_FB_EN         (1<<CRTS_TX_CRC)  
 #define CRTS_TX_FEC0_FB_EN        (1<<CRTS_TX_FEC0)
 #define CRTS_TX_FEC1_FB_EN        (1<<CRTS_TX_FEC1)
 

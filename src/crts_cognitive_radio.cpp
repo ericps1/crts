@@ -142,11 +142,15 @@ void apply_control_msg(char cont_type,
       break;
     case CRTS_TX_RATE:
       ECR->set_tx_rate(*(double*)_arg);
+      break;
     case CRTS_TX_GAIN:
       ECR->set_tx_gain_uhd(*(double*)_arg);
       break;
     case CRTS_TX_MOD:
       ECR->set_tx_modulation(*(int*)_arg);
+      break;
+    case CRTS_TX_CRC:
+      ECR->set_tx_crc(*(int*)_arg);
       break;
     case CRTS_TX_FEC0:
       ECR->set_tx_fec0(*(int*)_arg);
@@ -210,6 +214,7 @@ void send_feedback_to_controller(int *tcp_controller,
   static double last_tx_rate = ECR->get_tx_rate();
   static double last_tx_gain = ECR->get_tx_gain_uhd();
   static int last_tx_mod = ECR->get_tx_modulation();
+  static int last_tx_crc = ECR->get_tx_crc();
   static int last_tx_fec0 = ECR->get_tx_fec0();
   static int last_tx_fec1 = ECR->get_tx_fec1();
 
@@ -281,6 +286,16 @@ void send_feedback_to_controller(int *tcp_controller,
       last_tx_mod = tx_mod;
       fb_args++;
     }
+  }
+  if (fb_enables & CRTS_TX_CRC_FB_EN){
+      int tx_crc = ECR->get_tx_crc();
+      if(tx_crc != last_tx_crc){
+          fb_msg[fb_msg_ind] = CRTS_TX_CRC;
+          memcpy(&fb_msg[fb_msg_ind+1], (void*)&tx_crc, sizeof(tx_crc));
+          fb_msg_ind += 1+sizeof(tx_crc);
+          last_tx_crc = tx_crc;
+          fb_args++;
+      }
   }
   if (fb_enables & CRTS_TX_FEC0_FB_EN){
     int tx_fec0 = ECR->get_tx_fec0();
@@ -429,18 +444,22 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
     }
   }
   // intialize python radio if applicable
-  else if (np->cognitive_radio_type == PYTHON) {
-    // set IP for TUN interface
-    // char command[50];
-    // sprintf(command, "ifconfig tunCRTS %s", np->CRTS_IP);
-    // system("ip link set dev tunCRTS up");
-    // sprintf(command, "ip addr add %s/24 dev tunCRTS", np->CRTS_IP);
-    // system(command);
-    // printf("Running command: %s\n", command);
-    // system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
-    // system("ifconfig");
+  else if(np->cognitive_radio_type == PYTHON)
+  {
+      // set IP for TUN interface
+      char command[100];
+      sprintf(command, "ifconfig tunCRTS %s", np->crts_ip);
+      system("ip link set dev tunCRTS up");
+      sprintf(command, "ip addr add %s/24 dev tunCRTS", np->crts_ip);
+      system(command);
+      printf("Running command: %s\n", command);
+      system("route add -net 10.0.0.0 netmask 255.255.255.0 dev tunCRTS");
+      system(command);
+      system("ifconfig");
   }
 }
+
+
 
 void log_rx_data(struct scenario_parameters *sp, struct node_parameters *np,
                  int bytes, int packet_num) {
@@ -613,65 +632,99 @@ int main(int argc, char **argv) {
     }
   }
 
-  // this is used to create a child process for python radios which can be
-  // killed later
-  pid_t pid = 0;
-
-  // Create and start the ECR or python CR so that they are in a ready
-  // state when the experiment begins
-  if (np.cognitive_radio_type == EXTENSIBLE_COGNITIVE_RADIO) {
-    dprintf("Creating ECR object...\n");
-    ECR = new ExtensibleCognitiveRadio;
-
-    // set the USRP's timer to 0
-    uhd::time_spec_t t0(0, 0, 1e6);
-    ECR->usrp_rx->set_time_now(t0, 0);
-
-    rx_stat_fb_timer = timer_create();
+    // this is used to create a child process for python radios which can be killed later
+    pid_t python_pid;
     
-    int argc = 0;
-    char ** argv = NULL;
-    dprintf("Converting ce_args to argc argv format\n");
-    str2argcargv(np.ce_args, np.cognitive_engine, argc, argv);
-    dprintf("Initializing CR\n");
-    Initialize_CR(&np, (void *)ECR, argc, argv);
-    freeargcargv(argc, argv);
+    // Create and start the ECR or python CR so that they are in a ready
+    // state when the experiment begins
+    if(np.cognitive_radio_type == EXTENSIBLE_COGNITIVE_RADIO)
+    {
+        dprintf("Creating ECR object...\n");
+        ECR = new ExtensibleCognitiveRadio;
 
-  } else if (np.cognitive_radio_type == PYTHON) {
-    dprintf("CRTS: Forking child process\n");
-    pid_t pid = fork();
+        // set the USRP's timer to 0
+        uhd::time_spec_t t0(0, 0, 1e6);
+        ECR->usrp_rx->set_time_now(t0, 0);
 
-    // define child's process
-    if (pid == 0) {
-      char command[2000] = "sudo python cognitive_radios/";
-      strcat(command, np.python_file);
-      strcat(command, np.python_args);
-      strcat(command, " &");
-      int ret_value = system(command);
-      if (ret_value != 0)
-        std::cout << "error starting python radio" << std::endl;
 
-      sleep(5);
-      dprintf("CRTS Child: Initializing python CR\n");
-      Initialize_CR(&np, NULL, 0, NULL);
+        rx_stat_fb_timer = timer_create();
 
-      while (true) {
-        if (sig_terminate)
-          break;
-      };
+        int argc = 0;
+        char ** argv = NULL;
+        dprintf("Converting ce_args to argc argv format\n");
+        str2argcargv(np.ce_args, np.cognitive_engine, argc, argv);
+        dprintf("Initializing CR\n");
+        Initialize_CR(&np, (void *)ECR, argc, argv);
+        freeargcargv(argc, argv);
+    } 
+    else if(np.cognitive_radio_type == PYTHON)
+    {
+        //Create tun interface
+        system("sudo ip tuntap add dev tunCRTS mode tun");
+        system("sudo ip link set dev tunCRTS up");
+        dprintf("CRTS: Forking child process\n");
+        //Calling fork creates a duplicate of the calling process that proceeeds from this point
+        //In the new process, python_pid will be 0, which is how we know it is the child
+        //In the parent however, python_pid will be the process id of the new process created by fork.
+        //Then when we replace the child process below with execvp, the new process inherits the old pid,
+        //allowing us to kill it later. See the very end of main()
+        python_pid = fork();
+        
+        // define child's process
+        if(python_pid == 0){
+            //The execvp fuction used below takes two arguments
+            //1. The command to run, python in this case
+            //2. An array of null-terminated arguemnts
+            //      The first item should be the program to run (python, I'm not exactly sure why this needs to be
+            //          specified when it's the first argument to execvp)
+            //      The second item is the file to run, this case the cognitive radio file.
+            //      The next items in the array are the actual arguments from the node_parameters
+            //      The final item must be a NULL pointer
+            char* c_arguments[4];
+            //Allocate space for and place "python" in first slot
+            c_arguments[0] = new char[strlen("python")];
+            strcpy(c_arguments[0], "python");
+            //Allocate space for and place entire path of python radio file to run
+            //Python radios are stored in the cognitive_radios folder inside the main crts folder
+            char path_to_radio[1000];
+            if(getcwd(path_to_radio, sizeof(path_to_radio)) != NULL)
+            {
+                strcat(path_to_radio, "/cognitive_radios/");
+                strcat(path_to_radio, np.python_file);
+            }
+            else
+            {
+                perror("cwd");
+                exit(1);
+            }
+            c_arguments[1] = new char[strlen(path_to_radio)];
+            strcpy(c_arguments[1], path_to_radio);
 
-      dprintf("CRTS Child: Closing sockets\n");
-      close(tcp_controller);
-      exit(EXIT_SUCCESS);
-    }
-  }
-
+            //Allocate space for and place arguments from np.arguments into array
+            c_arguments[2] = new char[strlen(np.python_args)];
+            strcpy(c_arguments[2], np.python_args);
+            //End array with a NULL pointer
+            c_arguments[3] = (char*)0;
+            //Call execvp to start python radio. execvp replaces the current process (in this case the child of CRTS_CR
+            //forked above), so the original CRTS_CR keeps running.
+            execvp("python", c_arguments);
+        
+        }
+        else
+        {
+            sleep(5);
+            printf("CRTS Child: Initializing python CR\n");
+            Initialize_CR(&np, NULL, 0, NULL);
+        }
+        
+    } 
+  
   // Define address structure for CRTS socket server used to receive network
   // traffic
   struct sockaddr_in crts_server_addr;
   memset(&crts_server_addr, 0, sizeof(crts_server_addr));
   crts_server_addr.sin_family = AF_INET;
-  // Only receive packets addressed to the CRTS_IP
+  // Only receive packets addressed to the crts_ip
   crts_server_addr.sin_addr.s_addr = inet_addr(np.crts_ip);
   crts_server_addr.sin_port = htons(port);
   socklen_t clientlen = sizeof(crts_server_addr);
@@ -809,9 +862,9 @@ int main(int argc, char **argv) {
 
         // send UDP packet via CR
         dprintf("CRTS sending packet %i\n", packet_counter);
-        int send_return = sendto(
-            crts_client_sock, (char *)message, sizeof(message), 0,
-            (struct sockaddr *)&crts_client_addr, sizeof(crts_client_addr));
+        int send_return = 0;
+        sendto(crts_client_sock, (char *)message, sizeof(message), 0,
+                (struct sockaddr *)&crts_client_addr, sizeof(crts_client_addr));
         if (send_return < 0)
           printf("Failed to send message\n");
         else
@@ -921,7 +974,7 @@ int main(int argc, char **argv) {
   if (np.cognitive_radio_type == EXTENSIBLE_COGNITIVE_RADIO) {
     delete ECR;
   } else if (np.cognitive_radio_type == PYTHON) {
-    kill(pid, SIGTERM);
+    kill(python_pid, SIGTERM);
   }
 
   printf(

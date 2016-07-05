@@ -25,9 +25,10 @@
 #include "../scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.hpp"
 #include "../scenario_controllers/SC_Template/SC_Template.hpp"
 #include "../scenario_controllers/SC_Network_Loading/SC_Network_Loading.hpp"
+#include "../scenario_controllers/SC_CORNET_Display/SC_CORNET_Display.hpp"
 #include "../scenario_controllers/SC_Rx_Overflow_Test/SC_Rx_Overflow_Test.hpp"
 #include "../scenario_controllers/SC_Control_and_Feedback_Test/SC_Control_and_Feedback_Test.hpp"
-#include "../scenario_controllers/SC_CORNET_3D/SC_CORNET_3D.hpp"
+#include "../scenario_controllers/SC_CORNET_Tutorial/SC_CORNET_Tutorial.hpp"
 // EDIT INCLUDE END FLAG
 
 #define MAXPENDING 5
@@ -116,12 +117,14 @@ ScenarioController* create_sc(struct scenario_parameters *sp){
         SC = new SC_Template(argc, argv);
       if(!strcmp(sp->SC, "SC_Network_Loading"))
         SC = new SC_Network_Loading(argc, argv);
+      if(!strcmp(sp->SC, "SC_CORNET_Display"))
+        SC = new SC_CORNET_Display(argc, argv);
       if(!strcmp(sp->SC, "SC_Rx_Overflow_Test"))
         SC = new SC_Rx_Overflow_Test(argc, argv);
       if(!strcmp(sp->SC, "SC_Control_and_Feedback_Test"))
         SC = new SC_Control_and_Feedback_Test(argc, argv);
-      if(!strcmp(sp->SC, "SC_CORNET_3D"))
-        SC = new SC_CORNET_3D(argc, argv);
+      if(!strcmp(sp->SC, "SC_CORNET_Tutorial"))
+        SC = new SC_CORNET_Tutorial(argc, argv);
   // EDIT SET SC END FLAG
     
   freeargcargv(argc, argv);
@@ -297,10 +300,13 @@ int main(int argc, char **argv) {
     // read scenario file name and repetitions
     scenario_reps =
         read_master_scenario(scenario_master_name, i + 1, scenario_file);
-
     // store the full path and scenario name separately
-    scenario_name_ptr = strrchr(scenario_file,'/')+1;
-    strcpy(scenario_name, scenario_name_ptr);
+    scenario_name_ptr = strrchr(scenario_file,'/');
+    if(scenario_name_ptr != NULL)
+    {
+        scenario_name_ptr++;
+        strcpy(scenario_name, scenario_name_ptr);
+    }
     strcat(scenario_file, ".cfg");
 
     for (unsigned int rep_i = 1; rep_i <= scenario_reps; rep_i++) {

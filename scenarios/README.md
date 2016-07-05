@@ -67,3 +67,8 @@ This example scenario sets up two CR nodes which have asymmetric network loads.
 The network loads are then periodically swapped by the scenario controller. The
 cognitive engines used in this scenario will adapt their bandwidths based on the
 network loads that they detect.
+
+## 10. Python\_Flowgraph\_Example
+
+This scenario demonstrates how to setup and use a cognitive radio written in python
+rather than the ECR.
