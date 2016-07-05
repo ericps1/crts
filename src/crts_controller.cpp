@@ -21,6 +21,7 @@
 #include "extensible_cognitive_radio.hpp"
 
 // EDIT INCLUDE START FLAG
+#include "../scenario_controllers/SC_Performance_Sweep_Utility/SC_Performance_Sweep_Utility.hpp"
 #include "../scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.hpp"
 #include "../scenario_controllers/SC_Template/SC_Template.hpp"
 #include "../scenario_controllers/SC_Network_Loading/SC_Network_Loading.hpp"
@@ -107,6 +108,8 @@ ScenarioController* create_sc(struct scenario_parameters *sp){
   ScenarioController *SC;
 
   // EDIT SET SC START FLAG
+      if(!strcmp(sp->SC, "SC_Performance_Sweep_Utility"))
+        SC = new SC_Performance_Sweep_Utility(argc, argv);
       if(!strcmp(sp->SC, "SC_BER_Sweep"))
         SC = new SC_BER_Sweep(argc, argv);
       if(!strcmp(sp->SC, "SC_Template"))
@@ -461,6 +464,8 @@ int main(int argc, char **argv) {
         // copy node parameters to the scenario controller object
         SC->np[j] = np[j];
       }
+
+      printf("\n");
 
       // initialize feedback settings on nodes
       SC->TCP_nodes = TCP_nodes;

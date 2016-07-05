@@ -925,3 +925,79 @@ int get_feedback_arg_len(int fb_type){
 
   return len;
 }
+
+int get_crts_param_type(int param){
+  
+  int param_type;
+  switch(param){
+    case CRTS_TX_STATE:
+    case CRTS_TX_MOD:
+    case CRTS_TX_FEC0:
+    case CRTS_TX_FEC1:
+    case CRTS_RX_STATE:
+    case CRTS_NET_MODEL:
+    case CRTS_FB_EN:
+    case CRTS_TX_FREQ_BEHAVIOR:
+      param_type = CRTS_PARAM_INT;
+      break;
+    case CRTS_TX_FREQ:
+    case CRTS_TX_RATE:
+    case CRTS_TX_GAIN:
+    case CRTS_RX_FREQ:
+    case CRTS_RX_RATE:
+    case CRTS_RX_GAIN:
+    case CRTS_RX_STATS_FB:
+    case CRTS_NET_THROUGHPUT:
+    case CRTS_TX_DUTY_CYCLE:
+    case CRTS_TX_PERIOD:
+    case CRTS_TX_FREQ_MIN:
+    case CRTS_TX_FREQ_MAX:
+    case CRTS_TX_FREQ_DWELL_TIME:
+    case CRTS_TX_FREQ_RES:
+      param_type = CRTS_PARAM_DOUBLE;
+      break;
+    case CRTS_RX_STATS:
+      param_type = CRTS_PARAM_RX_STATISTICS;
+      break;
+    case CRTS_RX_STATS_RESET:
+    default:
+      param_type = CRTS_PARAM_NONE;
+  }
+
+  return param_type;
+}
+
+// define CRTS parameter strings, this needs to match the
+// crts_params enum in include/crts.hpp 
+const char * crts_param_str[CRTS_NUM_PARAM_TYPES] = {
+  "tx state",
+  "tx frequency",
+  "tx rate",
+  "tx gain",
+  "tx modulation",
+  "tx inner FEC",
+  "tx outter FEC",
+  
+  "rx state",
+  "rx reset",
+  "rx frequency",
+  "rx rate",
+  "rx gain",
+  "rx statistics",
+  "rx statistics feedback",
+  "rx statistics reset",
+
+  "network throughput",
+  "network traffic model",
+  
+  "feedback enables",
+  
+  "tx duty cycle",
+  "tx period",
+  "tx frequency behavior",
+  "tx frequency minimum",
+  "tx frequency maximum",
+  "tx frequency dwell time",
+  "tx frequency resolution"
+};
+

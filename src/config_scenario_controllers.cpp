@@ -338,10 +338,10 @@ int main(int argc, char **argv) {
 
         line_new = "SC_Headers = ";
         for (int i = 0; i < num_scs; i++) {
-          line_new += scs[i].sc_dir+"/"+scs[i].sc_name+".hpp";
+          line_new += scs[i].sc_dir+"/"+scs[i].sc_name+".hpp ";
         }
         for (int i = 0; i < num_headers; i++) {
-          line_new += header_list[i];
+          line_new += header_list[i]+" ";
         }
 // line_new += "\r";
         file_lines.push_back(line_new);

@@ -198,7 +198,8 @@ enum crts_msg_type {
 
 // enumeration of all types of control and feedback passed between 
 // the controller and all other nodes during an experiment
-enum crts_ctrl_and_fdbk_type {
+#define CRTS_NUM_PARAM_TYPES 25
+enum crts_params {
   CRTS_TX_STATE = 0,
   CRTS_TX_FREQ,
   CRTS_TX_RATE,
@@ -246,9 +247,20 @@ enum crts_ctrl_and_fdbk_type {
 #define CRTS_RX_GAIN_FB_EN        (1<<CRTS_RX_GAIN)
 #define CRTS_RX_STATS_FB_EN       (1<<CRTS_RX_STATS)
 
+// all types of parameters used by CRTS communication
+enum crts_param_types{
+  CRTS_PARAM_INT = 0,
+  CRTS_PARAM_DOUBLE,
+  CRTS_PARAM_RX_STATISTICS,
+  CRTS_PARAM_NONE
+};
+
+extern const char * crts_param_str[CRTS_NUM_PARAM_TYPES];
+
 void set_node_parameter(int node, char cont_type, void* _arg);
 
 int get_control_arg_len(int control_type);
 int get_feedback_arg_len(int fb_type);
+int get_crts_param_type(int param);
 
 #endif
