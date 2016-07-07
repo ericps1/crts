@@ -72,18 +72,25 @@ enum COGNITIVE_RADIO_TYPE {
 enum net_traffic_type {
   NET_TRAFFIC_STREAM = 0,
   NET_TRAFFIC_BURST,
-  NET_TRAFFIC_POISSON
+  NET_TRAFFIC_POISSON,
+  NET_TRAFFIC_UNKNOWN
 };
 
 enum interference_type {
-  CW = 0, // continuous-wave interference
-  NOISE,  // random noise interference
-  GMSK,   // gaussian minimum-shift keying inteference
-  RRC,    // root-raised cosine interference (as in WCDMA)
-  OFDM    // orthogonal frequency division multiplexing interference
+  INTERFERENCE_TYPE_CW = 0, // continuous-wave interference
+  INTERFERENCE_TYPE_NOISE,  // random noise interference
+  INTERFERENCE_TYPE_GMSK,   // gaussian minimum-shift keying inteference
+  INTERFERENCE_TYPE_RRC,    // root-raised cosine interference (as in WCDMA)
+  INTERFERENCE_TYPE_OFDM,    // orthogonal frequency division multiplexing interference
+  INTERFERENCE_TYPE_UNKNOWN
 };
 
-enum tx_freq_behavior { FIXED = 0, SWEEP, RANDOM };
+enum tx_freq_behavior { 
+  TX_FREQ_BEHAVIOR_FIXED = 0, 
+  TX_FREQ_BEHAVIOR_SWEEP, 
+  TX_FREQ_BEHAVIOR_RANDOM,
+  TX_FREQ_BEHAVIOR_UNKNOWN
+};
 
 enum subcarrier_alloc {
   LIQUID_DEFAULT_SUBCARRIER_ALLOC = 0,
@@ -198,7 +205,7 @@ enum crts_msg_type {
 
 // enumeration of all types of control and feedback passed between 
 // the controller and all other nodes during an experiment
-#define CRTS_NUM_PARAM_TYPES 25
+#define CRTS_NUM_PARAM_TYPES 26
 enum crts_params {
   CRTS_TX_STATE = 0,
   CRTS_TX_FREQ,
@@ -218,7 +225,7 @@ enum crts_params {
   CRTS_RX_STATS_RESET,
   
   CRTS_NET_THROUGHPUT,
-  CRTS_NET_MODEL,
+  CRTS_NET_TRAFFIC_TYPE,
 
   CRTS_FB_EN,
   
@@ -229,7 +236,9 @@ enum crts_params {
   CRTS_TX_FREQ_MIN,
   CRTS_TX_FREQ_MAX,
   CRTS_TX_FREQ_DWELL_TIME,
-  CRTS_TX_FREQ_RES
+  CRTS_TX_FREQ_RES,
+  
+  CRTS_UNKNOWN_PARAM
 };
 
 // defines bit masks used for feedback enables
@@ -261,6 +270,9 @@ void set_node_parameter(int node, char cont_type, void* _arg);
 
 int get_control_arg_len(int control_type);
 int get_feedback_arg_len(int fb_type);
-int get_crts_param_type(int param);
+int crts_get_param_type(int param);
+int crts_get_str2param(const char *);
+int crts_get_str2net_traffic_type(const char *);
+int crts_get_str2tx_freq_behavior(const char *);
 
 #endif

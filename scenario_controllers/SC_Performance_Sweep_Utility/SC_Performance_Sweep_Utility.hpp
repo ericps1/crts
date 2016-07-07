@@ -26,6 +26,7 @@ private:
   float settle_time_s;
   bool node_1_feedback_received;
   bool node_2_feedback_received;
+  char sweep_cfg_file[100];
 
   int sweep_mode;
   int num_sweep_params;
@@ -40,7 +41,7 @@ private:
   void print_sweep_point_summary();
   void update_sweep_params();
   void set_params(int param_ind);
-
+  void read_sweep_cfg();
 public:
   SC_Performance_Sweep_Utility(int argc, char **argv);
   ~SC_Performance_Sweep_Utility();

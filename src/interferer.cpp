@@ -21,13 +21,13 @@
 
 Interferer::Interferer() {
   // set default parameters
-  interference_type = RRC;
+  interference_type = INTERFERENCE_TYPE_RRC;
   period = 1.0;
   duty_cycle = 1.0;
   tx_freq = 765e6;
   tx_rate = 1e6;
   tx_gain_soft = -3.0;
-  tx_freq_behavior = FIXED;
+  tx_freq_behavior = TX_FREQ_BEHAVIOR_FIXED;
   tx_freq_min = 765e6;
   tx_freq_max = 765e6;
   tx_freq_dwell_time = 1.0;
@@ -317,14 +317,14 @@ void Interferer::UpdateFrequency() {
   static float tx_freq_coeff = 1.0;
 
   switch (tx_freq_behavior) {
-  case (SWEEP):
+  case (TX_FREQ_BEHAVIOR_SWEEP):
     tx_freq += (tx_freq_resolution * tx_freq_coeff);
     if ((tx_freq > tx_freq_max) || (tx_freq < tx_freq_min)) {
       tx_freq_coeff = tx_freq_coeff * -1.0;
       tx_freq = tx_freq + (2.0 * tx_freq_resolution * tx_freq_coeff);
     }
     break;
-  case (RANDOM):
+  case (TX_FREQ_BEHAVIOR_RANDOM):
     tx_freq =
         tx_freq_resolution * roundf((double)(rand() % (int)tx_freq_bandwidth) /
                                     tx_freq_resolution) +
@@ -366,7 +366,7 @@ void *Interferer_tx_worker(void *_arg) {
     // run transmitter
     while (Int->tx_state != INT_TX_STOPPED) {
       // determine if we need to freq hop
-      if ((Int->tx_freq_behavior != (FIXED)) &&
+      if ((Int->tx_freq_behavior != (TX_FREQ_BEHAVIOR_FIXED)) &&
           (timer_toc(Int->freq_dwell_timer) >= Int->tx_freq_dwell_time)) {
         timer_tic(Int->freq_dwell_timer);
         Int->UpdateFrequency();
@@ -403,19 +403,19 @@ void *Interferer_tx_worker(void *_arg) {
       // generate frame and transmit if in the on state
       if (Int->tx_state == INT_TX_DUTY_CYCLE_ON) {
         switch (Int->interference_type) {
-        case (CW):
+        case (INTERFERENCE_TYPE_CW):
           Int->BuildCWTransmission();
           break;
-        case (NOISE):
+        case (INTERFERENCE_TYPE_NOISE):
           Int->BuildNOISETransmission();
           break;
-        case (GMSK):
+        case (INTERFERENCE_TYPE_GMSK):
           Int->BuildGMSKTransmission();
           break;
-        case (RRC):
+        case (INTERFERENCE_TYPE_RRC):
           Int->BuildRRCTransmission();
           break;
-        case (OFDM):
+        case (INTERFERENCE_TYPE_OFDM):
           Int->BuildOFDMTransmission();
           break;
         }

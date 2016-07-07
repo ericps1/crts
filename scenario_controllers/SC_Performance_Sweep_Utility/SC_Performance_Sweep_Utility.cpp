@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <liquid/liquid.h>
+#include <libconfig.h>
 #include "SC_Performance_Sweep_Utility.hpp"
 
 // constructor
@@ -14,7 +15,12 @@ SC_Performance_Sweep_Utility::SC_Performance_Sweep_Utility(int argc, char **argv
   // set up sweep management
   sweep_mode = SWEEP_MODE_NESTED;
   data_ind = 0;
-  num_sweep_params = 3;
+  strcpy(sweep_cfg_file, "scenario_controllers/SC_Performance_Sweep_Utility/default_sweep.cfg");
+
+  printf("Reading config\n");
+  read_sweep_cfg();
+
+  /*num_sweep_params = 3;
   params.resize(num_sweep_params,0);
   num_vals.resize(num_sweep_params,0);
   vals.resize(num_sweep_params,0);
@@ -46,8 +52,10 @@ SC_Performance_Sweep_Utility::SC_Performance_Sweep_Utility(int argc, char **argv
   (*(std::vector<int>*)vals[2])[1] = LIQUID_MODEM_QPSK;
   (*(std::vector<int>*)vals[2])[2] = LIQUID_MODEM_QAM16;
   (*(std::vector<int>*)vals[2])[3] = LIQUID_MODEM_QAM64;
+  */
 
   // setup storage for rx statistics
+  printf("Setting up storage\n");
   if (sweep_mode == SWEEP_MODE_NESTED) {
     num_data_points = 2;
     for (int i=0; i<num_sweep_params; i++)
@@ -103,9 +111,17 @@ SC_Performance_Sweep_Utility::~SC_Performance_Sweep_Utility() {
   fprintf(log, "\n\n");
   fclose(log);  
 
-  for (int i=0; i<num_sweep_params; i++)
-    delete((std::vector<double>*)vals[i]);
-
+  for (int i=0; i<num_sweep_params; i++) {
+    switch (crts_get_param_type(params[i])){
+      case (CRTS_PARAM_DOUBLE):
+        delete((std::vector<double>*)vals[i]);
+        break;
+      case (CRTS_PARAM_INT):
+        delete((std::vector<int>*)vals[i]);
+        break; 
+    }
+  }
+    
 }
 
 // setup feedback enables for each node
@@ -130,15 +146,6 @@ void SC_Performance_Sweep_Utility::execute() {
   if ((sc_event == FEEDBACK) && (fb.fb_type == CRTS_RX_STATS)) {
     rx_stats[data_ind+fb.node-1] = *(struct ExtensibleCognitiveRadio::rx_statistics*) fb.arg;
 
-    printf("%i,", rx_stats[data_ind+fb.node-1].frames_received);
-    printf("%i,", rx_stats[data_ind+fb.node-1].valid_frames);
-    printf("%.3f,", rx_stats[data_ind+fb.node-1].evm_dB);
-    printf("%.3f,", rx_stats[data_ind+fb.node-1].rssi_dB);
-    printf("%.3f,", rx_stats[data_ind+fb.node-1].per);
-    printf("%.3e,", rx_stats[data_ind+fb.node-1].ber);
-    printf("%.3e,", rx_stats[data_ind+fb.node-1].throughput);
-    printf("%i\n", rx_stats[data_ind+fb.node-1].uhd_overflows);
-
     printf("Node %i has sent updated receive statistics:\n", fb.node);
     printf("  Number of frames received: %i\n", rx_stats[data_ind+fb.node-1].frames_received);
     printf("  Average EVM:               %.3f\n", rx_stats[data_ind+fb.node-1].evm_dB);
@@ -150,7 +157,6 @@ void SC_Performance_Sweep_Utility::execute() {
     if (fb.node == 2) node_2_feedback_received = true;
     
     if (node_1_feedback_received && node_2_feedback_received) {
-      printf("num_data_points %i data_ind %i\n", num_data_points, data_ind);
       data_ind += 2;
       node_1_feedback_received = false;
       node_2_feedback_received = false;
@@ -163,13 +169,50 @@ void SC_Performance_Sweep_Utility::execute() {
 void SC_Performance_Sweep_Utility::print_sweep_point_summary() {
 
   printf("Current sweep parameters:\n");
-  //for (int i=0; i<num_params; i++) {
-    printf("%s: %f\n", crts_param_str[params[0]], (*(std::vector<double>*)vals[0])[indices[0]]);
-    printf("%s: %s\n", crts_param_str[params[1]], 
-      fec_scheme_str[(*(std::vector<int>*)vals[1])[indices[1]]][1]);
-    printf("%s: %s\n\n", crts_param_str[params[2]], 
-      modulation_types[(*(std::vector<int>*)vals[2])[indices[2]]].name);
-  //} 
+  for (int i=0; i<num_sweep_params; i++) {
+    switch (params[i]) {
+      case (CRTS_TX_FREQ):
+      case (CRTS_TX_RATE):
+      case (CRTS_TX_GAIN):
+      case (CRTS_RX_FREQ):
+      case (CRTS_RX_RATE):
+      case (CRTS_RX_GAIN):
+      case (CRTS_NET_THROUGHPUT):
+      case (CRTS_TX_DUTY_CYCLE):
+      case (CRTS_TX_PERIOD):
+      case (CRTS_TX_FREQ_MIN):
+      case (CRTS_TX_FREQ_MAX):
+      case (CRTS_TX_FREQ_DWELL_TIME):
+      case (CRTS_TX_FREQ_RES):
+        printf("%s: %.3e\n", crts_param_str[params[i]], 
+          (*(std::vector<double>*)vals[i])[indices[i]]);
+        break;
+      case (CRTS_TX_STATE):
+      case (CRTS_RX_STATE):
+        printf("%s: %i\n", crts_param_str[params[i]], 
+          (*(std::vector<int>*)vals[i])[indices[i]]);
+        break;
+      case (CRTS_TX_MOD):
+        printf("%s: %s\n\n", crts_param_str[params[i]], 
+          modulation_types[(*(std::vector<int>*)vals[i])[indices[i]]].name);
+        break;
+      case (CRTS_TX_FEC0):
+      case (CRTS_TX_FEC1):
+        printf("%s: %s\n", crts_param_str[params[i]], 
+          fec_scheme_str[(*(std::vector<int>*)vals[i])[indices[i]]][1]);
+        break;
+      case (CRTS_NET_TRAFFIC_TYPE):
+        printf("%s: place holder\n", crts_param_str[params[i]]);//, 
+          //fec_scheme_str[(*(std::vector<int>*)vals[i])[indices[i]]][1]);
+        break;
+      case (CRTS_TX_FREQ_BEHAVIOR):
+        break;
+      default:
+        printf("Unrecognized parameter type\n");
+        exit(EXIT_FAILURE);
+    }
+    
+  } 
 }
 
 void SC_Performance_Sweep_Utility::update_sweep_params() {
@@ -189,7 +232,7 @@ void SC_Performance_Sweep_Utility::update_sweep_params() {
 void SC_Performance_Sweep_Utility::set_params(int param_ind) {
 
   for (int i=param_ind; i<=num_sweep_params-1; i++) {
-    switch(get_crts_param_type(params[i])) {
+    switch(crts_get_param_type(params[i])) {
       case (CRTS_PARAM_INT):
         set_node_parameter(1,params[i],(void*) &((*(std::vector<int>*)vals[i])[indices[i]]));
         set_node_parameter(2,params[i],(void*) &((*(std::vector<int>*)vals[i])[indices[i]]));  
@@ -213,6 +256,132 @@ void SC_Performance_Sweep_Utility::set_params(int param_ind) {
   set_node_parameter(2,CRTS_RX_RESET,NULL);
 }
 
+void SC_Performance_Sweep_Utility::read_sweep_cfg() {
 
+  config_t cfg;
+  config_setting_t *param_cfg;
+  char cfg_str[30];
+  const char *tmpS;
+  int tmpI;
+  double tmpD;
+
+  config_init(&cfg);
+
+  if (!config_read_file(&cfg, sweep_cfg_file)) {
+    printf("Error reading sweep config file (%s) on line %i\n",
+           sweep_cfg_file, config_error_line(&cfg));
+    exit(EXIT_FAILURE);
+  }
+
+  sprintf(cfg_str, "num_sweep_params");
+  if (config_lookup_int(&cfg, cfg_str, &tmpI)) {
+    num_sweep_params = tmpI;
+    params.resize(num_sweep_params,0);
+    num_vals.resize(num_sweep_params,0);
+    vals.resize(num_sweep_params,0);
+    indices.resize(num_sweep_params,0);
+  } else {
+    printf("Number of sweep parameters not specified\n");
+    exit(EXIT_FAILURE);
+  }
+
+  printf("num params %i\n", num_sweep_params);
+
+  for (int i=0; i<num_sweep_params; i++) {
+    sprintf(cfg_str, "param_%i", i+1);
+    printf("Looking up: %s\n", cfg_str);
+    param_cfg = config_lookup(&cfg, cfg_str);
+    sprintf(cfg_str, "param_type");
+    printf("Looking up: %s\n", cfg_str);
+    if (config_setting_lookup_string(param_cfg, cfg_str, &tmpS)) {
+      printf("Param type %i: %s\n", i+1, tmpS);
+      params[i] = crts_get_str2param(tmpS);
+      sprintf(cfg_str, "num_vals");
+      if (!config_setting_lookup_int(param_cfg, cfg_str, &num_vals[i])){
+        printf("Number of values not specified for parameter %i\n",i);
+        exit(EXIT_FAILURE);
+      }
+      printf("Number of values specified: %i\n", num_vals[i]);
+      switch (crts_get_param_type(params[i])){
+        case (CRTS_PARAM_DOUBLE):
+          vals[i] = (void*) new std::vector<double>;
+          (*(std::vector<double>*)vals[i]).resize(num_vals[i]); 
+          break;
+        case (CRTS_PARAM_INT):
+          vals[i] = (void*) new std::vector<int>; 
+          (*(std::vector<int>*)vals[i]).resize(num_vals[i]); 
+          break;
+        default:
+          printf("Parameter type not recognized\n");
+          exit(EXIT_FAILURE);
+      }
+      for (int j=0; j<num_vals[i]; j++) {
+        printf("Looking up value %i\n",j+1);
+        sprintf(cfg_str, "val_%i", j+1); 
+        printf("searching for: %s\n", cfg_str);
+        switch (params[i]) {
+          case (CRTS_TX_FREQ):
+          case (CRTS_TX_RATE):
+          case (CRTS_TX_GAIN):
+          case (CRTS_RX_FREQ):
+          case (CRTS_RX_RATE):
+          case (CRTS_RX_GAIN):
+          case (CRTS_NET_THROUGHPUT):
+          case (CRTS_TX_DUTY_CYCLE):
+          case (CRTS_TX_PERIOD):
+          case (CRTS_TX_FREQ_MIN):
+          case (CRTS_TX_FREQ_MAX):
+          case (CRTS_TX_FREQ_DWELL_TIME):
+          case (CRTS_TX_FREQ_RES):
+            if (config_setting_lookup_float(param_cfg, cfg_str, &tmpD)){
+              (*(std::vector<double>*)vals[i])[j] = tmpD; 
+            } else {
+              printf("Double value %i for parameter %i not specified\n",j+1,i+1);
+              exit(EXIT_FAILURE);
+            }
+            break;
+          case (CRTS_TX_STATE):
+          case (CRTS_RX_STATE):
+            if (config_setting_lookup_int(param_cfg, cfg_str, &tmpI)){
+              (*(std::vector<int>*)vals[i])[j] = tmpI; 
+            } else {
+              printf("Int value %i for parameter %i not specified\n",j+1,i+1);
+              exit(EXIT_FAILURE);
+            }
+            break;
+          default:
+            if (config_setting_lookup_string(param_cfg, cfg_str, &tmpS)) {
+              switch(params[i]) {
+                case (CRTS_TX_MOD):
+                  (*(std::vector<int>*)vals[i])[j] = liquid_getopt_str2mod(tmpS);
+                  break;
+                case (CRTS_TX_FEC0):
+                case (CRTS_TX_FEC1):
+                  (*(std::vector<int>*)vals[i])[j] = liquid_getopt_str2fec(tmpS);
+                  break;
+                case (CRTS_NET_TRAFFIC_TYPE):
+                  (*(std::vector<int>*)vals[i])[j] = crts_get_str2net_traffic_type(tmpS);
+                  break;
+                case (CRTS_TX_FREQ_BEHAVIOR):
+                  (*(std::vector<int>*)vals[i])[j] = crts_get_str2tx_freq_behavior(tmpS);
+                  break;
+                default:
+                  printf("Unrecognized parameter type\n");
+                  exit(EXIT_FAILURE);
+              }
+            }
+            else {
+              printf("Value %i for parameter %i not specified\n",j,i);
+              exit(EXIT_FAILURE);
+            }
+        }               
+      }
+    } else {
+      printf("Failed to find config setting for vals_%i\n", i+1);
+      exit(EXIT_FAILURE);
+    }
+  }
+
+}
 
 
