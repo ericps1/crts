@@ -194,9 +194,6 @@ void apply_control_msg(char cont_type,
       np->net_mean_throughput = *(double*)_arg;
       *t_step = 8.0 * (double)CRTS_CR_PACKET_LEN / np->net_mean_throughput;
       break;
-    case CRTS_NET_MODEL:
-      np->net_traffic_type = *(int*)_arg;
-      break;
     case CRTS_NET_TRAFFIC_TYPE:
       np->net_traffic_type = *(int*)_arg;
       break;
