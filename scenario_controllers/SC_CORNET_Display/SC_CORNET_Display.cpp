@@ -78,12 +78,12 @@ void SC_CORNET_Display::initialize_node_fb() {
     // enable all feedback types
     int fb_enables = INT_MAX;
     //int fb_enables = INT_MAX;
-    for(int i=0; i<sp.num_nodes; i++)
+    for(int i=1; i<=sp.num_nodes; i++)
         set_node_parameter(i, CRTS_FB_EN, (void*) &fb_enables);
 
     double rx_stats_period = 3.0;
     double rx_stats_report_rate = 1.0;
-    for(int i=0; i<sp.num_nodes; i++)
+    for(int i=1; i<=sp.num_nodes; i++)
     {
         set_node_parameter(i, CRTS_RX_STATS, (void*) &rx_stats_period);
         set_node_parameter(i, CRTS_RX_STATS_FB, (void*) &rx_stats_report_rate);

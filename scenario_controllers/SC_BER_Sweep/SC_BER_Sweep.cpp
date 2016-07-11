@@ -59,16 +59,16 @@ SC_BER_Sweep::~SC_BER_Sweep() {
 // setup feedback enables for each node
 void SC_BER_Sweep::initialize_node_fb() {
   printf("Enabling rx statistics feedback\n");
-  int fb_enables = CRTS_RX_STATS_FB_EN; 
-  set_node_parameter(0, CRTS_FB_EN, (void*) &fb_enables);
+  int fb_enables = INT_MAX; 
+  set_node_parameter(1, CRTS_FB_EN, (void*) &fb_enables);
   
   double rx_stats_period = dwell_time_s;
-  set_node_parameter(0, CRTS_RX_STATS, (void*) &rx_stats_period); 
-  set_node_parameter(0, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
+  set_node_parameter(1, CRTS_RX_STATS, (void*) &rx_stats_period); 
+  set_node_parameter(1, CRTS_RX_STATS_FB, (void*) &rx_stats_period);
 
   // initialize gains
-  set_node_parameter(0, CRTS_RX_GAIN, (void*) &rx_gain);
-  set_node_parameter(1, CRTS_TX_GAIN, (void*) &tx_gain);
+  set_node_parameter(1, CRTS_RX_GAIN, (void*) &rx_gain);
+  set_node_parameter(2, CRTS_TX_GAIN, (void*) &tx_gain);
 }
 
 // execute function
@@ -119,12 +119,12 @@ void SC_BER_Sweep::execute() {
     else
       rx_gain += rx_gain_step;
 
-    set_node_parameter(1, CRTS_TX_GAIN, (void*) &tx_gain);
-    set_node_parameter(1, CRTS_RX_GAIN, (void*) &rx_gain);
+    set_node_parameter(2, CRTS_TX_GAIN, (void*) &tx_gain);
+    set_node_parameter(2, CRTS_RX_GAIN, (void*) &rx_gain);
 
     // wait for state to settle and reset statistics
     usleep(settle_time_us);
-    set_node_parameter(0, CRTS_RX_STATS_RESET, NULL);
+    set_node_parameter(1, CRTS_RX_STATS_RESET, NULL);
   }
 }
 

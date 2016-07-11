@@ -58,13 +58,13 @@ void SC_CORNET_Tutorial::initialize_node_fb() {
     // enable all feedback types
     int fb_enables = INT_MAX;
     //int fb_enables = INT_MAX;
-    for(int i=0; i<sp.num_nodes; i++)
+    for(int i=1; i<=sp.num_nodes; i++)
         set_node_parameter(i, CRTS_FB_EN, (void*) &fb_enables);
 
     double rx_stats_period = 1.0;
     double rx_stats_report_rate = 1.0;
-    set_node_parameter(1, CRTS_RX_STATS, (void*) &rx_stats_period);
-    set_node_parameter(1, CRTS_RX_STATS_FB, (void*) &rx_stats_report_rate);
+    set_node_parameter(2, CRTS_RX_STATS, (void*) &rx_stats_period);
+    set_node_parameter(2, CRTS_RX_STATS_FB, (void*) &rx_stats_report_rate);
 }
 
 // execute function
@@ -152,14 +152,14 @@ void SC_CORNET_Tutorial::execute() {
             if(params.freq >= 0 && params.freq != old_freq)
             {
                 set_node_parameter(params.node, CRTS_TX_FREQ, &params.freq);
-                set_node_parameter(params.node == 0 ? 1 : 0, CRTS_RX_FREQ, &params.freq);
+                set_node_parameter(params.node == 1 ? 2 : 1, CRTS_RX_FREQ, &params.freq);
                 old_freq = params.freq;
             }
 
             if(params.bandwidth >= 0 && params.bandwidth != old_bandwidth)
             {
                 set_node_parameter(params.node, CRTS_TX_RATE, &params.bandwidth);
-                set_node_parameter(params.node == 0 ? 1 : 0, CRTS_RX_RATE, &params.bandwidth);
+                set_node_parameter(params.node == 1 ? 2 : 1, CRTS_RX_RATE, &params.bandwidth);
                 old_bandwidth = params.bandwidth;
             }
 

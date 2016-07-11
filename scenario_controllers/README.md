@@ -20,7 +20,7 @@ network throughput for two CR nodes at a specified time interval.
 
 This SC was made to perform BER measurements as a funciton of transmit and receive gains.
 
-## 4. SC\_CORNET\_3D
+## 4. SC\_CORNET\_Tutorial
 
 This SC was made as a way to interface CRTS and CORNET 3D. It simply forwards feedback
 and control messages between CRTS nodes and the CORNET 3D server.

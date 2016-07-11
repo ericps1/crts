@@ -19,10 +19,10 @@ private:
 
   static double constexpr tx_gain_min = 5.0;
   static double constexpr tx_gain_max = 20.0;
-  static double constexpr tx_gain_step = 0.1;
+  static double constexpr tx_gain_step = 1.0;
   static double constexpr rx_gain_min = 5.0;
   static double constexpr rx_gain_max = 20.0;
-  static double constexpr rx_gain_step = 0.1;
+  static double constexpr rx_gain_step = 1.0;
   static double constexpr dwell_time_s = 120.0;
   static double constexpr settle_time_us = 1e6;
   
