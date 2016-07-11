@@ -13,6 +13,28 @@
 #define dprintf(...) /*__VA_ARGS__*/
 #endif
 
+int crts_get_str2net_traffic_type(const char * net_traffic_type) {
+  if(!strcmp(net_traffic_type, "stream"))
+    return NET_TRAFFIC_STREAM;
+  if(!strcmp(net_traffic_type, "burst"))
+    return NET_TRAFFIC_BURST;
+  if(!strcmp(net_traffic_type, "poisson"))
+    return NET_TRAFFIC_POISSON;
+
+  return NET_TRAFFIC_UNKNOWN;
+}
+
+int crts_get_str2tx_freq_behavior(const char * tx_freq_behavior) {
+  if (!strcmp(tx_freq_behavior, "FIXED"))
+    return TX_FREQ_BEHAVIOR_FIXED;
+  if (!strcmp(tx_freq_behavior, "SWEEP"))
+    return TX_FREQ_BEHAVIOR_SWEEP;
+  if (!strcmp(tx_freq_behavior, "RANDOM"))
+    return TX_FREQ_BEHAVIOR_RANDOM;
+  
+  return TX_FREQ_BEHAVIOR_UNKNOWN;
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Command-line style argument functions
 ////////////////////////////////////////////////////////////////////////
@@ -342,7 +364,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   // look up network traffic type
   np.net_burst_length = 1;
   if (config_setting_lookup_string(node_config, "net_traffic_type", &tmpS)) {
-    if (!strcmp(tmpS, "stream")) {
+    np.net_traffic_type = crts_get_str2net_traffic_type(tmpS);
+    /*if (!strcmp(tmpS, "stream")) {
       np.net_traffic_type = NET_TRAFFIC_STREAM;
     } else if (!strcmp(tmpS, "burst")) {
       np.net_traffic_type = NET_TRAFFIC_BURST;
@@ -352,7 +375,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
     } else if (!strcmp(tmpS, "poisson"))
       np.net_traffic_type = NET_TRAFFIC_POISSON;
     else
-      np.net_traffic_type = NET_TRAFFIC_STREAM;
+      np.net_traffic_type = NET_TRAFFIC_STREAM;*/
   }
 
   if (config_setting_lookup_float(node_config, "rx_freq", &tmpD))
@@ -610,14 +633,15 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   np.tx_modulation = LIQUID_MODEM_BPSK;
   if (config_setting_lookup_string(node_config, "tx_modulation", &tmpS)) {
 
-    // Iterate through every liquid modulation scheme
+    np.tx_modulation = liquid_getopt_str2mod(tmpS);
+    /*// Iterate through every liquid modulation scheme
     // and if the string matches, then assign that scheme.
     // See liquid soruce: src/modem/src/modem_utilities.c
     // for definition of modulation_types
     for (int k = 0; k < LIQUID_MODEM_NUM_SCHEMES; k++) {
       if (!strcmp(tmpS, modulation_types[k].name))
         np.tx_modulation = modulation_types[k].scheme;
-    }
+    }*/
   }
 
   // default tx CRC32
@@ -664,17 +688,17 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
 
   if (config_setting_lookup_string(node_config, "interference_type", &tmpS)) {
     if (!strcmp(tmpS, "CW"))
-      np.interference_type = CW;
+      np.interference_type = INTERFERENCE_TYPE_CW;
     if (!strcmp(tmpS, "NOISE"))
-      np.interference_type = NOISE;
+      np.interference_type = INTERFERENCE_TYPE_NOISE;
     if (!strcmp(tmpS, "GMSK"))
-      np.interference_type = GMSK;
+      np.interference_type = INTERFERENCE_TYPE_GMSK;
     if (!strcmp(tmpS, "RRC"))
-      np.interference_type = RRC;
+      np.interference_type = INTERFERENCE_TYPE_RRC;
     if (!strcmp(tmpS, "OFDM"))
-      np.interference_type = OFDM;
+      np.interference_type = INTERFERENCE_TYPE_OFDM;
     if (!strcmp(tmpS, "AWGN"))
-      np.interference_type = AWGN; 
+      np.interference_type = INTERFERENCE_TYPE_AWGN; 
   }
 
   if (config_setting_lookup_float(node_config, "period", &tmpD))
@@ -686,14 +710,15 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   // ======================================================
   // process frequency hopping parameters
   // ======================================================
-  np.tx_freq_behavior = FIXED;
+  np.tx_freq_behavior = TX_FREQ_BEHAVIOR_FIXED;
   if (config_setting_lookup_string(node_config, "tx_freq_behavior", &tmpS)) {
-    if (!strcmp(tmpS, "FIXED"))
+    np.tx_freq_behavior = crts_get_str2tx_freq_behavior(tmpS);
+    /*if (!strcmp(tmpS, "FIXED"))
       np.tx_freq_behavior = FIXED;
     if (!strcmp(tmpS, "SWEEP"))
       np.tx_freq_behavior = SWEEP;
     if (!strcmp(tmpS, "RANDOM"))
-      np.tx_freq_behavior = RANDOM;
+      np.tx_freq_behavior = RANDOM;*/
   }
 
   if (config_setting_lookup_float(node_config, "tx_freq_min", &tmpD))
@@ -819,34 +844,34 @@ void print_node_parameters(struct node_parameters *np) {
     char interference_type[5] = "NONE";
     char tx_freq_behavior[6] = "NONE";
     switch (np->interference_type) {
-    case (CW):
+    case (INTERFERENCE_TYPE_CW):
       strcpy(interference_type, "CW");
       break;
-    case (NOISE):
-      strcpy(interference_type, "NOISE");
+    case (INTERFERENCE_TYPE_NOISE):
+      strcpy(interference_type, "AWGN");
       break;
-    case (GMSK):
+    case (INTERFERENCE_TYPE_GMSK):
       strcpy(interference_type, "GMSK");
       break;
-    case (RRC):
+    case (INTERFERENCE_TYPE_RRC):
       strcpy(interference_type, "RRC");
       break;
-    case (OFDM):
+    case (INTERFERENCE_TYPE_OFDM):
       strcpy(interference_type, "OFDM");
       break;
-    case (AWGN):
+    case (INTERFERENCE_TYPE_AWGN):
       strcpy(interference_type, "AWGN");
       break;
     }
     switch (np->tx_freq_behavior) {
-    case (FIXED):
-      strcpy(tx_freq_behavior, "FIXED");
+    case (TX_FREQ_BEHAVIOR_FIXED):
+      strcpy(tx_freq_behavior, "fixed");
       break;
-    case (SWEEP):
-      strcpy(tx_freq_behavior, "SWEEP");
+    case (TX_FREQ_BEHAVIOR_SWEEP):
+      strcpy(tx_freq_behavior, "sweep");
       break;
-    case (RANDOM):
-      strcpy(tx_freq_behavior, "RANDOM");
+    case (TX_FREQ_BEHAVIOR_RANDOM):
+      strcpy(tx_freq_behavior, "random");
       break;
     }
     printf("    Interference type:                 %-s\n", interference_type);
@@ -880,7 +905,7 @@ int get_control_arg_len(int control_type){
     case CRTS_TX_FEC0:
     case CRTS_TX_FEC1:
     case CRTS_RX_STATE:
-    case CRTS_NET_MODEL:
+    case CRTS_NET_TRAFFIC_TYPE:
     case CRTS_FB_EN:
     case CRTS_TX_FREQ_BEHAVIOR:
       len = sizeof(int);
@@ -940,7 +965,7 @@ int get_feedback_arg_len(int fb_type){
   return len;
 }
 
-int get_crts_param_type(int param){
+int crts_get_param_type(int param){
   
   int param_type;
   switch(param){
@@ -949,7 +974,7 @@ int get_crts_param_type(int param){
     case CRTS_TX_FEC0:
     case CRTS_TX_FEC1:
     case CRTS_RX_STATE:
-    case CRTS_NET_MODEL:
+    case CRTS_NET_TRAFFIC_TYPE:
     case CRTS_FB_EN:
     case CRTS_TX_FREQ_BEHAVIOR:
       param_type = CRTS_PARAM_INT;
@@ -980,6 +1005,8 @@ int get_crts_param_type(int param){
 
   return param_type;
 }
+
+#define CRTS_NUM_PARAMS 25
 
 // define CRTS parameter strings, this needs to match the
 // crts_params enum in include/crts.hpp 
@@ -1012,6 +1039,16 @@ const char * crts_param_str[CRTS_NUM_PARAM_TYPES] = {
   "tx frequency minimum",
   "tx frequency maximum",
   "tx frequency dwell time",
-  "tx frequency resolution"
+  "tx frequency resolution",
+
+  "unknown"
 };
 
+int crts_get_str2param(const char* param_str) {
+  for (int i=0; i<CRTS_NUM_PARAMS; i++) {
+    if (!strcmp(param_str, crts_param_str[i]))
+      return i;
+  }
+  
+  return CRTS_UNKNOWN_PARAM;
+}

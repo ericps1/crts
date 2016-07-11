@@ -197,6 +197,9 @@ void apply_control_msg(char cont_type,
     case CRTS_NET_MODEL:
       np->net_traffic_type = *(int*)_arg;
       break;
+    case CRTS_NET_TRAFFIC_TYPE:
+      np->net_traffic_type = *(int*)_arg;
+      break;
     case CRTS_FB_EN:
       *fb_enables = *(int*)_arg;
       break;
