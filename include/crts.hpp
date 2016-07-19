@@ -207,7 +207,7 @@ enum crts_msg_type {
 
 // enumeration of all types of control and feedback passed between 
 // the controller and all other nodes during an experiment
-#define CRTS_NUM_PARAM_TYPES 26
+#define CRTS_NUM_PARAM_TYPES 27
 enum crts_params {
   CRTS_TX_STATE = 0,
   CRTS_TX_FREQ,

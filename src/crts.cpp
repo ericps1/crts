@@ -971,6 +971,7 @@ int crts_get_param_type(int param){
   switch(param){
     case CRTS_TX_STATE:
     case CRTS_TX_MOD:
+    case CRTS_TX_CRC:
     case CRTS_TX_FEC0:
     case CRTS_TX_FEC1:
     case CRTS_RX_STATE:
@@ -1006,8 +1007,6 @@ int crts_get_param_type(int param){
   return param_type;
 }
 
-#define CRTS_NUM_PARAMS 25
-
 // define CRTS parameter strings, this needs to match the
 // crts_params enum in include/crts.hpp 
 const char * crts_param_str[CRTS_NUM_PARAM_TYPES] = {
@@ -1016,6 +1015,7 @@ const char * crts_param_str[CRTS_NUM_PARAM_TYPES] = {
   "tx rate",
   "tx gain",
   "tx modulation",
+  "tx CRC",
   "tx inner FEC",
   "tx outter FEC",
   
@@ -1029,7 +1029,7 @@ const char * crts_param_str[CRTS_NUM_PARAM_TYPES] = {
   "rx statistics reset",
 
   "network throughput",
-  "network traffic model",
+  "network traffic type",
   
   "feedback enables",
   
@@ -1045,7 +1045,7 @@ const char * crts_param_str[CRTS_NUM_PARAM_TYPES] = {
 };
 
 int crts_get_str2param(const char* param_str) {
-  for (int i=0; i<CRTS_NUM_PARAMS; i++) {
+  for (int i=0; i<CRTS_NUM_PARAM_TYPES; i++) {
     if (!strcmp(param_str, crts_param_str[i]))
       return i;
   }

@@ -52,12 +52,21 @@ SC_Performance_Sweep_Utility::~SC_Performance_Sweep_Utility() {
   }
   fprintf(log, "node,frames received,valid frames,EVM (dB),RSSI (dB),PER,BER,"
     "Throughput (b/s),uhd overflows\n");
-  char sweep_vals_str[256];
+  char sweep_vals_str[1024]; 
+  
+  // determine the maximum step period for the swept parameters
+  int max_param_period = 2; // initialized at 2 for 2 nodes
+  for (int i=0; i<num_sweep_params; i++)
+    max_param_period *= num_vals[i];
+
+  // iterate through all data points, sweeping parameter values are determined
+  // based on the nested loop structure
   for (int i=0; i<num_data_points; i++){
-    int param_period = 2; // initialized at 2 due to there being two nodes
-    strcpy(sweep_vals_str, "");
+    int param_period = max_param_period; // the first parameter has the greatest period
+    memset(sweep_vals_str,0,sizeof(sweep_vals_str));
     for (int j=0; j<num_sweep_params; j++) {
-      switch (params[i]) {
+      param_period /= num_vals[j];
+      switch (params[j]) {
         case (CRTS_TX_FREQ):
         case (CRTS_TX_RATE):
         case (CRTS_TX_GAIN):
@@ -71,24 +80,22 @@ SC_Performance_Sweep_Utility::~SC_Performance_Sweep_Utility() {
         case (CRTS_TX_FREQ_MAX):
         case (CRTS_TX_FREQ_DWELL_TIME):
         case (CRTS_TX_FREQ_RES):
-          sprintf(sweep_vals_str, "%.3e,%s", 
-            (*(std::vector<double>*)vals[j])[(i/param_period)%num_vals[j]], sweep_vals_str);
+          sprintf(sweep_vals_str, "%s%.3e", sweep_vals_str,
+            (*(std::vector<double>*)vals[j])[(i/param_period)%num_vals[j]]);
           break;
         case (CRTS_TX_STATE):
         case (CRTS_RX_STATE):
-          sprintf(sweep_vals_str, "%i,%s", 
-            (*(std::vector<int>*)vals[j])[(i/param_period)%num_vals[j]], sweep_vals_str);
+          sprintf(sweep_vals_str, "%s%i", sweep_vals_str,
+            (*(std::vector<int>*)vals[j])[(i/param_period)%num_vals[j]]);
           break;
         case (CRTS_TX_MOD):
-          sprintf(sweep_vals_str, "%s,%s", 
-            modulation_types[(*(std::vector<int>*)vals[j])[(i/param_period)%num_vals[j]]].name,
-            sweep_vals_str);
+          sprintf(sweep_vals_str, "%s%s", sweep_vals_str,
+            modulation_types[(*(std::vector<int>*)vals[j])[(i/param_period)%num_vals[j]]].name);
           break;
         case (CRTS_TX_FEC0):
         case (CRTS_TX_FEC1):
-          sprintf(sweep_vals_str, "%s,%s", 
-            fec_scheme_str[(*(std::vector<int>*)vals[j])[(i/param_period)%num_vals[j]]][0],
-            sweep_vals_str);
+          sprintf(sweep_vals_str, "%s%s", sweep_vals_str,
+            fec_scheme_str[(*(std::vector<int>*)vals[j])[(i/param_period)%num_vals[j]]][0]);
           break;
         case (CRTS_NET_TRAFFIC_TYPE):
           printf("%s: place holder\n", crts_param_str[params[j]]);//, 
@@ -97,7 +104,7 @@ SC_Performance_Sweep_Utility::~SC_Performance_Sweep_Utility() {
         case (CRTS_TX_FREQ_BEHAVIOR):
           break; 
       }
-      param_period *= num_vals[j];
+      sprintf(sweep_vals_str, "%s,", sweep_vals_str); 
     }
     fprintf(log, "%s", sweep_vals_str);
     fprintf(log, "%i,", (i%2)+1);
@@ -113,17 +120,17 @@ SC_Performance_Sweep_Utility::~SC_Performance_Sweep_Utility() {
   fprintf(log, "\n\n");
   fclose(log);  
   
+
   for (int i=0; i<num_sweep_params; i++) {
     switch (crts_get_param_type(params[i])){
       case (CRTS_PARAM_DOUBLE):
-        delete(reinterpret_cast<std::vector<double>*>(vals[i]));
+        delete(static_cast<std::vector<double>*>(vals[i]));
         break;
       case (CRTS_PARAM_INT):
-        delete(reinterpret_cast<std::vector<int>*>(vals[i]));
+        delete(static_cast<std::vector<int>*>(vals[i]));
         break; 
     }
-  }
-    
+  }  
 }
 
 // setup feedback enables for each node
@@ -244,7 +251,7 @@ void SC_Performance_Sweep_Utility::update_sweep_params() {
 
 void SC_Performance_Sweep_Utility::set_params(int param_ind) {
 
-  for (int i=param_ind; i<=num_sweep_params-1; i++) {
+  for (int i=param_ind; i<num_sweep_params; i++) {
     switch(crts_get_param_type(params[i])) {
       case (CRTS_PARAM_INT):
         set_node_parameter(1,params[i],(void*) &((*(std::vector<int>*)vals[i])[indices[i]]));
