@@ -3,7 +3,6 @@
 
 #include "scenario_controller.hpp"
 
-#define PERFORMANCE_SWEEP_LOG_FILE ("logs/csv/performance_sweep_log.csv")
 #define DEFAULT_DWELL_TIME_S 60
 #define DEFAULT_SETTLE_TIME_S 2
 
@@ -26,7 +25,8 @@ private:
   float settle_time_s;
   bool node_1_feedback_received;
   bool node_2_feedback_received;
-  char sweep_cfg_file[100];
+  char sweep_cfg_file[1024];
+  char log_file_name[1024];
 
   int sweep_mode;
   int num_sweep_params;
@@ -42,6 +42,7 @@ private:
   void update_sweep_params();
   void set_params(int param_ind);
   void read_sweep_cfg();
+  void alloc_vals(int i);
 public:
   SC_Performance_Sweep_Utility(int argc, char **argv);
   ~SC_Performance_Sweep_Utility();

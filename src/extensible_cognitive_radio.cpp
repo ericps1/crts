@@ -411,9 +411,7 @@ void uhd_msg_handler(uhd::msg::type_t type, const std::string &msg) {
   if ((!strcmp(msg.c_str(), "O")) || (!strcmp(msg.c_str(), "D")))
     ExtensibleCognitiveRadio::uhd_msg = 1;
   else if (!strcmp(msg.c_str(), "U"))
-    ExtensibleCognitiveRadio::uhd_msg = 2;
-  else
-    printf("Other UHD message type received\n");
+    ExtensibleCognitiveRadio::uhd_msg = 2; 
 }
 
 ///////////////////////////////////////////////////////////////////////

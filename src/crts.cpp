@@ -54,17 +54,17 @@ void str2argcargv(char *string, char *progName, int &argc, char (**&argv))    {
   argv = (char **) malloc(sizeof(char*) * (argc+1));
   argv[argc] = 0;
   // Set the name of the program in the first element
-  *argv = (char *) malloc(sizeof(char) * (strlen(progName)+1));
-  strcpy(*argv, progName); 
+  argv[0] = (char *) malloc(sizeof(char) * (strlen(progName)+1));
+  strcpy(argv[0], progName); 
   
   if ((argc) > 1){
     free(stringCpy);
-    stringCpy = (char *) malloc(sizeof(char)*strlen(string));
+    stringCpy = (char *) malloc(sizeof(char)*(strlen(string)+1));
     strcpy(stringCpy, string);
     token = strtok(stringCpy, " ");
     for (int i=1; token!=NULL; i++)
     {
-      argv[i] = (char *) malloc(sizeof(char)*strlen(token));
+      argv[i] = (char *) malloc(sizeof(char)*(strlen(token)+1));
       strcpy( argv[i], token);
       token = strtok(NULL, " ");
     } 
@@ -363,20 +363,8 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
 
   // look up network traffic type
   np.net_burst_length = 1;
-  if (config_setting_lookup_string(node_config, "net_traffic_type", &tmpS)) {
+  if (config_setting_lookup_string(node_config, "net_traffic_type", &tmpS))
     np.net_traffic_type = crts_get_str2net_traffic_type(tmpS);
-    /*if (!strcmp(tmpS, "stream")) {
-      np.net_traffic_type = NET_TRAFFIC_STREAM;
-    } else if (!strcmp(tmpS, "burst")) {
-      np.net_traffic_type = NET_TRAFFIC_BURST;
-      // look up the burst length if traffic type is burst
-      if (config_setting_lookup_int(node_config, "net_burst_length", &tmpI))
-        np.net_burst_length = tmpI;
-    } else if (!strcmp(tmpS, "poisson"))
-      np.net_traffic_type = NET_TRAFFIC_POISSON;
-    else
-      np.net_traffic_type = NET_TRAFFIC_STREAM;*/
-  }
 
   if (config_setting_lookup_float(node_config, "rx_freq", &tmpD))
     np.rx_freq = tmpD;
@@ -631,61 +619,24 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
 
   // default tx modulation is BPSK
   np.tx_modulation = LIQUID_MODEM_BPSK;
-  if (config_setting_lookup_string(node_config, "tx_modulation", &tmpS)) {
-
+  if (config_setting_lookup_string(node_config, "tx_modulation", &tmpS))
     np.tx_modulation = liquid_getopt_str2mod(tmpS);
-    /*// Iterate through every liquid modulation scheme
-    // and if the string matches, then assign that scheme.
-    // See liquid soruce: src/modem/src/modem_utilities.c
-    // for definition of modulation_types
-    for (int k = 0; k < LIQUID_MODEM_NUM_SCHEMES; k++) {
-      if (!strcmp(tmpS, modulation_types[k].name))
-        np.tx_modulation = modulation_types[k].scheme;
-    }*/
-  }
 
   // default tx CRC32
   np.tx_crc = LIQUID_CRC_32;
-  if (config_setting_lookup_string(node_config, "tx_crc", &tmpS)) {
-
-    // Iterate through every liquid CRC
-    // and if the string matches, then assign that CRC.
-    // See liquid soruce: src/fec/src/crc.c
-    // for definition of crc_scheme_str
-    for (int k = 0; k < LIQUID_CRC_NUM_SCHEMES; k++) {
-      if (!strcmp(tmpS, crc_scheme_str[k][0]))
-        np.tx_crc = k;
-    }
-  }
-
+  if (config_setting_lookup_string(node_config, "tx_crc", &tmpS))
+    np.tx_crc = liquid_getopt_str2crc(tmpS);
+    
   // default tx FEC0 is Hamming 12/8
   np.tx_fec0 = LIQUID_FEC_HAMMING128;
-  if (config_setting_lookup_string(node_config, "tx_fec0", &tmpS)) {
-
-    // Iterate through every liquid FEC
-    // and if the string matches, then assign that FEC.
-    // See liquid soruce: src/fec/src/fec.c
-    // for definition of fec_scheme_str
-    for (int k = 0; k < LIQUID_FEC_NUM_SCHEMES; k++) {
-      if (!strcmp(tmpS, fec_scheme_str[k][0]))
-        np.tx_fec0 = k;
-    }
-  }
+  if (config_setting_lookup_string(node_config, "tx_fec0", &tmpS))
+    np.tx_fec0 = liquid_getopt_str2fec(tmpS);
 
   // default rx FEC1 is none
   np.tx_fec1 = LIQUID_FEC_NONE;
-  if (config_setting_lookup_string(node_config, "tx_fec1", &tmpS)) {
-
-    // Iterate through every liquid FEC
-    // and if the string matches, then assign that FEC.
-    // See liquid soruce: src/fec/src/fec.c
-    // for definition of fec_scheme_str
-    for (int k = 0; k < LIQUID_FEC_NUM_SCHEMES; k++) {
-      if (!strcmp(tmpS, fec_scheme_str[k][0]))
-        np.tx_fec1 = k;
-    }
-  }
-
+  if (config_setting_lookup_string(node_config, "tx_fec1", &tmpS))
+    np.tx_fec0 = liquid_getopt_str2fec(tmpS);
+  
   if (config_setting_lookup_string(node_config, "interference_type", &tmpS)) {
     if (!strcmp(tmpS, "CW"))
       np.interference_type = INTERFERENCE_TYPE_CW;
