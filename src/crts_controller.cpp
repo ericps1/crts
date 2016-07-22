@@ -162,14 +162,20 @@ void log_scenario_summary(int scenario_num, int rep_num, char *scenario_master_n
 }
 
 void help_crts_controller() {
-  printf("CRTS_controller -- Initiate cognitive radio testing.\n");
+  printf("crts_controller -- Initiates cognitive radio testing and provides means\n"
+         "  to obtain real-time feedback and exert control over the test scenarios.\n");
   printf(" -h : Help.\n");
-  printf(" -m : Manual Mode - Start each node manually rather than have "
-         "CRTS_controller do it automatically.\n");
+  printf(" -m : Manual Mode - Start each node manually rather than have\n"
+         "      crts_controller do it automatically.\n");
   printf(" -f : Master scenario file (default: scenario_master_template.cfg).\n");
-  printf(" -a : IP Address - IP address of this computer as seen by remote "
-         "nodes.\n");
-  printf("      Autodetected by default.\n");
+  printf(" -a : IP Address - IP address of this computer as seen by remote nodes.\n"
+         "      Autodetected by default.\n");
+  printf(" -s : Scenario - Specifies a single scenario to run rather than using a\n"
+         "      scenario master file. The path is assumed to start in /scenarios/ e.g.\n"
+         "      -s test_scenarios/tx_gain_sweep\n");
+  printf(" -r : Repetitions - Specifies the number of times the provided scenario\n"
+         "      will be repeated. This only applies when a scenario is specified with\n"
+         "      the -s option\n");
 }
 
 void terminate(int signum) {
@@ -217,9 +223,13 @@ int main(int argc, char **argv) {
          inet_ntoa(((struct sockaddr_in *)&interfaces.ifr_addr)->sin_addr));
   serv_ip_addr = serv_ip_addr_auto;
 
+  char scenario_file[255];
+  unsigned int scenario_reps = 1;
+  bool scenario_opt_given = false;
+
   // interpret command line options
   int d;
-  while ((d = getopt(argc, argv, "hf:ma:")) != EOF) {
+  while ((d = getopt(argc, argv, "hf:ma:s:r:")) != EOF) {
     switch (d) {
     case 'h':
       help_crts_controller();
@@ -232,6 +242,13 @@ int main(int argc, char **argv) {
       break;
     case 'a':
       serv_ip_addr = optarg;
+      break;
+    case 's':
+      scenario_opt_given = true;
+      strcpy(scenario_file,optarg);
+      break;
+    case 'r':
+      scenario_reps = atoi(optarg);
       break;
     }
   }
@@ -278,13 +295,18 @@ int main(int argc, char **argv) {
   struct node_parameters np[48];
 
   // read master scenario config file
-  char scenario_file[255];
+  int num_scenarios;
   char scenario_name[251];
   char *scenario_name_ptr;
-  unsigned int scenario_reps;
-  int num_scenarios;
   bool octave_log_summary;
-  read_master_parameters(scenario_master_name, &num_scenarios, &octave_log_summary);
+  
+  if (!scenario_opt_given) {
+    read_master_parameters(scenario_master_name, &num_scenarios, &octave_log_summary);
+  } else {
+    num_scenarios = 1;
+    octave_log_summary = true;
+  }
+
   if (octave_log_summary);
     printf("Will generate a summary octave script: /logs/octave/%s.m\n", scenario_master_name);
   printf("Number of scenarios: %i\n\n", num_scenarios);
@@ -297,17 +319,19 @@ int main(int argc, char **argv) {
   // loop through scenarios
   for (int i = 0; i < num_scenarios; i++) {
 
-    // read scenario file name and repetitions
-    scenario_reps =
-        read_master_scenario(scenario_master_name, i + 1, scenario_file);
+    // read scenario file name and repetitions if they were not specified
+    if (!scenario_opt_given)
+      scenario_reps =
+          read_master_scenario(scenario_master_name, i + 1, scenario_file);
     // store the full path and scenario name separately
     scenario_name_ptr = strrchr(scenario_file,'/');
-    if(scenario_name_ptr != NULL)
-    {
-        scenario_name_ptr++;
-        strcpy(scenario_name, scenario_name_ptr);
+    if(scenario_name_ptr != NULL) {
+      scenario_name_ptr++;
+      strcpy(scenario_name, scenario_name_ptr);
     }
     strcat(scenario_file, ".cfg");
+
+    printf("\n\n%s\n%s\n\n", scenario_file, scenario_name);
 
     for (unsigned int rep_i = 1; rep_i <= scenario_reps; rep_i++) {
       printf("Scenario %i: %s\n", i + 1, scenario_name);
