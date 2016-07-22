@@ -12,7 +12,7 @@
 // values
 enum SweepModes {
   SWEEP_MODE_NESTED = 0,
-  SWEEP_MODE_LINEAR
+  SWEEP_MODE_STEP
 };
 
 class SC_Performance_Sweep_Utility : public ScenarioController {

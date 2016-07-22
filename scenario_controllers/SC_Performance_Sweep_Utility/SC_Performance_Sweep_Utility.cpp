@@ -22,22 +22,22 @@ SC_Performance_Sweep_Utility::SC_Performance_Sweep_Utility(int argc, char **argv
   int o;
   bool cfg_file_given = false;
   bool log_file_given = false;
-  while ((o = getopt(argc, argv, "d:s:f:l:")) != EOF) {
+  while ((o = getopt(argc, argv, "d:s:c:l:")) != EOF) {
     switch (o) {
-      case 'd':
+      case 'd': // dwell time argument
         dwell_time_s = atoi(optarg);
         break;
-      case 's':
+      case 's': // step time argument
         settle_time_s = atoi(optarg);
         break;
-      case 'f':
+      case 'c': // config file argument
         strcat(sweep_cfg_file,optarg);
         cfg_file_given = true;
         break;
-      case 'l':
+      case 'l': // log file argument
         strcat(log_file_name,optarg);
         log_file_given = true;
-        break;
+        break; 
     }
   }
 
@@ -76,6 +76,7 @@ SC_Performance_Sweep_Utility::~SC_Performance_Sweep_Utility() {
   fprintf(log, "node,frames received,valid frames,EVM (dB),RSSI (dB),PER,BER,"
     "Throughput (b/s),uhd overflows\n");
   char sweep_vals_str[1024]; 
+  int ind;
   
   // determine the maximum step period for the swept parameters
   int max_param_period = 2; // initialized at 2 for 2 nodes
@@ -89,6 +90,7 @@ SC_Performance_Sweep_Utility::~SC_Performance_Sweep_Utility() {
     memset(sweep_vals_str,0,sizeof(sweep_vals_str));
     for (int j=0; j<num_sweep_params; j++) {
       param_period /= num_vals[j];
+      ind = (sweep_mode == SWEEP_MODE_NESTED) ? (i/param_period)%num_vals[j] : i/2;
       switch (params[j]) {
         case (CRTS_TX_FREQ):
         case (CRTS_TX_RATE):
@@ -104,21 +106,21 @@ SC_Performance_Sweep_Utility::~SC_Performance_Sweep_Utility() {
         case (CRTS_TX_FREQ_DWELL_TIME):
         case (CRTS_TX_FREQ_RES):
           sprintf(sweep_vals_str, "%s%.3e", sweep_vals_str,
-            (*(std::vector<double>*)vals[j])[(i/param_period)%num_vals[j]]);
+            (*(std::vector<double>*)vals[j])[ind]);
           break;
         case (CRTS_TX_STATE):
         case (CRTS_RX_STATE):
           sprintf(sweep_vals_str, "%s%i", sweep_vals_str,
-            (*(std::vector<int>*)vals[j])[(i/param_period)%num_vals[j]]);
+            (*(std::vector<int>*)vals[j])[ind]);
           break;
         case (CRTS_TX_MOD):
           sprintf(sweep_vals_str, "%s%s", sweep_vals_str,
-            modulation_types[(*(std::vector<int>*)vals[j])[(i/param_period)%num_vals[j]]].name);
+            modulation_types[(*(std::vector<int>*)vals[j])[ind]].name);
           break;
         case (CRTS_TX_FEC0):
         case (CRTS_TX_FEC1):
           sprintf(sweep_vals_str, "%s%s", sweep_vals_str,
-            fec_scheme_str[(*(std::vector<int>*)vals[j])[(i/param_period)%num_vals[j]]][0]);
+            fec_scheme_str[(*(std::vector<int>*)vals[j])[ind]][0]);
           break;
         case (CRTS_NET_TRAFFIC_TYPE):
           printf("%s: place holder\n", crts_param_str[params[j]]);//, 
@@ -260,14 +262,25 @@ void SC_Performance_Sweep_Utility::print_sweep_point_summary() {
 
 void SC_Performance_Sweep_Utility::update_sweep_params() {
 
-  for (int i=num_sweep_params-1; i>=0; i--) {
-    indices[i]++;
-    if (indices[i] == num_vals[i]) {
-      for (int j=num_sweep_params-1; j>=i; j--)
-        indices[j] = 0;
-    } else {
+  // if nested sweep is used we need to update the inner most
+  // loop first, then propagate up if it rolls over
+  if (sweep_mode == SWEEP_MODE_NESTED) {
+    for (int i=num_sweep_params-1; i>=0; i--) {
+      indices[i]++;
+      if (indices[i] == num_vals[i]) {
+        for (int j=num_sweep_params-1; j>=i; j--)
+          indices[j] = 0;
+      } else {
+        set_params(i);
+        break;
+      }
+    }
+  } else {
+    for (int i=0; i<num_sweep_params; i++) {
+      indices[i]++;
+      if (indices[i] == num_vals[i])
+        indices[i] = 0;
       set_params(i);
-      break;
     }
   }
 
@@ -334,6 +347,17 @@ void SC_Performance_Sweep_Utility::read_sweep_cfg() {
     exit(EXIT_FAILURE);
   }
 
+  sprintf(cfg_str, "sweep_mode");
+  if (config_lookup_string(&cfg, cfg_str, &tmpS)) {
+    if (!strcmp(tmpS,"nested"))
+      sweep_mode = SWEEP_MODE_NESTED;
+    else if (!strcmp(tmpS,"step"))
+      sweep_mode = SWEEP_MODE_STEP;
+  } else {
+    printf("Number of sweep parameters not specified\n");
+    exit(EXIT_FAILURE);
+  }
+
   sprintf(cfg_str, "num_sweep_params");
   if (config_lookup_int(&cfg, cfg_str, &tmpI)) {
     num_sweep_params = tmpI;
@@ -356,7 +380,13 @@ void SC_Performance_Sweep_Utility::read_sweep_cfg() {
       // either the sweep parameter provides specific values or a range and step size
       sprintf(cfg_str, "num_vals");
       if (config_setting_lookup_int(param_cfg, cfg_str, &num_vals[i])){
-     
+        
+        if ((sweep_mode == SWEEP_MODE_STEP) && (num_vals[i] != num_vals[0])) {
+          printf("In step mode the number of values specified for each parameter should "
+                 "be the same.");
+          exit(EXIT_FAILURE);
+        }
+
         alloc_vals(i);
         for (int j=0; j<num_vals[i]; j++) {
           sprintf(cfg_str, "val_%i", j+1); 
