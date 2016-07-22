@@ -25,11 +25,11 @@ int crts_get_str2net_traffic_type(const char * net_traffic_type) {
 }
 
 int crts_get_str2tx_freq_behavior(const char * tx_freq_behavior) {
-  if (!strcmp(tx_freq_behavior, "FIXED"))
+  if (!strcmp(tx_freq_behavior, "fixed"))
     return TX_FREQ_BEHAVIOR_FIXED;
-  if (!strcmp(tx_freq_behavior, "SWEEP"))
+  if (!strcmp(tx_freq_behavior, "sweep"))
     return TX_FREQ_BEHAVIOR_SWEEP;
-  if (!strcmp(tx_freq_behavior, "RANDOM"))
+  if (!strcmp(tx_freq_behavior, "random"))
     return TX_FREQ_BEHAVIOR_RANDOM;
   
   return TX_FREQ_BEHAVIOR_UNKNOWN;
@@ -638,17 +638,17 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
     np.tx_fec0 = liquid_getopt_str2fec(tmpS);
   
   if (config_setting_lookup_string(node_config, "interference_type", &tmpS)) {
-    if (!strcmp(tmpS, "CW"))
+    if (!strcmp(tmpS, "cw"))
       np.interference_type = INTERFERENCE_TYPE_CW;
-    if (!strcmp(tmpS, "NOISE"))
+    if (!strcmp(tmpS, "noise"))
       np.interference_type = INTERFERENCE_TYPE_NOISE;
-    if (!strcmp(tmpS, "GMSK"))
+    if (!strcmp(tmpS, "gmsk"))
       np.interference_type = INTERFERENCE_TYPE_GMSK;
-    if (!strcmp(tmpS, "RRC"))
+    if (!strcmp(tmpS, "rrc"))
       np.interference_type = INTERFERENCE_TYPE_RRC;
-    if (!strcmp(tmpS, "OFDM"))
+    if (!strcmp(tmpS, "ofdm"))
       np.interference_type = INTERFERENCE_TYPE_OFDM;
-    if (!strcmp(tmpS, "AWGN"))
+    if (!strcmp(tmpS, "awgn"))
       np.interference_type = INTERFERENCE_TYPE_AWGN; 
   }
 
@@ -663,13 +663,7 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   // ======================================================
   np.tx_freq_behavior = TX_FREQ_BEHAVIOR_FIXED;
   if (config_setting_lookup_string(node_config, "tx_freq_behavior", &tmpS)) {
-    np.tx_freq_behavior = crts_get_str2tx_freq_behavior(tmpS);
-    /*if (!strcmp(tmpS, "FIXED"))
-      np.tx_freq_behavior = FIXED;
-    if (!strcmp(tmpS, "SWEEP"))
-      np.tx_freq_behavior = SWEEP;
-    if (!strcmp(tmpS, "RANDOM"))
-      np.tx_freq_behavior = RANDOM;*/
+    np.tx_freq_behavior = crts_get_str2tx_freq_behavior(tmpS); 
   }
 
   if (config_setting_lookup_float(node_config, "tx_freq_min", &tmpD))
@@ -799,7 +793,7 @@ void print_node_parameters(struct node_parameters *np) {
       strcpy(interference_type, "CW");
       break;
     case (INTERFERENCE_TYPE_NOISE):
-      strcpy(interference_type, "AWGN");
+      strcpy(interference_type, "Noise");
       break;
     case (INTERFERENCE_TYPE_GMSK):
       strcpy(interference_type, "GMSK");
