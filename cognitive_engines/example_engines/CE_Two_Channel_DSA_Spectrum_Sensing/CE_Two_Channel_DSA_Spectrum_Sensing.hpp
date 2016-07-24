@@ -8,7 +8,7 @@
 #include <complex.h>
 #include <complex>
 
-class CE_Two_Channel_DSA_Spectrum_Sensing : public Cognitive_Engine {
+class CE_Two_Channel_DSA_Spectrum_Sensing : public CognitiveEngine {
 public:
   CE_Two_Channel_DSA_Spectrum_Sensing(int argc, char **argv, ExtensibleCognitiveRadio *_ECR);
   ~CE_Two_Channel_DSA_Spectrum_Sensing();

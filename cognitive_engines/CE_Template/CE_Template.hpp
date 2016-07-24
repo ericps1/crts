@@ -3,7 +3,7 @@
 
 #include "cognitive_engine.hpp"
 
-class CE_Template : public Cognitive_Engine {
+class CE_Template : public CognitiveEngine {
 
 private:
   // internal members used by this CE

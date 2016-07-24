@@ -9,7 +9,7 @@
 #include <complex.h>
 #include <complex>
 
-class CE_Simultaneous_RX_And_Sensing : public Cognitive_Engine {
+class CE_Simultaneous_RX_And_Sensing : public CognitiveEngine {
 
 private:
   // sensing parameters

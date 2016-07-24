@@ -66,12 +66,11 @@ public:
     /// \brief The CE had not been executed for a period
     /// of time as defined by ExtensibleCognitiveRadio::ce_timeout_ms.
     /// It is now executed as a timeout event.
-    TIMEOUT = 0, // event is triggered by a timer
+    TIMEOUT = 0,
 
-    /// \brief A PHY layer event has caused the execution
-    /// of the CE. Usually this means a frame was received
-    /// by the radio.
-    PHY, // event is triggered by the reception of a physical layer frame
+    /// \brief A PHY layer frame has been received, causing the execution
+    /// of the CE. 
+    PHY_FRAME_RECEIVED,
 
     /// \brief Indicates that the transmit worker has completed
     /// transmission of its final frame
@@ -855,7 +854,7 @@ private:
   // Private Cognitive Engine Objects
   //=================================================================================
 
-  Cognitive_Engine *CE; // pointer to CE object
+  CognitiveEngine *CE; // pointer to CE object
 
   /// \brief The maximum length of time to go
   /// without an event before executing the CE

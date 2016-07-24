@@ -17,14 +17,14 @@ CE_Two_Channel_DSA_Link_Reliability::~CE_Two_Channel_DSA_Link_Reliability() {}
 void CE_Two_Channel_DSA_Link_Reliability::execute() {
   
   // If we recieved a frame and the payload is valid
-  if ((ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY) &&
+  if ((ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY_FRAME_RECEIVED) &&
       ECR->CE_metrics.payload_valid)
     cons_invalid_payloads = 0;
   else
     cons_invalid_payloads += 1;
 
   // If we recieved a frame and the control is valid
-  if ((ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY) &&
+  if ((ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY_FRAME_RECEIVED) &&
       ECR->CE_metrics.control_valid)
     cons_invalid_control = 0;
   else

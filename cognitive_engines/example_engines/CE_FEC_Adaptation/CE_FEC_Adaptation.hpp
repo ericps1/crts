@@ -5,7 +5,7 @@
 #include "cognitive_engine.hpp"
 #include "include/FEC_Select.hpp"
 
-class CE_FEC_Adaptation : public Cognitive_Engine {
+class CE_FEC_Adaptation : public CognitiveEngine {
 
 private:
 public:

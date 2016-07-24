@@ -7,7 +7,7 @@
 #include "extensible_cognitive_radio.hpp"
 #include "cognitive_engine.hpp"
 
-class CE_Throughput_Test : public Cognitive_Engine {
+class CE_Throughput_Test : public CognitiveEngine {
 
 private:
   int first_execution;

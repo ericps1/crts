@@ -6,7 +6,7 @@
 #include "extensible_cognitive_radio.hpp"
 #include "cognitive_engine.hpp"
 
-class CE_Two_Channel_DSA_Link_Reliability : public Cognitive_Engine {
+class CE_Two_Channel_DSA_Link_Reliability : public CognitiveEngine {
 public:
   CE_Two_Channel_DSA_Link_Reliability(int argc, char **argv, ExtensibleCognitiveRadio *_ECR);
   ~CE_Two_Channel_DSA_Link_Reliability();

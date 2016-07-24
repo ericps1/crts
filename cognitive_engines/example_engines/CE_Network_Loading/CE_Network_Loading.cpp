@@ -98,7 +98,7 @@ void CE_Network_Loading::execute() {
   }
 
   // Handle bandwidth requests from other nodes
-  if ((ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY) &&
+  if ((ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY_FRAME_RECEIVED) &&
       (ECR->CE_metrics.control_valid)){
     ECR->get_rx_control_info(rx_control_info);
     memcpy(&rx_bw_cfg_req, (void*)rx_control_info, sizeof(rx_bw_cfg_req));

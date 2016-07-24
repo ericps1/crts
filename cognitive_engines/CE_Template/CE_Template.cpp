@@ -35,7 +35,7 @@ void CE_Template::execute() {
       // handle timeout events
       if (debugLevel>0) {printf("TIMEOUT Event!\n");}
       break;
-    case ExtensibleCognitiveRadio::PHY:
+    case ExtensibleCognitiveRadio::PHY_FRAME_RECEIVED:
       // handle physical layer frame reception events
       if (debugLevel>0) {printf("PHY Event!\n");}
       break;

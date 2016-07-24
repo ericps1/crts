@@ -5,7 +5,7 @@
 #include "cognitive_engine.hpp"
 #include "timer.h"
 
-class CE_Control_and_Feedback_Test : public Cognitive_Engine {
+class CE_Control_and_Feedback_Test : public CognitiveEngine {
 
 private:
   // internal members used by this CE

@@ -5,7 +5,7 @@
 #include "cognitive_engine.hpp"
 #include "timer.h"
 
-class CE_Network_Loading : public Cognitive_Engine {
+class CE_Network_Loading : public CognitiveEngine {
 
 private:
   bool net_saturated;

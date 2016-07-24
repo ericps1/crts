@@ -7,7 +7,7 @@
 #include "cognitive_engine.hpp"
 #include "timer.h"
 
-class CE_Two_Channel_DSA_PU : public Cognitive_Engine {
+class CE_Two_Channel_DSA_PU : public CognitiveEngine {
 public:
   CE_Two_Channel_DSA_PU(int argc, char**argv, ExtensibleCognitiveRadio *_ECR);
   ~CE_Two_Channel_DSA_PU();

@@ -32,7 +32,7 @@ void CE_FEC_Adaptation::execute() {
   unsigned char control_info[6];
 
   // only update average EVM or tx fec for physical layer events
-  if (ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY) {
+  if (ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY_FRAME_RECEIVED) {
     
     // update rx fec scheme based on averaged EVM
     rx_stats = ECR->get_rx_stats();

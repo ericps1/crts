@@ -1426,9 +1426,7 @@ int rxCallback(unsigned char *_header, int _header_valid,
     
     // Signal CE thread
     pthread_mutex_lock(&ECR->CE_mutex);
-    ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::PHY; // set event type
-                                                              // to phy once
-                                                              // mutex is locked
+    ECR->CE_metrics.CE_event = ExtensibleCognitiveRadio::PHY_FRAME_RECEIVED; 
     if (_header_valid) {
       if (ExtensibleCognitiveRadio::DATA == ((_header[0] >> 6) & 0x3))
         ECR->CE_metrics.CE_frame = ExtensibleCognitiveRadio::DATA;

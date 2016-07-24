@@ -7,7 +7,7 @@
 #include "extensible_cognitive_radio.hpp"
 #include "cognitive_engine.hpp"
 
-class CE_Subcarrier_Alloc : public Cognitive_Engine {
+class CE_Subcarrier_Alloc : public CognitiveEngine {
 
 private:
   struct timeval tv;

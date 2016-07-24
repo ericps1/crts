@@ -31,7 +31,7 @@ void CE_Mod_Adaptation::execute() {
   unsigned char control_info[6];
 
   // only update average EVM  or tx modulation for physical layer events
-  if (ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY) {
+  if (ECR->CE_metrics.CE_event == ExtensibleCognitiveRadio::PHY_FRAME_RECEIVED) {
 
     // update desired receive modulation scheme based on averaged EVM
     rx_stats = ECR->get_rx_stats();
