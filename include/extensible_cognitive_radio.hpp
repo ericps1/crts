@@ -34,11 +34,15 @@ enum tx_states {
   TX_BURST
 };
 
+/// \brief Defines the possible states of the receiver, which
+/// can be either off, or continuously receiving. 
 enum rx_states {
   RX_STOPPED = 0,
   RX_CONTINUOUS
 };
 
+/// \brief Defines states for worker threads, which can be
+/// halted, ready, or running.
 enum worker_states {
   WORKER_HALTED = 0,
   WORKER_READY,

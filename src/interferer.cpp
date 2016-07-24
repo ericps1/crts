@@ -72,8 +72,6 @@ Interferer::Interferer()
 
   sample_file.open("AWGN_samples.dat");
 
-
-
   // create timers
   duty_cycle_timer = timer_create();
   freq_dwell_timer = timer_create();

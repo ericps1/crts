@@ -16,12 +16,12 @@ class ExtensibleCognitiveRadio;
 /// source tree.  The CEs following
 /// this model are event-driven: While the radio is running,
 /// if certain events occur as defined in
-/// ExtensibleCognitiveRadio::Event, then the custom-defined
+/// ExtensibZZleCognitiveRadio::Event, then the custom-defined
 /// execute function (Cognitive_Engine::execute()) will be called.
-class Cognitive_Engine {
+class CognitiveEngine {
 public:
-  Cognitive_Engine();
-  ~Cognitive_Engine();
+  CognitiveEngine();
+  ~CognitiveEngine();
   ExtensibleCognitiveRadio *ECR;
   /// \brief Executes the custom cognitive engine
   /// as defined by the user.

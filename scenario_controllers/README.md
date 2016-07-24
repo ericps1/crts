@@ -24,3 +24,9 @@ This SC was made to perform BER measurements as a funciton of transmit and recei
 
 This SC was made as a way to interface CRTS and CORNET 3D. It simply forwards feedback
 and control messages between CRTS nodes and the CORNET 3D server.
+
+## 5. SC\_Performance\_Sweep\_Utility
+
+This SC provides a flexible way to sweep the operating parameters of two CR nodes to
+obtain performance curves. Configuration files can be created to specify the sweep
+parameters and values. Both nested and stepped sweeping structures are supported.

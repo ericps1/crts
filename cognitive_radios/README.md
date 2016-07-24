@@ -1,4 +1,4 @@
-# Example Cognitive Radio
+# Provided Cognitive Radio
 
 ## 1. python\_txrx.py
 This is a simple python flowgraph that was developed using GNURadio-companion. It reads data from the tunCRTS virtual interface
