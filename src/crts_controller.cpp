@@ -328,8 +328,6 @@ int main(int argc, char **argv) {
     }
     strcat(scenario_file, ".cfg");
 
-    printf("\n\n%s\n%s\n\n", scenario_file, scenario_name);
-
     for (unsigned int rep_i = 1; rep_i <= scenario_reps; rep_i++) {
       printf("Scenario %i: %s\n", i + 1, scenario_name);
       printf("Rep: %i\n", rep_i);

@@ -630,12 +630,12 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
   // default tx FEC0 is Hamming 12/8
   np.tx_fec0 = LIQUID_FEC_HAMMING128;
   if (config_setting_lookup_string(node_config, "tx_fec0", &tmpS))
-    np.tx_fec0 = liquid_getopt_str2fec(tmpS);
+    np.tx_fec0 = liquid_getopt_str2fec(tmpS); 
 
   // default rx FEC1 is none
   np.tx_fec1 = LIQUID_FEC_NONE;
   if (config_setting_lookup_string(node_config, "tx_fec1", &tmpS))
-    np.tx_fec0 = liquid_getopt_str2fec(tmpS);
+    np.tx_fec1 = liquid_getopt_str2fec(tmpS);
   
   if (config_setting_lookup_string(node_config, "interference_type", &tmpS)) {
     if (!strcmp(tmpS, "cw"))
