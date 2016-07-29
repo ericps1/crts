@@ -189,14 +189,20 @@ void SC_Performance_Sweep_Utility::execute() {
     printf("Node %i has sent updated receive statistics:\n", fb.node);
     printf("  Number of frames received: %i\n", 
       (*(struct ExtensibleCognitiveRadio::rx_statistics*)fb.arg).frames_received);
+    printf("  Number of frames valid: %i\n", 
+      (*(struct ExtensibleCognitiveRadio::rx_statistics*)fb.arg).valid_frames);
     printf("  Average EVM:               %.3f\n", 
       (*(struct ExtensibleCognitiveRadio::rx_statistics*)fb.arg).evm_dB);
     printf("  Average RSSI:              %.3f\n", 
       (*(struct ExtensibleCognitiveRadio::rx_statistics*)fb.arg).rssi_dB);
     printf("  Average PER:               %.3f\n", 
       (*(struct ExtensibleCognitiveRadio::rx_statistics*)fb.arg).per);
-    printf("  Average throughput:        %.3e\n\n", 
+    printf("  Average BER:               %.3f\n", 
+      (*(struct ExtensibleCognitiveRadio::rx_statistics*)fb.arg).ber);
+    printf("  Average throughput:        %.3e\n", 
       (*(struct ExtensibleCognitiveRadio::rx_statistics*)fb.arg).throughput); 
+    printf("  UHD overflows:             %i\n\n",
+      (*(struct ExtensibleCognitiveRadio::rx_statistics*)fb.arg).uhd_overflows);
 
     if (fb.node == 1) node_1_feedback_received = true;
     if (fb.node == 2) node_2_feedback_received = true;

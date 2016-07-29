@@ -221,6 +221,9 @@ subclass. The SC\_Template.cpp and SC\_Template.hpp can be used as a guide in te
 of the structure and API. Once the SC has been defined it can be integrated into CRTS
 by running $ ./config\_scenario\_controllers and $ make in the top directory.
 
+Note: the node number scheme used by the scenario controller's API matches that
+of the scenario configuration files i.e. numbering starts at 1.
+
 ### The Extensible Cognitive Radio
 
 As mentioned above, the ECR uses an OFDM based waveform defined by liquid-dsp. The
@@ -258,10 +261,18 @@ by running $ ./config\_cognitive\_engines and $ make in the top directory.
 
 Other source files in the cognitive\_engine directory will be automatically
 linked into the build process. This way you can define other classes that your
-CE could instantiate. To make this work, a cpp file that defines a CE must be named
-beginning with "CE_" as in the examples.
+CE could instantiate. 
 
-* Any cpp files defining a cognitive engine must begin with "CE_" as in the examples! *
+A couple of notes on syntax for cognitive engines:
+- The header and source files of a cognitive engine must reside in a directory which
+names the cognitive engine. 
+- The name of the directoy, the header and source files, and the class itself must all match.
+- The name used must begin with CE\_
+- The header must be a .hpp file and the source must be a .cpp file
+- Other sources used can be .c, .cc, or .cpp files
+
+If you just copy the CE\_Template directory and replace Template with your desired
+name, everything should work out.
 
 Installed libraries can also be used by a CE. For this to work you'll need to manually
 edit the makefile by adding the library to the variable LIBS which is located at the
@@ -294,7 +305,26 @@ in terms of when they turn off and on by the period and duty cycle settings, and
 there frequency behavior can be defined based on its type, range, dwell time, and
 increment.
 
-### Logs
+### Logs and Basic Result Analysis
+
+There are a number of log types that may be kept during the execution of CRTS. These
+logs are written as binary files in the /logs/bin directory to reduce overhead, and
+are automatically converted to Octave/Matlab scripts and placed in the /logs/octave  
+directory after each scenario has finished. These scripts provide the user with an 
+easy way to import data from experiments. Other scripts can then be written to analyze
+the test results. We've provided some basic scripts to plot the contents of the logs 
+as a function of time and display some basic statistics.
+
+#### Summary logs
+
+This log type will contain summary information from a batch of test scenarios that were
+launched using a single scenario master configuration file. The log is kept if the
+parameter octave\_log\_summary is set to 1 in the scenario master configuration file.
+
+You can use the statistics\_tool.m script to look at statistics over the set of tests
+that were run in a number of dimensions.
+
+#### CRTS packet logs
 
 CRTS will log packet transmission and reception details at the network layer if the
 appropriate flags are set in the scenario configuration file. Each entry will include
@@ -303,19 +333,43 @@ be used to look at network layer metrics such as dropped packets or latency. Not
 latency calculations can only be as accurate as the synchronization between the server
 nodes.
 
+#### Sysout logs
+
+When CRTS is run in automatic mode, the print statements that would show up for each 
+node in manual mode are redirected to log files in /logs/sysout.
+
+#### ECR logs
 The ECR will also log frame transmission and reception parameters and metrics at the
 physical layer if the appropriate flags are set in the scenario configuration file.
-
-All of the aforementioned logs are written as binary files in the /logs/bin directory
-during the scenario's execution. These logs will be automatically converted to either
-Python or Octave/Matlab scripts and placed in the /logs/octave or /logs/python 
-directories after the scenario has finished. These scripts provide the user with an 
-easy way to import data from experiments. Other scripts can then be written to analyze
-these results. We've provided some basic Octave/Matlab scripts which plot the contents 
-of the logs as a function of time and display some basic statistics.
 
 In the case where a scenario is run more than once (using the scenario\_reps field in
 the master\_scenario\_file.cfg), the data from all repetitions will be held in a single
 Octave script. Rather than a single array for each parameter there will be a cell array
 for each parameter, each element of the cell array is an array which comprises the results
 from a particular repetition. This is done to facilitate analysis across the repetitions.
+
+### Debug
+
+In the event that you experience issues running CRTS there are some simple things you can
+try to help you debug. The first is reading the sysout logs if you've been running CRTS
+in automatic mode. The main processes/classes in CRTS also have a debug compile time
+option at the top of the source files. Setting this to 1 will provide additional information
+to be printed out which may help you identify the issue.
+
+### Physical Layer Performance Evaluation
+
+Although the main purpose of CRTS is to facilitate cognitive engine test and development,
+it can also be useful to look at the radios physical layer performance in different
+operating regimes. The SC\_Performance\_Sweep scenario controller was written to address
+this need. You can very easily create a new sweep configuration to look at a particular
+parameter or set of parameters. The radio's performance will be output to a CSV file
+in logs/csv/. Below are several examples of performance curves obtained using this
+scenarios controller.
+
+\image latex CRTS_Throughput_vs_Tx_Gain.png "Throughput vs. Tx Gain" width=12cm
+
+\image latex CRTS_EVM_vs_Tx_Gain.png "EVM vs. Tx Gain" width=12cm
+
+\image latex CRTS_PER_vs_Estimated_EVM.png "PER vs. Estimated EVM" width=12cm
+
+
