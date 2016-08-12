@@ -130,8 +130,7 @@ struct node_parameters {
   char phy_tx_log_file[260];
   char net_rx_log_file[260];
   char net_tx_log_file[260];
-  int generate_octave_logs;
-  int generate_python_logs;
+  int generate_octave_logs; 
 
   // USRP settings
   double rx_freq;

@@ -12,7 +12,7 @@ SCs = src/scenario_controller.cpp scenario_controllers/SC_Performance_Sweep_Util
 SC_Headers = scenario_controllers/SC_Performance_Sweep_Utility/SC_Performance_Sweep_Utility.hpp scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.hpp scenario_controllers/SC_Template/SC_Template.hpp scenario_controllers/SC_Network_Loading/SC_Network_Loading.hpp scenario_controllers/SC_CORNET_Display/SC_CORNET_Display.hpp scenario_controllers/SC_Control_and_Feedback_Test/SC_Control_and_Feedback_Test.hpp scenario_controllers/SC_CORNET_Tutorial/SC_CORNET_Tutorial.hpp scenario_controllers/SC_Performance_Sweep_Utility/SC_Performance_Sweep_Utility.hpp scenario_controllers/SC_BER_Sweep/SC_BER_Sweep.hpp scenario_controllers/SC_Template/SC_Template.hpp scenario_controllers/SC_Network_Loading/SC_Network_Loading.hpp scenario_controllers/SC_CORNET_Display/SC_CORNET_Display.hpp scenario_controllers/SC_Control_and_Feedback_Test/SC_Control_and_Feedback_Test.hpp scenario_controllers/SC_CORNET_Tutorial/SC_CORNET_Tutorial.hpp 
 #EDIT SC END FLAG
 
-all: lib/crts.o config_cognitive_engines config_scenario_controllers lib/tun.o lib/timer.o lib/ecr.o lib/interferer.o logs/convert_logs_bin_to_octave logs/convert_logs_bin_to_python $(CEs) crts_interferer crts_cognitive_radio crts_controller
+all: lib/crts.o config_cognitive_engines config_scenario_controllers lib/tun.o lib/timer.o lib/ecr.o lib/interferer.o logs/convert_logs_bin_to_octave $(CEs) crts_interferer crts_cognitive_radio crts_controller
 
 lib/crts.o: include/crts.hpp src/crts.cpp
 	g++ $(FLAGS) -c -o lib/crts.o src/crts.cpp
@@ -37,9 +37,6 @@ lib/interferer.o: include/interferer.hpp src/interferer.cpp
 
 logs/convert_logs_bin_to_octave: src/convert_logs_bin_to_octave.cpp
 	g++ $(FLAGS) -o logs/convert_logs_bin_to_octave src/convert_logs_bin_to_octave.cpp -luhd
-
-logs/convert_logs_bin_to_python: src/convert_logs_bin_to_python.cpp
-	g++ $(FLAGS) -o logs/convert_logs_bin_to_python src/convert_logs_bin_to_python.cpp -luhd
 
 crts_interferer: include/interferer.hpp include/crts.hpp src/crts_interferer.cpp src/interferer.cpp src/crts.cpp 
 	g++ $(FLAGS) -o crts_interferer src/crts_interferer.cpp lib/crts.o lib/interferer.o lib/timer.o -luhd -lc -lconfig -lliquid -lpthread
@@ -69,7 +66,6 @@ clean:
 	rm -rf crts_interferer
 	rm -rf crts_controller
 	rm -rf logs/convert_logs_bin_to_octave
-	rm -rf logs/convert_logs_bin_to_python
 	rm -rf config_cognitive_engines
 	rm -rf config_scenario_controllers
 	$(MAKE) -C doc clean

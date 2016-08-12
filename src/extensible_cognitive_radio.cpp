@@ -81,7 +81,7 @@ ExtensibleCognitiveRadio::ExtensibleCognitiveRadio() {
     if (tx_params.subcarrierAlloc[i] == OFDMFRAME_SCTYPE_DATA)
       numDataSubcarriers++;
   }
-  update_tx_data_rate = 1;
+  update_tx_data_rate = true;
 
   CE_metrics.payload = NULL;
 
@@ -828,9 +828,9 @@ double ExtensibleCognitiveRadio::get_tx_data_rate() {
     printf("tx rate: %f\n", tx_params.tx_rate);
     printf("\nUpdated tx rate: %f\n\n", tx_data_rate);
   }
-  return tx_data_rate;
+  double tx_data_rate_cpy =  tx_data_rate;
   pthread_mutex_unlock(&tx_params_mutex);
-
+  return tx_data_rate_cpy;
 }
 
 // get control info
@@ -1669,14 +1669,14 @@ void *ECR_tx_worker(void *_arg) {
   
   while (ECR->tx_thread_running) {
     // wait for signal to start
-    dprintf("Waiting for condition\n");
+    dprintf("tx worker waiting for start condition\n");
     pthread_mutex_lock(&(ECR->tx_params_mutex));
     ECR->tx_worker_state = WORKER_READY;
     dprintf("Waiting\n");
     pthread_cond_wait(&(ECR->tx_cond), &(ECR->tx_params_mutex));
     ECR->tx_worker_state = WORKER_RUNNING; 
     pthread_mutex_unlock(&(ECR->tx_params_mutex));
-    dprintf("Condition received\n");
+    dprintf("tx worker waiting for start condition\n");
 
     memset(buffer, 0, buffer_len);
 

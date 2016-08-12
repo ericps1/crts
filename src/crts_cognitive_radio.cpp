@@ -936,7 +936,7 @@ int main(int argc, char **argv) {
     }
 
     if (np.log_net_tx) {
-      sprintf(command, "./logs/convert_logs_to_bin_octave -C -l %s", net_tx_log_file_cpy);
+      sprintf(command, "./logs/convert_logs_bin_to_octave -C -l %s", net_tx_log_file_cpy);
       system(command);
     }
 
@@ -950,29 +950,7 @@ int main(int argc, char **argv) {
       system(command);
     }
   }
-  // auto-generate python logs from binary logs
-  if (np.generate_python_logs) {
-    if (np.log_net_rx) {
-      sprintf(command, "./logs/convert_logs_bin_to_python -c -l %s", net_rx_log_file_cpy);
-      system(command);
-    }
-
-    if (np.log_net_tx) {
-      sprintf(command, "./logs/logs2octave -C -l %s", net_tx_log_file_cpy);
-      system(command);
-    }
-
-    if (np.log_phy_rx) {
-      sprintf(command, "./logs/logs2python -r -l %s", np.phy_rx_log_file);
-      system(command);
-    }
-
-    if (np.log_phy_tx) {
-      sprintf(command, "./logs/logs2python -t -l %s", np.phy_tx_log_file);
-      system(command);
-    }
-  }
-
+  
   // clean up ECR/python process
   if (np.cognitive_radio_type == EXTENSIBLE_COGNITIVE_RADIO) {
     delete ECR;

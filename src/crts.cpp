@@ -70,15 +70,19 @@ void str2argcargv(char *string, char *progName, int &argc, char (**&argv))    {
     } 
   }
 
+  free(stringCpy);
+
   //Debug
   for (int i=0; i<argc; i++){
     dprintf("argv[%d] = %s\n",i, argv[i]);
   }
+
+  optind = 0;
 }
 
 // Call when done with argc argv arrays created by str2argcargv().
 void freeargcargv(int &argc, char **&argv) {
-  for (int i = 1; i<argc+1; i++){
+  for (int i = 0; i<argc+1; i++){
     free( argv[i] );
   }
   free(argv);
@@ -345,9 +349,6 @@ struct node_parameters read_node_parameters(int node, char *scenario_file) {
 
   if (config_setting_lookup_int(node_config, "generate_octave_logs", &tmpI))
     np.generate_octave_logs = (int)tmpI;
-
-  if (config_setting_lookup_int(node_config, "generate_python_logs", &tmpI))
-    np.generate_python_logs = (int)tmpI;
 
   if (config_setting_lookup_float(node_config, "ce_timeout_ms", &tmpD))
     np.ce_timeout_ms = tmpD;
@@ -744,16 +745,14 @@ void print_node_parameters(struct node_parameters *np) {
   //
   printf("\nLog/Report Settings:\n");
   if (np->node_type != INTERFERER)
-    printf("    PHY Rx log file:                   %-s\n", np->phy_rx_log_file);
-  printf("    PHY Tx log file:                   %-s\n", np->phy_tx_log_file);
+    printf("    Physical layer rx log file:        %-s\n", np->phy_rx_log_file);
+  printf("    Physical layer tx log file:        %-s\n", np->phy_tx_log_file);
   if (np->node_type != INTERFERER)
-    printf("    NET Rx log file:                   %-s\n", np->net_rx_log_file);
+    printf("    Network layer rx log file:         %-s\n", np->net_rx_log_file);
   if (np->node_type != INTERFERER)
-    printf("    NET Tx log file:                   %-s\n", np->net_tx_log_file);
+    printf("    Network layer tx log file:         %-s\n", np->net_tx_log_file);
   printf("    Generate octave logs:              %i\n",
          np->generate_octave_logs);
-  printf("    Generate python logs:              %i\n",
-         np->generate_python_logs);
   //
   printf("\nInitial USRP Settings:\n");
   if (np->node_type != INTERFERER) {
@@ -786,8 +785,8 @@ void print_node_parameters(struct node_parameters *np) {
 
   if (np->node_type == INTERFERER) {
     printf("\nInitial Interference Settings:\n");
-    char interference_type[5] = "NONE";
-    char tx_freq_behavior[6] = "NONE";
+    char interference_type[5] = "None";
+    char tx_freq_behavior[6] = "None";
     switch (np->interference_type) {
     case (INTERFERENCE_TYPE_CW):
       strcpy(interference_type, "CW");

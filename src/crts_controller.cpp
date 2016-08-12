@@ -125,7 +125,7 @@ ScenarioController* create_sc(struct scenario_parameters *sp){
   // EDIT SET SC END FLAG
     
   freeargcargv(argc, argv);
-  
+ 
   return SC;
 }
 
@@ -164,7 +164,7 @@ void help_crts_controller() {
   printf(" -h : Help.\n");
   printf(" -m : Manual Mode - Start each node manually rather than have\n"
          "      crts_controller do it automatically.\n");
-  printf(" -f : Master scenario file (default: scenario_master_template.cfg).\n");
+  printf(" -f : Master scenario configuration (default: scenario_master_template).\n");
   printf(" -a : IP Address - IP address of this computer as seen by remote nodes.\n"
          "      Autodetected by default.\n");
   printf(" -s : Scenario - Specifies a single scenario to run rather than using a\n"
@@ -328,6 +328,9 @@ int main(int argc, char **argv) {
     }
     strcat(scenario_file, ".cfg");
 
+    if (scenario_opt_given)
+      strcpy(scenario_master_name, scenario_name);
+      
     for (unsigned int rep_i = 1; rep_i <= scenario_reps; rep_i++) {
       printf("Scenario %i: %s\n", i + 1, scenario_name);
       printf("Rep: %i\n", rep_i);
@@ -342,8 +345,8 @@ int main(int argc, char **argv) {
       printf("Scenario controller: %s\n", sp.SC);
 
       // create the scenario controller
-      ScenarioController *SC = create_sc(&sp);
-          
+      ScenarioController *SC = create_sc(&sp); 
+
       // determine the start time for the scenario based
       // on the current time and the number of nodes
       gettimeofday(&tv, NULL);
@@ -487,7 +490,7 @@ int main(int argc, char **argv) {
         send(TCP_nodes[j], (void *)&np[j], sizeof(struct node_parameters), 0);
       
         // copy node parameters to the scenario controller object
-        SC->np[j] = np[j];
+        SC->np[j] = np[j]; 
       }
 
       printf("\n");

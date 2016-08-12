@@ -345,6 +345,8 @@ void SC_Performance_Sweep_Utility::read_sweep_cfg() {
   int tmpI;
   double tmpD;
 
+  printf("Reading sweep config\n");
+
   config_init(&cfg);
 
   if (!config_read_file(&cfg, sweep_cfg_file)) {
