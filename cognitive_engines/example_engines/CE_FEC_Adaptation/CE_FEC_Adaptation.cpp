@@ -11,8 +11,19 @@ CE_FEC_Adaptation::CE_FEC_Adaptation(int argc, char ** argv, ExtensibleCognitive
   
   ECR = _ECR;
 
+  double tracking_window = 0.1;
+  // interpret command line options
+  int o;
+  while ((o = getopt(argc, argv, "w:")) != EOF) {
+    switch (o) {
+      case 'w':
+        tracking_window = atoi(optarg);
+        break;
+    }
+  }
+  
   // track rx statistics over a 100 ms window
-  ECR->set_rx_stat_tracking(true, 0.1);
+  ECR->set_rx_stat_tracking(true, tracking_window);
 }
 
 // destructor

@@ -1,7 +1,12 @@
 prompt = ...
-sprintf(['\nEnter either the name(s) of the specific scenario(s) you are interested\n', ...
-         'in or ''all'' as a cell array of strings. e.g. {''scenario_1''} OR\n', ...
-         '{''scenario_1'', ''scenario_2'', ''scenario_3''} OR {''all''}\n\n']);
+sprintf(['\nEnter the group(s) of scenarios you wish to analyze. This can be useful\n', ...
+         'to compare a set of scenarios that used cognitive engine A vs. another set\n', ...
+         'which used cognitive engine B for example. The scenarios groups should be\n', ...
+         'cell arrays within one enclosing cell array. Wildcards are supported. So for\n', ...
+         'example, assume you had four scenarios called CE_A_scenario_1, CE_A_scenario_2,\n', ...
+         'CE_B_scenario_1, and CE_B_scenario_2. You could compare the statistical\n', ...
+         'performance of cognitive engine A and B by providing the following argument:\n', ...
+         '{{''*A*''}, {''*B*''}}. This would include both scenarios 1 and 2\n']);
 scenarios = input(prompt);
 
 prompt = ...
@@ -10,98 +15,85 @@ sprintf(['\nThis tool will calculate statistics for the sum throughput achieved 
         'coexisting networks, it may be useful to look at the sum throughput for\n', ...
         'these networks individually. To do so, enter a cell array where each\n',...
         'element of the array contains the indices of a particular network\n', ...
-        'e.g. {[1:2],[3:4]} for a network between nodes 1&2 and another between 3&4.\n\n']);
+        'e.g. {[1:2],[3:4]} for a network between nodes 1&2 and another between 3&4.\n', ...
+        'You can look at each node individually by assigning it to its own network e.g.\n', ...
+        '{1,2,3,4}\n']);
 
 networks = input(prompt);
 num_networks = numel(networks);
 
 %%
 
-if (strcmp(scenarios{1},'all'))
-  num_scenarios = numel(scenario_name);
-  max_num_nodes = max(num_nodes);
+% iterative through groups of scenarios
+for sg_i = 1:numel(scenarios)
 
-  scenario_name_ = scenario_name;
-  num_nodes_ = num_nodes;
-  run_time_ = run_time;
-  bytes_received_ = bytes_received;
-  bytes_sent_ = bytes_sent;
-else
-  num_scenarios = numel(scenarios);
+  % translate a regular expression into a list of scenarios
+  scenarios_in_group = {};
+  for i= 1:numel(scenarios{sg_i})
+    matching_scenarios_temp = ... 
+        regexp(scenario_name, regexptranslate('wildcard', scenarios{sg_i}{i}), 'match');
+    num_matched = 0;
+    for j = 1:numel(matching_scenarios_temp)
+      if (numel(matching_scenarios_temp{j})>0)
+        num_matched = num_matched + 1;
+        matching_scenarios{num_matched} = matching_scenarios_temp{j}{1};
+      end
+    end
+    if (numel(matching_scenarios)>0)
+      scenarios_in_group = [scenarios_in_group, matching_scenarios];
+    else
+      disp(['No matching scenario was found for ', scenarios{sg_i}{i}]);
+      return;
+    end
+  end
+
+  num_scenarios = numel(matching_scenarios);
   max_num_nodes = 0;
 
   % determine indices of selected scenarios
+  scenario_inds = [];
   for i = 1:num_scenarios
-    scenario_inds(i) = find(strcmp(scenario_name,scenarios{i}));
+    scenario_inds = [scenario_inds, find(strcmp(scenario_name,matching_scenarios{i}))];
     max_num_nodes = max([max_num_nodes, num_nodes(scenario_inds(i))]);
   end
 
   % define data for selected scenarios
-  scenario_name_ = scenario_name(scenario_inds);
-  num_nodes_ = num_nodes(scenario_inds);
-  run_time_ = run_time(scenario_inds);
-  bytes_received_ = bytes_received(scenario_inds,1:max_num_nodes,:);
-  bytes_sent_ = bytes_sent(scenario_inds,:,:);
-end
+  _scenario_name = scenario_name(scenario_inds);
+  _num_nodes = num_nodes(scenario_inds);
+  _run_time = run_time(scenario_inds);
+  _bytes_received = bytes_received(scenario_inds,1:max_num_nodes,:);
+  _bytes_sent = bytes_sent(scenario_inds,:,:);
 
-for i = 1:num_scenarios
-  throughput(i,:,:) = 8*bytes_received_(i,:,:)/run_time_(i);
-end
-
-%%
-for i = 1:num_networks
-  scenario_mean_sum_throughput{i} = mean(sum(throughput(:,networks{i},:),2),3);
-  scenario_var_sum_throughput{i} = var(sum(throughput(:,networks{i},:),2),0,3);
-  scenario_std_dev_sum_throughput{i} = sqrt(scenario_var_sum_throughput{i});
-  scenario_cov_sum_throughput{i} = scenario_std_dev_sum_throughput{i}./scenario_mean_sum_throughput{i};
-end
-
-output = sprintf('\n=================================================================\n');
-output = sprintf([output,'Per Scenario Summary (taken over all repetitions):\n']);
-disp(output);
-for i = 1:num_scenarios
-  output = sprintf('scenario %i: %s\n', i, scenario_name_{i});
-  for j = 1:num_networks
-    if (sum((networks{j} <= num_nodes_(i))))
-      output = sprintf([output, '  network %i: nodes %s\n'], j, num2str(networks{j}));
-      output = sprintf([output, '    mean of sum throughput:                     %.3e\n'], 
-                       scenario_mean_sum_throughput{j}(i));
-      output = sprintf([output, '    variance of sum throughput:                 %.3e\n'], 
-                       scenario_var_sum_throughput{j}(i));
-      output = sprintf([output, '    standard deviation of sum throughput:       %.3e\n'], 
-                       scenario_std_dev_sum_throughput{j}(i));
-      output = sprintf([output, '    coefficient of variation of sum throughput: %.3e\n'], 
-                       scenario_cov_sum_throughput{j}(i));
-    end
+  for i = 1:num_scenarios
+    throughput(i,:,:) = 8*_bytes_received(i,:,:)/_run_time(i);
   end
-  output = sprintf([output, '\n']);
-  disp(output);
+
+  %%%%%%%
+
+  for i = 1:num_networks
+    mean_sum_throughput = mean(mean(sum(throughput(:,networks{i},:),2),3),1);
+    var_sum_throughput = mean(var(sum(throughput(:,networks{i},:),2),0,3));
+    std_dev_sum_throughput = sqrt(var_sum_throughput);
+    cov_sum_throughput = std_dev_sum_throughput./mean_sum_throughput;
+    output = sprintf('\n=================================================================\n');
+    output = sprintf([output,'Summary of scenario group %i, network %i:\n'],sg_i,i);
+    output = sprintf([output,'  Scenarios:\n']);
+    for j = 1:num_scenarios
+      output = sprintf([output,'    %s\n'], matching_scenarios{j});
+    end
+    output = sprintf([output,'  Nodes: %s\n'], num2str(networks{i}));
+    output = sprintf([output,'  --------------------------------------------------\n']);
+    output = sprintf([output,'  Mean of sum throughput:                     %.3e\n'], 
+                     mean_sum_throughput);
+    output = sprintf([output,'  Variance of sum throughput:                 %.3e\n'], 
+                     var_sum_throughput);
+    output = sprintf([output,'  Standard deviation of sum throughput:       %.3e\n'], 
+                     std_dev_sum_throughput);
+    output = sprintf([output,'  Coefficient of variation of sum throughput: %.3e'], 
+                     cov_sum_throughput);
+    disp(output);
+  end
+
 end
 
-%%
-for i = 1:max_num_nodes
-  scenario_inds = find(num_nodes_ >= i);
-  node_mean_throughput = mean(mean(throughput(scenario_inds,:,:),1),3);
-  node_var_throughput = mean(mean(throughput(scenario_inds,:,:).^2,1),3) - ...
-                        node_mean_throughput.^2;
-  node_std_dev_throughput = sqrt(node_var_throughput);
-  node_cov_throughput = node_std_dev_throughput./node_mean_throughput;
-end
-
-output = sprintf('=================================================================\n');
-output = sprintf([output,'Per Node Summary\n']); 
-output = sprintf([output,'(taken over all repetitions of scenarios for which the node was active):\n']);
-disp(output);
-for i = 1:max_num_nodes
-  output = sprintf('node %i:\n', i);
-  output = sprintf([output, '  mean of node throughput:                     %.3e\n'], 
-                   node_mean_throughput(i));
-  output = sprintf([output, '  variance of node throughput:                 %.3e\n'], 
-                   node_var_throughput(i));
-  output = sprintf([output, '  standard deviation of node throughput:       %.3e\n'], 
-                   node_std_dev_throughput(i));
-  output = sprintf([output, '  coefficient of variation of node throughput: %.3e\n'], 
-                   node_cov_throughput(i));
-  disp(output);
-end
-
+disp('');

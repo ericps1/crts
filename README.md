@@ -1,5 +1,5 @@
-# CRTS
-##About:
+\tableofcontents
+# About {#About}
 
 The Cognitive Radio Test System (CRTS) provides a flexible framework for over the 
 air test and evaluation of cognitive radio (CR) networks. Users can rapidly define
@@ -41,8 +41,8 @@ Virginia Tech's
 [Wireless@VT](https://wireless.vt.edu/)
 Research Group.
 
-##Installation:
-###Dependencies
+# Installation {#Installation}
+## Dependencies {#Dependencies}
 
 CRTS is being developed on 
 [Ubuntu 14.04](http://releases.ubuntu.com/14.04/)
@@ -62,7 +62,7 @@ with Network Time Protocol (NTP). Precision Time Protocol (PTP) would work as we
 Note to CORNET users: These dependencies are already installed for you on all CORNET nodes.
 You will still need to download the CRTS source repository and compile it however.
 
-###Downloading and Configuring CRTS 
+##Downloading and Configuring CRTS {#Downloading_and_Configuring_CRTS}
 Official releases of CRTS can be downloaded from the
 [Releases Page](https://github.com/ericps1/crts/releases)
 while the latest development version is available on the main 
@@ -71,7 +71,7 @@ while the latest development version is available on the main
 Note that because using CRTS involves actively writing and compiling 
 cognitive engine code, it is not installed like traditional software.
 
-#### Official Releases
+### Official Releases
 
 In the following commands 'v1.0' should be replaced with the release version you
 wish to download.
@@ -105,7 +105,7 @@ To undo these changes, simply run:
 
 	$ sudo make uninstall
 
-#### Latest Development Version
+### Latest Development Version
 1. Download the git repository:
 
         $ git clone https://github.com/ericps1/crts.git
@@ -134,7 +134,7 @@ To undo these changes, simply run:
 
 	$ sudo make uninstall
 
-## An Overview
+# An Overview {#An_Overview}
 
 CRTS is designed to run on a local network of machines, each 
 with their own dedicated USRP. A single node, the `crts_controller`, 
@@ -142,16 +142,18 @@ will automatically launch each radio node for a given scenario and
 communicate with it as the scenario progresses.
 
 Each radio node in a test scenario could be 
-1. A member of a CR network (controlled by `crts_cr`) 
+1. A member of a CR network (controlled by `crts_cognitive_radio`) 
 or 
 2. An interfering node (controlled by `crts_interferer`),
     generating particular noise or interference patterns against which the 
     CR nodes must operate.
 
 In the next sections we provide an overview of the high level components
-used by CRTS to enable flexible, scalable testing of CR's.
+used by CRTS to enable flexible, scalable testing of CR's. If this is your
+first time using CRTS, we recommend that you take the time to run through
+the tutorials.
 
-### Scenarios
+## Scenarios {#Scenarios}
 
 The crts\_controller will run the tests specified by a scenario master configuration
 file. The default configuration file is scenario\_master\_template.cfg. A different
@@ -192,7 +194,7 @@ configuration file and the default setting will be used.
 We've provided a number of scenario files useful for orientation to CRTS
 and for software testing and performance testing of the radios
 
-### Scenario Controllers
+## Scenario Controllers {#Scenario_Controllers}
 
 Scenario controllers provide a centralized and customizable way to receive 
 feedback and exert control over a scenario's operation in real time. A
@@ -224,7 +226,7 @@ by running $ ./config\_scenario\_controllers and $ make in the top directory.
 Note: the node number scheme used by the scenario controller's API matches that
 of the scenario configuration files i.e. numbering starts at 1.
 
-### The Extensible Cognitive Radio
+## The Extensible Cognitive Radio {#The_Extensible_Cognitive_Radio}
 
 As mentioned above, the ECR uses an OFDM based waveform defined by liquid-dsp. The
 cognitive engine will be able to control the parameters of this waveform such as
@@ -237,7 +239,7 @@ Currently the ECR does not support much in the way of MAC layer functionality,
 e.g. there is no ARQ or packet segmentation/concatenation. This is planned for
 future development.
 
-### Cognitive Engines in the ECR
+## Cognitive Engines in the ECR {#Cognitive_Engines_in_the_ECR}
 
 The Extensible Cognitive Radio provides an easy way to implement cognitive 
 engines. This is accomplished through inheritance i.e. a particular cognitive 
@@ -279,16 +281,33 @@ edit the makefile by adding the library to the variable LIBS which is located at
 top of the makefile and defines a list of all libraries being linked in the final
 compilation.
 
-One particular function that users should be aware of is ECR.set\_control\_information().
-This provides a generic way for cognitive radios to exchange control information
-without impacting the flow of data. The control information is 6 bytes which are
-placed in the header of the transmitted frame. It can then be extracted in the
-cognitive engine at the receiving radio. A similar function can be performed by 
-transmitting a dedicated control packet from the CE.
-
 Examples of cognitive engines are provided in the `cognitive_engines/` directory.
 
-### Cognitive Radios in Python
+### Exchanging control information using between two ECR's
+
+Most likely your radios will need to exchange some control information over the
+air to adapt effectively to channel and interference conditions. The ECR provides 
+two possible ways to exchange such information.
+
+The first method is to call the ECR.transmit\_control\_frame() function. This will
+transmit a dedicated control frame which allows you to send arbitrarily large 
+amounts of control information using its payload. You can check for control frames
+in the receiving cognitive engine, and process it whenever one is found.
+
+The alternative is to call the ECR.set\_control\_information() function at the
+transmitter and the ECR.get\_control\_information() at the receiver. This allows
+you to send 6 bytes of control information in the header of the next data frame.
+This way your data flow is not interrupted.
+
+The tradeoffs between these two methods include the following. A dedicated control
+frame can support more control information. A dedicated control frame can have
+lower latency assuming its payload is smaller than the payload of a data frame
+(a combination of the two methods can be used, allowing you to transfer 6 bytes
+of control information with a payload of 0 bytes for example). For small amounts
+of control information that can afford slightly higher latency, using the
+control information of a data frame will be more efficient.
+
+## Cognitive Radios in Python {#Cognitive_Radios_in_Python}
 
 Along with cognitive engines defined by the ECR, CRTS also supports cognitive radios written in python. An
 example of a very simple python cognitive radio can be found in cognitive\_radios/python\_txrx.py.  When using a python radio, the scenario file
@@ -296,7 +315,7 @@ must specify the cr\_type ("python") and a python\_file (python\_txrx.py in the 
 in the top-level cognitive\_radios folder. In addition, you can supply arguments to pass to your radio by using the
 arguments field. An example scenario file for a python radio can be found in scenarios/example\_scenarios/python\_flowgraph\_example.cfg.
 
-### Interferers
+## Interferers {#Interferers}
 
 The testing scenarios for CRTS may involve generic interferers. There are a number
 of parameters that can be set to define the behavior of these interferers. They
@@ -305,7 +324,7 @@ in terms of when they turn off and on by the period and duty cycle settings, and
 there frequency behavior can be defined based on its type, range, dwell time, and
 increment.
 
-### Logs and Basic Result Analysis
+## Logs and Basic Result Analysis {#Logs_and_Basic_Result_Analysis}
 
 There are a number of log types that may be kept during the execution of CRTS. These
 logs are written as binary files in the /logs/bin directory to reduce overhead, and
@@ -315,7 +334,7 @@ easy way to import data from experiments. Other scripts can then be written to a
 the test results. We've provided some basic scripts to plot the contents of the logs 
 as a function of time and display some basic statistics.
 
-#### Summary logs
+### Summary logs
 
 This log type will contain summary information from a batch of test scenarios that were
 launched using a single scenario master configuration file. The log is kept if the
@@ -324,7 +343,7 @@ parameter octave\_log\_summary is set to 1 in the scenario master configuration 
 You can use the statistics\_tool.m script to look at statistics over the set of tests
 that were run in a number of dimensions.
 
-#### CRTS packet logs
+### CRTS packet logs
 
 CRTS will log packet transmission and reception details at the network layer if the
 appropriate flags are set in the scenario configuration file. Each entry will include
@@ -333,12 +352,12 @@ be used to look at network layer metrics such as dropped packets or latency. Not
 latency calculations can only be as accurate as the synchronization between the server
 nodes.
 
-#### Sysout logs
+### Sysout logs
 
 When CRTS is run in automatic mode, the print statements that would show up for each 
 node in manual mode are redirected to log files in /logs/sysout.
 
-#### ECR logs
+### ECR logs
 The ECR will also log frame transmission and reception parameters and metrics at the
 physical layer if the appropriate flags are set in the scenario configuration file.
 
@@ -348,7 +367,7 @@ Octave script. Rather than a single array for each parameter there will be a cel
 for each parameter, each element of the cell array is an array which comprises the results
 from a particular repetition. This is done to facilitate analysis across the repetitions.
 
-### Debug
+## Debug {#Debug}
 
 In the event that you experience issues running CRTS there are some simple things you can
 try to help you debug. The first is reading the sysout logs if you've been running CRTS
@@ -356,7 +375,7 @@ in automatic mode. The main processes/classes in CRTS also have a debug compile 
 option at the top of the source files. Setting this to 1 will provide additional information
 to be printed out which may help you identify the issue.
 
-### Physical Layer Performance Evaluation
+## Physical Layer Performance Evaluation {#Physical_Layer_Performance_Evaluation}
 
 Although the main purpose of CRTS is to facilitate cognitive engine test and development,
 it can also be useful to look at the radios physical layer performance in different
@@ -371,5 +390,48 @@ scenarios controller.
 \image latex CRTS_EVM_vs_Tx_Gain.png "EVM vs. Tx Gain" width=12cm
 
 \image latex CRTS_PER_vs_Estimated_EVM.png "PER vs. Estimated EVM" width=12cm
+
+# Notes to Developers {#Notes_to_Developers}
+
+When this project was first started there weren't any specific coding styles or
+practices that were strictly followed. As the project has grown and with more
+people working with the code, it's become more important to make it readable to
+a general audience. To that end, the following list of coding style should be
+followed as much as possible. These rules are fairly common, and were taken
+directly from Google's coding style guide.
+
+## Naming Conventions {#Naming_Conventions}
+
+More explicit names are preferred over short names that make it more difficult
+to grasp the purpose of the variable.
+
+All directories and files should be named using all lowercase letters with underscores
+between words e.g. an_example_file.cpp.
+
+General purpose variables should be named using all lowercase letters with underscores
+between words e.g. an_example_variable.
+
+Defined constants should be named with all capital letters and underscores between
+words e.g. AN_EXAMPLE_DEFINED_CONSTANT.
+
+Classes should be named with capital first letters and no underscores between words
+e.g. AnExampleClass.
+
+Exceptions to the above rules include the scenario controller and cognitive engine subclasses.
+This is because the directory/file names need to match the class names. We therefore use the 
+convention of naming them with the required SC or CE prefix followed by the unique name which 
+uses capital first letters and underscores between words e.g. CE_An_Example_Cognitive_Engine.cpp.
+
+## Formatting {#Formatting}
+
+We try to stick to LLVM style formatting to keep things consistent. If you are unfamiliar
+it's pretty easy to run clang-format which will take care of this for you.
+
+Regardless, it'd probably be best if you set the preferences of your editor to insert 2
+spaces for each tab. This will keep whitespace consistent for everyone. No one likes
+opening up a file and having things shifted all over the place.
+
+
+
 
 
