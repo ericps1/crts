@@ -18,10 +18,10 @@ lib/crts.o: include/crts.hpp src/crts.cpp
 	g++ $(FLAGS) -c -o lib/crts.o src/crts.cpp
 
 config_cognitive_engines: src/config_cognitive_engines.cpp
-	g++ $(FLAGS) -o config_cognitive_engines src/config_cognitive_engines.cpp lib/crts.o -lconfig -lliquid
+	g++ $(FLAGS) -o config_cognitive_engines src/config_cognitive_engines.cpp lib/crts.o -lliquid -lconfig -lboost_system 
 
 config_scenario_controllers: src/config_scenario_controllers.cpp
-	g++ $(FLAGS) -o config_scenario_controllers src/config_scenario_controllers.cpp lib/crts.o -lconfig -lliquid
+	g++ $(FLAGS) -o config_scenario_controllers src/config_scenario_controllers.cpp lib/crts.o -lconfig -lliquid -lboost_system
 
 lib/tun.o: include/tun.hpp src/tun.cpp
 	g++ $(FLAGS) -c -o lib/tun.o src/tun.cpp
@@ -36,16 +36,16 @@ lib/interferer.o: include/interferer.hpp src/interferer.cpp
 	g++ $(FLAGS) -c -o lib/interferer.o src/interferer.cpp
 
 logs/convert_logs_bin_to_octave: src/convert_logs_bin_to_octave.cpp
-	g++ $(FLAGS) -o logs/convert_logs_bin_to_octave src/convert_logs_bin_to_octave.cpp -luhd
+	g++ $(FLAGS) -o logs/convert_logs_bin_to_octave src/convert_logs_bin_to_octave.cpp -luhd -lboost_system
 
 crts_interferer: include/interferer.hpp include/crts.hpp src/crts_interferer.cpp src/interferer.cpp src/crts.cpp 
-	g++ $(FLAGS) -o crts_interferer src/crts_interferer.cpp lib/crts.o lib/interferer.o lib/timer.o -luhd -lc -lconfig -lliquid -lpthread
+	g++ $(FLAGS) -o crts_interferer src/crts_interferer.cpp lib/crts.o lib/interferer.o lib/timer.o -luhd -lc -lconfig -lliquid -lpthread -lboost_system
 
 crts_cognitive_radio: include/extensible_cognitive_radio.hpp src/tun.cpp src/extensible_cognitive_radio.cpp src/crts_cognitive_radio.cpp  $(CEs) $(CE_srcs) $(CE_Headers)
-	g++ $(FLAGS) -o crts_cognitive_radio src/crts_cognitive_radio.cpp lib/crts.o lib/timer.o $(CEs) $(CE_srcs) $(LIBS)
+	g++ $(FLAGS) -o crts_cognitive_radio src/crts_cognitive_radio.cpp lib/crts.o lib/timer.o $(CEs) $(CE_srcs) $(LIBS) -lboost_system
 
 crts_controller: include/crts.hpp src/crts.cpp src/crts_controller.cpp $(SCs) $(SC_Headers)
-	g++ $(FLAGS) -o crts_controller src/crts_controller.cpp lib/crts.o lib/timer.o -lconfig -lliquid -lpthread $(SCs)
+	g++ $(FLAGS) -o crts_controller src/crts_controller.cpp lib/crts.o lib/timer.o -lconfig -lliquid -lpthread -lboost_system $(SCs)
 
 install:
 	cp ./.crts_sudoers /etc/sudoers.d/crts # Filename must not have '_' or '.' in name.
