@@ -1,6 +1,8 @@
 This documentation was formatted to create the crts-manual.pdf file using Doxygen which
 doesn't translate super neatly to the github page.
 
+> Please see the `crts-manual.pdf` in this repo for the complete CRTS documentation
+
 \tableofcontents
 # About {#About}
 
