@@ -20,10 +20,16 @@ integrate the CE into CRTS, the header and source files should begin with 'CE_'
 and end in 'hpp' and 'cpp' respectively. This is done to identify the CE 
 sources so that they can be integrated into the ECR code.
 
+Run
+\code{.sh}
+  $ cd crts
+\endcode
+
+Then
 \code{.sh}
   $ mkdir CE_Tutorial_3
-  $ cp example_cognitive_engines/CE_Template/CE_Template.cpp CE_Tutorial_3/CE_Tutorial_3.cpp
-  $ cp example_cognitive_engines/CE_Template/CE_Template.hpp CE_Tutorial_3/CE_Tutorial_3.hpp
+  $ cp cognitive_engines/CE_Template/CE_Template.cpp /cognitive_engines/CE_Tutorial_3/CE_Tutorial_3.cpp
+  $ cp cognitive_engines/CE_Template/CE_Template.hpp /cognitive_engines/CE_Tutorial_3/CE_Tutorial_3.hpp
 \endcode
 
 With these two files we will be defining a new class for our cognitive engine.
@@ -181,7 +187,7 @@ for both nodes.
 \code{.cpp}
   tx_gain = 0;
   CE = "CE_Tutorial_3";
-  print_metrics = 0;
+  print_rx_frame_metrics = 0;
 \endcode
 
 Now we can run the scenario using the same procedure as in the first tutorial. 
@@ -351,7 +357,7 @@ node1 : {
   ce_timeout_ms = 200.0;
 
   // log/report settings
-  print_metrics = 0;
+  print_rx_frame_metrics = 0;
   log_phy_rx = 1;
   log_phy_tx = 1;
   log_net_rx = 1;
@@ -406,7 +412,7 @@ node2 : {
   ce_timeout_ms = 200.0;
 
   // log/report settings
-  print_metrics = 0;
+  print_rx_frame_metrics = 0;
   log_phy_rx = 1;
   log_phy_tx = 1;
   log_net_rx = 1;
