@@ -74,44 +74,10 @@ while the latest development version is available on the main
 Note that because using CRTS involves actively writing and compiling 
 cognitive engine code, it is not installed like traditional software.
 
-### Official Releases
-
-In the following commands 'v1.0' should be replaced with the release version you
-wish to download.
-
-1. Download the latest released version of CRTS from the [Official Releases Page](https://github.com/ericps1/crts/releases):
-
-        $ wget -O crts-v1.0.tar.gz https://github.com/ericps1/crts/archive/v1.0.tar.gz
- 
-2. Unzip the archive and move into the main source tree:
-
-        $ tar xzf crts-v1.0.tar.gz
-        $ cd crts-v1.0/
-
-3. Compile the code with:
-
-        $ make
-
-4. Then configure the system to allow certain networking commands without a password 
-    (CORNET users can skip this step):
-
-        $ sudo make install
-
-The last step should only ever need to be run once. 
-It configures the system to allow all users to run
-certain specific networking commands which are necessary for CRTS.
-They are required because CRTS creates, manipulates, and 
-tears down a virtual network interface upon each run. 
-The commands may be found in the .crts\_sudoers file.
-
-To undo these changes, simply run:
-
-	$ sudo make uninstall
-
 ### Latest Development Version
 1. Download the git repository:
 
-        $ git clone https://github.com/ericps1/crts.git
+        $ git clone git@github.com:ericps1/crts.git
 
 2. Move into the main source tree:
 
