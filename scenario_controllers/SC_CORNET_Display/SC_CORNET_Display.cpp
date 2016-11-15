@@ -40,6 +40,15 @@ SC_CORNET_Display::SC_CORNET_Display(int argc, char** argv) {
       printf("Failed to Connect to server.\n");
       exit(EXIT_FAILURE);
   }
+
+
+  old_mod = 40;
+  old_crc = 6;
+  old_fec0 = 12;
+  old_fec1 = 1;
+  old_freq = 770e6;
+  old_bandwidth = 1e6;
+  old_gain = 20.0;
 }
 
 // destructor
@@ -99,7 +108,11 @@ void SC_CORNET_Display::execute() {
         feedback_struct fs;
         switch (fb.fb_type) 
         {
+
+          //When frequency or bandwidth changes, send a message to the cornet backend 
+          //so it can update the scoreboard display
           case CRTS_TX_FREQ:
+              // Set the type to 1 for scoreboard updates
               fs.type = 1;
               fs.node = fb.node;
               fs.frequency = *(double*)fb.arg;
@@ -109,6 +122,7 @@ void SC_CORNET_Display::execute() {
               printf("Node %i has updated it's transmit frequency to %.1e\n", fb.node, *(double*)fb.arg);
               break;
           case CRTS_TX_RATE:
+              // Set the type to 1 for scoreboard updates
               fs.type = 1;
               fs.node = fb.node;
               fs.bandwidth = *(double*)fb.arg;
@@ -117,12 +131,18 @@ void SC_CORNET_Display::execute() {
               send(TCP_CORNET_Display, (char*)&fs, sizeof(fs), 0);
               printf("Node %i has updated it's transmit rate to %.3e\n", fb.node, *(double*)fb.arg);
               break;
+          // This scenario controller is configured to report link statistics 
+          // once per seconds. When reports are received, send the throughput
+          // to the cornet backend so it can update the display
           case CRTS_RX_STATS:
                 struct ExtensibleCognitiveRadio::rx_statistics rx_stats = 
                     *(struct ExtensibleCognitiveRadio::rx_statistics*) fb.arg;
                 float throughput = rx_stats.throughput;
+                // Set the type to 2 for statistics updates
                 fs.type = 2;
                 fs.node = fb.node;
+                // Use the frequency field for now to send the throughput value
+                // TODO: Create a new struct type for sending throughput
                 fs.frequency = throughput;
                 fs.bandwidth = 0.0;
                 send(TCP_CORNET_Display, (char*)&fs, sizeof(fs), 0);
@@ -130,6 +150,84 @@ void SC_CORNET_Display::execute() {
                 break;
         }
     }
+    // forward commands from CORNET 3D webserver to node
+    fd_set fds;
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 100;
+    FD_ZERO(&fds);
+    FD_SET(TCP_CORNET_Display, &fds);
+    crts_signal_params params;
+    if(select(TCP_CORNET_Display+1, &fds, NULL, NULL, &timeout)) 
+    {
+        int rlen = recv(TCP_CORNET_Display, &params, sizeof(params), 0);
+        if(rlen > 0)
+        {
+            
+            printf("params.node: %u\n", params.node);
+            printf("params.mod: %u\n", params.mod);
+            printf("params.crc: %u\n", params.crc);
+            printf("params.fec0: %u\n", params.fec0);
+            printf("params.fec1: %u\n", params.fec1);
+            printf("params.freq: %f\n", params.freq);
+            printf("params.bandwidth: %f\n", params.bandwidth);
+            printf("params.gain: %f\n", params.gain);
+            
+            //CORNET3D backend sends a 9 when client disconnects
+            //Call killall crts_controller with in turn shuts down all nodes
+            if(params.type == 9)
+            {
+                printf("calling killall\n");
+                system("killall crts_controller");
+                exit(1);
+            }
+
+            if(params.mod >= 0 && params.mod != old_mod)
+            {
+                set_node_parameter(params.node, CRTS_TX_MOD, &params.mod);  
+                old_mod = params.mod;
+            }
+
+            if(params.crc >= 0 && params.crc != old_crc)
+            {
+                set_node_parameter(params.node, CRTS_TX_CRC, &params.crc);
+                old_crc = params.crc;
+            }
+
+            if(params.fec0 >= 0 && params.fec0 != old_fec0)
+            {
+                set_node_parameter(params.node, CRTS_TX_FEC0, &params.fec0);
+                old_fec0 = params.fec0;
+            }   
+
+            if(params.fec1 >= 0 && params.fec1 != old_fec1)
+            {
+                set_node_parameter(params.node, CRTS_TX_FEC1, &params.fec1);
+                old_fec1 = params.fec1;
+            }
+
+            if(params.freq >= 0 && params.freq != old_freq)
+            {
+                set_node_parameter(params.node, CRTS_TX_FREQ, &params.freq);
+                set_node_parameter(params.node == 1 ? 2 : 1, CRTS_RX_FREQ, &params.freq);
+                old_freq = params.freq;
+            }
+
+            if(params.bandwidth >= 0 && params.bandwidth != old_bandwidth)
+            {
+                set_node_parameter(params.node, CRTS_TX_RATE, &params.bandwidth);
+                set_node_parameter(params.node == 1 ? 2 : 1, CRTS_RX_RATE, &params.bandwidth);
+                old_bandwidth = params.bandwidth;
+            }
+
+            if(params.gain >= 0 && params.gain != old_gain)
+            {
+                set_node_parameter(params.node, CRTS_TX_GAIN, &params.gain);
+                old_gain = params.gain;
+            }
+        }
+    }
+
 }
 
 
