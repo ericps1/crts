@@ -425,9 +425,9 @@ void Initialize_CR(struct node_parameters *np, void *ECR_p,
     ECR->set_tx_crc(np->tx_crc);
     ECR->set_tx_fec0(np->tx_fec0);
     ECR->set_tx_fec1(np->tx_fec1);
+    ECR->set_rx_stat_tracking(false, 0.0);
     ECR->set_ce(np->cognitive_engine, argc, argv);
     ECR->reset_log_files();
-    ECR->set_rx_stat_tracking(false, 0.0);
 
     // copy subcarrier allocations if other than liquid-dsp default
     if (np->tx_subcarrier_alloc_method == CUSTOM_SUBCARRIER_ALLOC ||
