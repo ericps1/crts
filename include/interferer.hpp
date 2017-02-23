@@ -4,6 +4,7 @@
 #include <uhd/usrp/multi_usrp.hpp>
 #include <liquid/liquid.h>
 #include "timer.h"
+#include <random>
 
 #define DEFAULT_RUN_TIME 20
 #define DEFAULT_CONTROLLER_IP_ADDRESS "192.168.1.56"
