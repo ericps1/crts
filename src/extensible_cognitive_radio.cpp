@@ -1733,36 +1733,6 @@ void *ECR_tx_worker(void *_arg) {
 
       payload = buffer;
       payload_len = nread;
-      
-      ////////////////////////////////////////////////////////////
-      // Mo 161114
-      int chip_len = 10;
-      int chip[chip_len];
-      int payloadChipped[payload_len*chip_len];
-
-      for(int ii=0; ii<chip_len-1; ii++) {
-        chip[ii] = rand() % 2; //Random sequence made of 0 and 1
-      }
-      
-      for(int jj=0; jj<payload_len-1; jj++) {
-        for(int jjj=0; jjj<chip_len-1; jjj++) {
-          payloadChipped[jj*jjj] = payload[jj] * chip[jjj];
-        }
-      }
-      printf("\n\n-------------Chipped------------\n\n");
-
-      // Compare payload and payloadChipped by printing out
-      for (int ii=0; ii<payload_len; ii++) {
-        printf("%d",payload[ii]);
-        if (ii == payload_len) { printf("\n");  }
-      }
-      
-      for (int ii=0; ii<payload_len*chip_len; ii++) {
-        printf("%d",payloadChipped[ii]);
-        if (ii == payload_len*chip_len) { printf("\n");  }
-      }
-      ////////////////////////////////////////////////////////////
-      
 
       // transmit frame
       if(nread > 0)
