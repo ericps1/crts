@@ -4,7 +4,7 @@
 #include "scenario_controller.hpp"
 #include "CORNET_3D.hpp"
 
-#define CORNET_Display_PORT 4446
+#define CORNET_Display_PORT 4444
 #define CORNET_Display_IP "192.168.1.103"
 
 class SC_CORNET_Display : public ScenarioController {
