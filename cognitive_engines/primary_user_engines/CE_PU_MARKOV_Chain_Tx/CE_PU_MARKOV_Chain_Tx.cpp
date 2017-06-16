@@ -9,8 +9,8 @@
  * Development:  CORNET TESTBED
  * Program subroutine:
 
-//no need to design the transition matrix, just demo.
-/*with 3 STATES theres is 8 possible transitions
+no need to design the transition matrix, just demo.
+with 3 STATES theres is 8 possible transitions
 
                 +-------------------------++--------++--------++---------+
                 |        MARKOV Chain Probability                        |
@@ -71,7 +71,7 @@ void CE_PU_MARKOV_Chain_Tx::execute() {
    // printf("process ................. \n");
     RANDOM_OUTOCME(ECR);
     PU_TX_Behaviour(ECR);
-    PU_RX_Behaviour(ECR);
+    //PU_RX_Behaviour(ECR);
 
     if (ECR->get_tx_freq() == CHANNEL_1) printf("Next State: CHANNEL 1\n");
     else if (ECR->get_tx_freq()== CHANNEL_2) printf("Next State: CHANNEL 2\n");
