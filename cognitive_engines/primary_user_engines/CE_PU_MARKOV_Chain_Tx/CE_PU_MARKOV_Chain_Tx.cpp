@@ -97,33 +97,33 @@ void CE_PU_MARKOV_Chain_Tx::RANDOM_OUTOCME(ExtensibleCognitiveRadio *ECR) {
 void CE_PU_MARKOV_Chain_Tx::PU_TX_Behaviour(ExtensibleCognitiveRadio *ECR) {
   tx_freq = ECR->get_tx_freq();
 
-                    //checking for first state CHANNEL_1
-                    if (tx_freq == CHANNEL_1){
-                    if (state_probability == 0)
-                      ECR->set_tx_freq(CHANNEL_1);
-                    else if(state_probability>=1 || state_probability<4)
-                      ECR->set_tx_freq(CHANNEL_2);
-                    else 
-                      ECR->set_tx_freq(CHANNEL_3);
-                  }
-                    //checking for second state CHANNEL_2
-                  else if (tx_freq == CHANNEL_2){
-                    if (state_probability == 0 )    
-                      ECR->set_tx_freq(CHANNEL_1);
-                    else if(state_probability>=1 || state_probability<6)
-                      ECR->set_tx_freq(CHANNEL_2);
-                    else 
-                      ECR->set_tx_freq(CHANNEL_3);
-                  }
-                    //checking for Third state CHANNEL_3
-                  else
-                  {
-                    if (state_probability == 0)
-                      ECR->set_tx_freq(CHANNEL_1);
-                    else if(state_probability>=1 || state_probability<4)
-                      ECR->set_tx_freq(CHANNEL_2);
-                    else 
-                      ECR->set_tx_freq(CHANNEL_3);
-                  }
+//checking for second state CHANNEL_1
+if (tx_freq == CHANNEL_1){
+    if (state_probability == 0)
+        ECR->set_tx_freq(CHANNEL_1);
+    else if(state_probability>=1 || state_probability<4)
+        ECR->set_tx_freq(CHANNEL_2);
+    else 
+        ECR->set_tx_freq(CHANNEL_3);
+    }
+
+//checking for second state CHANNEL_2
+else if (tx_freq == CHANNEL_2){
+    if (state_probability == 0 )    
+        ECR->set_tx_freq(CHANNEL_1);
+    else if(state_probability>=1 || state_probability<6)
+        ECR->set_tx_freq(CHANNEL_2);
+    else 
+        ECR->set_tx_freq(CHANNEL_3);
+    }
+//checking for Third state CHANNEL_3
+else{
+    if (state_probability == 0)
+        ECR->set_tx_freq(CHANNEL_1);
+    else if(state_probability>=1 || state_probability<4)
+        ECR->set_tx_freq(CHANNEL_2);
+    else 
+        ECR->set_tx_freq(CHANNEL_3);
+    }
 }
 
