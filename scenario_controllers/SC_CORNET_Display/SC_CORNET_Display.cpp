@@ -23,7 +23,7 @@ SC_CORNET_Display::SC_CORNET_Display(int argc, char** argv) {
   addr.sin_addr.s_addr = inet_addr(CORNET_Display_IP);
   addr.sin_port = htons(CORNET_Display_PORT);
 
-  // Attempt to connect client socket to server
+  // Establish network connection with CORNET-3D backend
   int connect_status = 1;
   std::cout << "Waiting for connection from CORNET3D" << std::endl;
   while(connect_status != 0)
@@ -61,11 +61,12 @@ SC_CORNET_Display::~SC_CORNET_Display()
 void SC_CORNET_Display::initialize_node_fb() {
     old_frequencies = new double[sp.num_nodes];
     old_bandwidths = new double[sp.num_nodes];
-
+    //Create and send a num_nodes_struct to tell cornet3d backend how many nodes to expect
     num_nodes_struct nns;
     nns.num_nodes = sp.num_nodes;
     printf("sizeof nns: %lu\n", sizeof(nns));
     send(TCP_CORNET_Display, (char*)&nns, sizeof(nns), 0);
+    //Create and send node_stucts with node information to cornet3d backend
     for(int i = 0; i < sp.num_nodes; i++)
     {
         node_struct ns;
@@ -90,8 +91,9 @@ void SC_CORNET_Display::initialize_node_fb() {
     for(int i=1; i<=sp.num_nodes; i++)
         set_node_parameter(i, CRTS_FB_EN, (void*) &fb_enables);
 
-    double rx_stats_period = 3.0;
-    double rx_stats_report_rate = 1.0;
+    //Set up statistics logging
+    double rx_stats_period = 3.0; //3 second window to average statistics over
+    double rx_stats_report_rate = 1.0; //Report statistics once per second
     for(int i=1; i<=sp.num_nodes; i++)
     {
         set_node_parameter(i, CRTS_RX_STATS, (void*) &rx_stats_period);
@@ -150,7 +152,7 @@ void SC_CORNET_Display::execute() {
                 break;
         }
     }
-    // forward commands from CORNET 3D webserver to node
+    // forward commands from CORNET 3D webserver game controls to nodes
     fd_set fds;
     struct timeval timeout;
     timeout.tv_sec = 0;
