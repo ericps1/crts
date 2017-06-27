@@ -4,8 +4,10 @@
   This Engine is based on a simple cognitive cycle [Observe, analyse, learn and predict]
   to make an optimum Decision about the RF environment
   Features: Sensing 3 channels simultenously 
-  To be added: Making a decision based on Neural Net outputs
-               Training The Neural Net under many conditions like adding an interferer to the scenario
+  To be added: +Making a decision based on Neural Net outputs
+		+Training The Neural Net under many conditions like adding an interferer to the scenario
+		+The generated Data_Set
+		+Neural Network Training Model
 */
 
 
