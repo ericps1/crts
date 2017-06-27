@@ -2,7 +2,7 @@
 /*
  * Author: astro
 
-The uniform random variable generator in liquid simply generates a number evenly distributed
+The uniform random variable generator simply generates a number evenly distributed
 in [CHANNEL1, CHANNEL2, CHANNEL3]
 using the standard rand() method for generating random integers and then divides by the maximum number 
 that can be generated which is 3.
