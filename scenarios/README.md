@@ -92,3 +92,7 @@ perfect frame reception.
 
 This scenarios sweeps the tx gain of two nodes and logs their performance to
 a csv file.
+
+## 15. predictive_model (located in example_scenarios/)
+
+This scenario assumes thate there are two radios primary user (PU) permitted to use equal bandwidth 3 channels and switching between them in a random manner, and cognitive secondry user (SU) which is powered by a simple cognitive cycle [Observe, analyze, learn and predict] to make real time prediction about the primary user activity by indicating channels status.
